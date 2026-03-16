@@ -1,6 +1,9 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { useMutation } from "convex/react";
+import { useConvexAuth } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import { TMDBMovie } from "@/lib/types";
 
 interface MovieListsContextType {
@@ -40,10 +43,19 @@ function loadList(key: string): TMDBMovie[] {
 }
 
 export function MovieListsProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useConvexAuth();
   const [liked, setLiked] = useState<TMDBMovie[]>([]);
   const [watchlist, setWatchlist] = useState<TMDBMovie[]>([]);
   const [watched, setWatched] = useState<TMDBMovie[]>([]);
   const [loaded, setLoaded] = useState(false);
+
+  // Convex mutations — only fire when authenticated
+  const convexAddWatchlist = useMutation(api.lists.addToWatchlist);
+  const convexRemoveWatchlist = useMutation(api.lists.removeFromWatchlist);
+  const convexAddLiked = useMutation(api.lists.addToLiked);
+  const convexRemoveLiked = useMutation(api.lists.removeFromLiked);
+  const convexAddWatched = useMutation(api.lists.addToWatched);
+  const convexRemoveWatched = useMutation(api.lists.removeFromWatched);
 
   // Load all three from localStorage on mount
   useEffect(() => {
@@ -67,49 +79,89 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
   // --- Liked ---
   const isLiked = useCallback((id: number) => liked.some((m) => m.id === id), [liked]);
   const toggleLiked = useCallback((movie: TMDBMovie) => {
-    setLiked((prev) => {
-      const exists = prev.some((m) => m.id === movie.id);
-      return exists ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev];
-    });
-    // Auto-add to watched when liking (you can only like what you've seen)
-    // Unliking does NOT remove from watched — user must undo that manually
-    setWatched((prev) => {
-      const isAlreadyWatched = prev.some((m) => m.id === movie.id);
-      const isCurrentlyLiked = liked.some((m) => m.id === movie.id);
-      // Only auto-add when liking (not when un-liking)
-      if (!isCurrentlyLiked && !isAlreadyWatched) {
-        return [movie, ...prev];
+    const currentlyLiked = liked.some((m) => m.id === movie.id);
+    setLiked((prev) =>
+      currentlyLiked ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+    );
+    // Auto-add to watched when liking
+    if (!currentlyLiked) {
+      setWatched((prev) => {
+        const isAlreadyWatched = prev.some((m) => m.id === movie.id);
+        return isAlreadyWatched ? prev : [movie, ...prev];
+      });
+    }
+    // Sync to Convex
+    if (isAuthenticated) {
+      if (currentlyLiked) {
+        void convexRemoveLiked({ movieId: movie.id });
+      } else {
+        void convexAddLiked({
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterPath: movie.poster_path ?? "",
+        });
       }
-      return prev;
-    });
-  }, [liked]);
+    }
+  }, [liked, isAuthenticated, convexAddLiked, convexRemoveLiked]);
 
   // --- Watchlist ---
   const isInWatchlist = useCallback((id: number) => watchlist.some((m) => m.id === id), [watchlist]);
   const toggleWatchlist = useCallback((movie: TMDBMovie) => {
-    setWatchlist((prev) => {
-      const exists = prev.some((m) => m.id === movie.id);
-      return exists ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev];
-    });
-  }, []);
+    const currentlyIn = watchlist.some((m) => m.id === movie.id);
+    setWatchlist((prev) =>
+      currentlyIn ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+    );
+    // Sync to Convex
+    if (isAuthenticated) {
+      if (currentlyIn) {
+        void convexRemoveWatchlist({ movieId: movie.id });
+      } else {
+        void convexAddWatchlist({
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterPath: movie.poster_path ?? "",
+        });
+      }
+    }
+  }, [watchlist, isAuthenticated, convexAddWatchlist, convexRemoveWatchlist]);
 
   // --- Watched ---
   const isWatched = useCallback((id: number) => watched.some((m) => m.id === id), [watched]);
   const toggleWatched = useCallback((movie: TMDBMovie) => {
-    setWatched((prev) => {
-      const exists = prev.some((m) => m.id === movie.id);
-      return exists ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev];
-    });
-  }, []);
+    const currentlyWatched = watched.some((m) => m.id === movie.id);
+    setWatched((prev) =>
+      currentlyWatched ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+    );
+    // Sync to Convex
+    if (isAuthenticated) {
+      if (currentlyWatched) {
+        void convexRemoveWatched({ movieId: movie.id });
+      } else {
+        void convexAddWatched({
+          movieId: movie.id,
+          movieTitle: movie.title,
+          posterPath: movie.poster_path ?? "",
+        });
+      }
+    }
+  }, [watched, isAuthenticated, convexAddWatched, convexRemoveWatched]);
 
-  // Move from watchlist → watched (removes from watchlist and adds to watched)
+  // Move from watchlist → watched
   const moveToWatched = useCallback((movie: TMDBMovie) => {
     setWatchlist((prev) => prev.filter((m) => m.id !== movie.id));
     setWatched((prev) => {
       const exists = prev.some((m) => m.id === movie.id);
       return exists ? prev : [movie, ...prev];
     });
-  }, []);
+    if (isAuthenticated) {
+      void convexRemoveWatchlist({ movieId: movie.id });
+      void convexAddWatched({
+        movieId: movie.id,
+        movieTitle: movie.title,
+        posterPath: movie.poster_path ?? "",
+      });
+    }
+  }, [isAuthenticated, convexRemoveWatchlist, convexAddWatched]);
 
   return (
     <MovieListsContext.Provider
@@ -137,15 +189,12 @@ export function useWatchlist() {
     liked, isLiked, toggleLiked,
     watchlist, isInWatchlist, toggleWatchlist,
   } = useMovieLists();
-  // For pages that only need the old watchlist shape, expose liked as the watchlist
-  // (recommendations are now driven by liked)
   return {
-    watchlist: liked,    // recommendations engine uses liked now
+    watchlist: liked,
     isInWatchlist: isLiked,
     toggleWatchlist: toggleLiked,
     clearWatchlist: () => {},
     count: liked.length,
-    // Also expose the real watchlist for components that need it
     realWatchlist: watchlist,
     isInRealWatchlist: isInWatchlist,
     toggleRealWatchlist: toggleWatchlist,
