@@ -45,16 +45,23 @@ export default function SignInPage() {
         router.push("/");
       }
     } catch (err: any) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.toLowerCase().includes("verif")) {
-        setPendingEmail(email);
-        setStep("email-verify");
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      if (step === "signUp") {
+        // For signup: only block if email is truly duplicate
+        // Any other error (e.g. Resend failing) means account was created — show verify step
+        if (msg.includes("already") || msg.includes("duplicate") || msg.includes("exists")) {
+          setError("An account with this email already exists. Please sign in.");
+        } else {
+          setPendingEmail(email);
+          setStep("email-verify");
+        }
       } else {
-        setError(
-          step === "signIn"
-            ? "Invalid email or password"
-            : "Could not create account. Email may already be in use."
-        );
+        if (msg.includes("verif")) {
+          setPendingEmail(email);
+          setStep("email-verify");
+        } else {
+          setError("Invalid email or password.");
+        }
       }
     } finally {
       setLoading(false);
