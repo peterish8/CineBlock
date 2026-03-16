@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --theme-primary: #FFE156;
+}
+
+body.theme-netflix {
+  --theme-primary: #E50914;
+}
+
+body {
+  background: #0D0D0D;
+  color: #F0F0F0;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0D0D0D; }
+::-webkit-scrollbar-thumb {
+  background: #3A3A3A;
+  border: 2px solid #0D0D0D;
+}
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ─── SELECTION ─── */
+::selection {
+  background: var(--theme-primary);
+  color: #0D0D0D;
+}
+
+/* ─── NEO-BRUTALIST COMPONENTS ─── */
+@layer components {
+  /* Hard-edged card */
+  .brutal-card {
+    background: #161616;
+    border: 3px solid #3A3A3A;
+    box-shadow: 4px 4px 0px 0px #3A3A3A;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+  }
+  .brutal-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px 0px var(--theme-primary);
+    border-color: var(--theme-primary);
+  }
+
+  /* Input field */
+  .brutal-input {
+    background: #161616;
+    border: 3px solid #3A3A3A;
+    box-shadow: 3px 3px 0px 0px #3A3A3A;
+    color: #F0F0F0;
+    outline: none;
+    transition: all 0.1s ease;
+  }
+  .brutal-input:focus {
+    border-color: var(--theme-primary);
+    box-shadow: 3px 3px 0px 0px var(--theme-primary);
+  }
+
+  /* Select dropdown */
+  .brutal-select {
+    background: #161616;
+    border: 2px solid #3A3A3A;
+    box-shadow: 2px 2px 0px 0px #3A3A3A;
+    color: #F0F0F0;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  .brutal-select:focus {
+    border-color: #B8FF57;
+    box-shadow: 2px 2px 0px 0px #B8FF57;
+  }
+
+  /* Button */
+  .brutal-btn {
+    background: #1E1E1E;
+    border: 2px solid #3A3A3A;
+    box-shadow: 3px 3px 0px 0px #3A3A3A;
+    color: #F0F0F0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s ease;
+  }
+  .brutal-btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0px 0px var(--theme-primary);
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+  }
+  .brutal-btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  /* Chip / tag */
+  .brutal-chip {
+    background: #1E1E1E;
+    border: 2px solid #3A3A3A;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    transition: all 0.1s ease;
+  }
+
+  /* Poster card */
+  .brutal-poster {
+    background: #161616;
+    border: 3px solid #3A3A3A;
+    box-shadow: 4px 4px 0px 0px #3A3A3A;
+    overflow: hidden;
+    transition: all 0.12s ease;
+    cursor: pointer;
+  }
+  .brutal-poster:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 7px 7px 0px 0px var(--theme-primary);
+    border-color: var(--theme-primary);
+  }
+
+  /* Shimmer */
+  .brutal-shimmer {
+    background: #161616;
+    border: 3px solid #2A2A2A;
+    position: relative;
+    overflow: hidden;
+  }
+  .brutal-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 25%, #1E1E1E 37%, transparent 63%);
+    background-size: 200% 100%;
+    animation: shimmerSlide 1.5s ease-in-out infinite;
+  }
+
+  /* Modal overlay */
+  .brutal-modal-overlay {
+    background: rgba(0, 0, 0, 0.85);
+  }
+}
+
+@keyframes shimmerSlide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Select option styling for dark */
+option {
+  background: #161616;
+  color: #F0F0F0;
+}

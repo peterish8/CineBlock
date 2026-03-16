@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime Video</title>
+  <meta name="description" content="Watch movies, TV shows, and more on Prime Video. Stream award-winning Amazon Originals and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Amazon+Ember:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- TOP NAV -->
+  <header class="top-nav" id="top-nav">
+    <div class="nav-left">
+      <div class="prime-logo" id="prime-logo">
+        <svg class="prime-logo-svg" viewBox="0 0 80 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="22" font-family="Inter,sans-serif" font-weight="700" font-size="22" fill="white" letter-spacing="-0.5">prime</text>
+          <path d="M2 26 Q40 34 75 26" stroke="#00A8E1" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="prime-logo-video">video</span>
+      </div>
+      <nav class="nav-links" id="nav-links">
+        <a href="#" class="nav-link active" data-section="home" id="nav-home">Home</a>
+        <a href="#" class="nav-link" data-section="movies" id="nav-movies">Movies</a>
+        <a href="#" class="nav-link" data-section="tv" id="nav-tv">TV Shows</a>
+        <a href="#" class="nav-link" data-section="sports" id="nav-sports">Sports</a>
+        <a href="#" class="nav-link" data-section="live" id="nav-live">Live TV</a>
+        <div class="nav-divider"></div>
+        <a href="#" class="nav-link channel-link" id="nav-prime-ch">
+          <span class="channel-badge prime-ch">prime</span>
+        </a>
+        <a href="#" class="nav-link channel-link" id="nav-max">
+          <span class="channel-badge max-ch">max</span>
+        </a>
+        <a href="#" class="nav-link channel-link" id="nav-paramount">
+          <span class="channel-text">Paramount+</span>
+        </a>
+        <a href="#" class="nav-link subscriptions-link" id="nav-subs">
+          <svg viewBox="0 0 20 20" fill="none" class="sub-icon"><rect x="1" y="1" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="1" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="11" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          Subscriptions
+        </a>
+      </nav>
+    </div>
+    <div class="nav-right">
+      <button class="nav-icon-btn" id="btn-search" title="Search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button class="nav-icon-btn" id="btn-grid" title="Browse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </button>
+      <button class="nav-icon-btn" id="btn-watchlist" title="My Stuff">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16l-7-3.5L5 21V5z"/></svg>
+      </button>
+      <div class="nav-profile" id="nav-profile">
+        <div class="avatar">P</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO ROTATOR -->
+  <section class="hero-rotator" id="hero-rotator">
+    <div class="hero-slides" id="hero-slides">
+
+      <!-- Slide 1: Rings of Power -->
+      <div class="hero-slide active" data-index="0">
+        <div class="hero-bg" style="background-image: url('assets/hero_rings_of_power.png')"></div>
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+          <div class="hero-prime-badge">
+            <svg viewBox="0 0 60 22" fill="none" class="hero-prime-svg"><text x="0" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="15" fill="white">prime</text><path d="M2 19 Q30 25 58 19" stroke="#00A8E1" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <div class="hero-title-art">
+            <div class="hero-subtitle-small">THE LORD OF THE RINGS</div>
+            <div class="hero-main-title">THE <em>RINGS</em> OF POWER</div>
+          </div>
+          <div class="hero-meta-tag new-season">New season</div>
+          <p class="hero-synopsis">Sauron has returned. Cast out by Galadriel, the Dark Lord must rely on his own cunning to forge the Rings of Power.</p>
+          <div class="hero-actions">
+            <button class="btn-details" id="hero-details-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              More details
+            </button>
+            <button class="btn-play-hero" id="hero-play-0">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Play S2 E1
+            </button>
+          </div>
+          <div class="hero-included">
+            <svg viewBox="0 0 20 20" fill="none" class="check-circle-blue"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Included with Prime
+          </div>
+        </div>
+        <div class="hero-rating-badge">TV-14</div>
+        <div class="hero-controls">
+          <button class="hero-ctrl-btn" id="hero-mute-0" title="Toggle mute">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.54,8.46a5,5,0,0,1,0,7.07"/><path d="M19.07,4.93a10,10,0,0,1,0,14.14"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Slide 2: Fallout -->
+      <div class="hero-slide" data-index="1">
+        <div class="hero-bg" style="background-image: url('assets/hero_fallout.png')"></div>
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+          <div class="hero-prime-badge">
+            <svg viewBox="0 0 60 22" fill="none" class="hero-prime-svg"><text x="0" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="15" fill="white">prime</text><path d="M2 19 Q30 25 58 19" stroke="#00A8E1" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <div class="hero-title-art">
+            <div class="hero-main-title" style="font-size:clamp(2.2rem,6vw,5rem);">FALLOUT</div>
+          </div>
+          <div class="hero-meta-tag">Season 2 Coming Soon</div>
+          <p class="hero-synopsis">The end of the world is just the beginning. When a nuclear apocalypse destroys civilization, a vault dweller emerges into the wasteland.</p>
+          <div class="hero-actions">
+            <button class="btn-details" id="hero-details-1">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              More details
+            </button>
+            <button class="btn-play-hero" id="hero-play-1">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Play S1 E1
+            </button>
+          </div>
+          <div class="hero-included">
+            <svg viewBox="0 0 20 20" fill="none" class="check-circle-blue"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Included with Prime
+          </div>
+        </div>
+        <div class="hero-rating-badge">TV-MA</div>
+      </div>
+
+      <!-- Slide 3: Reacher -->
+      <div class="hero-slide" data-index="2">
+        <div class="hero-bg" style="background-image: url('assets/hero_reacher.png')"></div>
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+          <div class="hero-prime-badge">
+            <svg viewBox="0 0 60 22" fill="none" class="hero-prime-svg"><text x="0" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="15" fill="white">prime</text><path d="M2 19 Q30 25 58 19" stroke="#00A8E1" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <div class="hero-title-art">
+            <div class="hero-main-title" style="font-size:clamp(2.5rem,7vw,6rem); letter-spacing:0.08em;">REACHER</div>
+          </div>
+          <div class="hero-meta-tag new-season">New season</div>
+          <p class="hero-synopsis">Jack Reacher, a lone wolf ex-military man, drifts into a small town and is framed for murder. He must uncover the truth.</p>
+          <div class="hero-actions">
+            <button class="btn-details" id="hero-details-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              More details
+            </button>
+            <button class="btn-play-hero" id="hero-play-2">
+              <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+              Play S3 E1
+            </button>
+          </div>
+          <div class="hero-included">
+            <svg viewBox="0 0 20 20" fill="none" class="check-circle-blue"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Included with Prime
+          </div>
+        </div>
+        <div class="hero-rating-badge">TV-14</div>
+      </div>
+
+    </div>
+
+    <!-- Nav arrows -->
+    <button class="hero-arrow hero-arrow-left" id="hero-prev" title="Previous">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="hero-arrow hero-arrow-right" id="hero-next" title="Next">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
+
+    <!-- Dot indicators -->
+    <div class="hero-dots" id="hero-dots">
+      <button class="hero-dot active" data-slide="0" id="dot-0"></button>
+      <button class="hero-dot" data-slide="1" id="dot-1"></button>
+      <button class="hero-dot" data-slide="2" id="dot-2"></button>
+    </div>
+  </section>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+
+    <!-- Row: Prime movies -->
+    <section class="content-row" id="row-prime-movies">
+      <div class="row-header">
+        <h2 class="row-title">Prime movies</h2>
+        <a href="#" class="row-see-all" id="see-all-prime-movies">See all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="carousel-wrapper">
+        <button class="carousel-arrow carousel-arrow-left" id="carousel-prev-0" title="Scroll left">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="cards-track" id="track-0">
+          <div class="content-card" data-type="prime" data-id="card-idea" id="card-idea">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/poster_idea_of_you.png" alt="The Idea of You" loading="lazy" />
+              <div class="card-flag prime-flag">
+                <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="card-meta-overlay">
+                <div class="card-meta-title">The Idea of You</div>
+                <div class="card-meta-info">
+                  <span class="card-year">2024</span>
+                  <span class="card-rating-badge">U/A 16+</span>
+                  <span class="card-imdb"><svg viewBox="0 0 16 16" fill="#F5C518" class="star-svg"><polygon points="8,2 10,6.5 15,7 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,7 6,6.5"/></svg> 6.7</span>
+                </div>
+                <p class="card-synopsis">A romance blossoms between a 40-year-old single mother and her daughter's favorite pop star.</p>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff">
+                    <span class="watchlist-add">+</span>
+                    <span class="watchlist-check" style="display:none;">✓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" data-type="prime" data-id="card-drama" id="card-drama">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/poster_couple_drama.png" alt="Drama" loading="lazy" />
+              <div class="card-flag prime-flag">
+                <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="card-meta-overlay">
+                <div class="card-meta-title">Upgraded</div>
+                <div class="card-meta-info">
+                  <span class="card-year">2024</span>
+                  <span class="card-rating-badge">U/A 13+</span>
+                  <span class="card-imdb"><svg viewBox="0 0 16 16" fill="#F5C518" class="star-svg"><polygon points="8,2 10,6.5 15,7 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,7 6,6.5"/></svg> 6.2</span>
+                </div>
+                <p class="card-synopsis">An art intern accidentally gets upgraded to first class and falls for a charming British man.</p>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff">
+                    <span class="watchlist-add">+</span>
+                    <span class="watchlist-check" style="display:none;">✓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" data-type="prime" data-id="card-my-old" id="card-my-old">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/poster_my_old_ass.png" alt="My Old Ass" loading="lazy" />
+              <div class="card-flag prime-flag">
+                <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="card-meta-overlay">
+                <div class="card-meta-title">My Old Ass</div>
+                <div class="card-meta-info">
+                  <span class="card-year">2024</span>
+                  <span class="card-rating-badge">U/A 16+</span>
+                  <span class="card-imdb"><svg viewBox="0 0 16 16" fill="#F5C518" class="star-svg"><polygon points="8,2 10,6.5 15,7 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,7 6,6.5"/></svg> 7.2</span>
+                </div>
+                <p class="card-synopsis">A college student gets life advice from her 39-year-old self via a mushroom trip — until a mysterious stranger complicates everything.</p>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff">
+                    <span class="watchlist-add">+</span>
+                    <span class="watchlist-check" style="display:none;">✓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" data-type="tvod" data-id="card-jackpot" id="card-jackpot">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/poster_jackpot.png" alt="Jackpot!" loading="lazy" />
+              <div class="card-flag tvod-flag">
+                <svg viewBox="0 0 20 20" fill="none" class="tvod-bag"><path d="M7 7V5a5 5 0 0110 0v2" stroke="#FFD700" stroke-width="1.5"/><rect x="4" y="7" width="12" height="11" rx="2" fill="#FFD700"/><text x="10" y="16" text-anchor="middle" font-size="7" fill="#1a1a1a" font-weight="bold">$</text></svg>
+              </div>
+              <div class="card-meta-overlay">
+                <div class="card-meta-title">Jackpot!</div>
+                <div class="card-meta-info">
+                  <span class="card-year">2024</span>
+                  <span class="card-rating-badge">U/A 16+</span>
+                  <span class="card-imdb"><svg viewBox="0 0 16 16" fill="#F5C518" class="star-svg"><polygon points="8,2 10,6.5 15,7 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,7 6,6.5"/></svg> 5.8</span>
+                </div>
+                <p class="card-synopsis">In a world where winning the lottery means anyone can kill you, a rookie cop must protect the winner.</p>
+                <div class="card-actions">
+                  <button class="card-play-btn tvod-play" title="Rent or Buy">Rent $3.99</button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff">
+                    <span class="watchlist-add">+</span>
+                    <span class="watchlist-check" style="display:none;">✓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card" data-type="prime" data-id="card-roadhouse" id="card-roadhouse">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/poster_idea_of_you.png" alt="Road House" loading="lazy" style="filter:hue-rotate(180deg) saturate(0.8)"/>
+              <div class="card-flag prime-flag">
+                <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <div class="card-meta-overlay">
+                <div class="card-meta-title">Road House</div>
+                <div class="card-meta-info">
+                  <span class="card-year">2024</span>
+                  <span class="card-rating-badge">U/A 18+</span>
+                  <span class="card-imdb"><svg viewBox="0 0 16 16" fill="#F5C518" class="star-svg"><polygon points="8,2 10,6.5 15,7 11.5,10 12.5,15 8,12.5 3.5,15 4.5,10 1,7 6,6.5"/></svg> 6.6</span>
+                </div>
+                <p class="card-synopsis">An ex-UFC fighter takes a job as a bouncer at a rough Florida Keys roadhouse, only to discover nothing is what it seems.</p>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff">
+                    <span class="watchlist-add">+</span>
+                    <span class="watchlist-check" style="display:none;">✓</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-arrow carousel-arrow-right" id="carousel-next-0" title="Scroll right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Row: Continue Watching -->
+    <section class="content-row" id="row-continue-watching">
+      <div class="row-header">
+        <h2 class="row-title">Continue watching</h2>
+        <a href="#" class="row-see-all" id="see-all-continue">See all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="carousel-wrapper">
+        <button class="carousel-arrow carousel-arrow-left" id="carousel-prev-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="cards-track landscape-track" id="track-1">
+          <div class="content-card landscape-card" data-type="prime" id="card-rop-landscape">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/hero_rings_of_power.png" alt="Rings of Power" loading="lazy" />
+              <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="progress-bar-container"><div class="progress-bar-fill" style="width:65%"></div></div>
+              <div class="card-meta-overlay landscape-overlay">
+                <div class="card-meta-title">Rings of Power</div>
+                <div class="card-meta-info"><span class="card-year">S2 E5</span><span class="card-rating-badge">TV-14</span></div>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Continue"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card landscape-card" data-type="prime" id="card-fallout-landscape">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/hero_fallout.png" alt="Fallout" loading="lazy" />
+              <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="progress-bar-container"><div class="progress-bar-fill" style="width:30%"></div></div>
+              <div class="card-meta-overlay landscape-overlay">
+                <div class="card-meta-title">Fallout</div>
+                <div class="card-meta-info"><span class="card-year">S1 E3</span><span class="card-rating-badge">TV-MA</span></div>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Continue"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card landscape-card" data-type="prime" id="card-reacher-landscape">
+            <div class="card-inner">
+              <img class="card-poster" src="assets/hero_reacher.png" alt="Reacher" loading="lazy" />
+              <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <div class="progress-bar-container"><div class="progress-bar-fill" style="width:80%"></div></div>
+              <div class="card-meta-overlay landscape-overlay">
+                <div class="card-meta-title">Reacher</div>
+                <div class="card-meta-info"><span class="card-year">S3 E7</span><span class="card-rating-badge">TV-14</span></div>
+                <div class="card-actions">
+                  <button class="card-play-btn" title="Continue"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button>
+                  <button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-arrow carousel-arrow-right" id="carousel-next-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- Row: Top 10 -->
+    <section class="content-row" id="row-top10">
+      <div class="row-header">
+        <h2 class="row-title">Top 10 in India <span class="row-title-accent">today</span></h2>
+        <a href="#" class="row-see-all" id="see-all-top10">See all <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></a>
+      </div>
+      <div class="carousel-wrapper">
+        <button class="carousel-arrow carousel-arrow-left" id="carousel-prev-2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="cards-track top10-track" id="track-2">
+          <div class="top10-card-wrap" id="top10-1">
+            <div class="top10-number">1</div>
+            <div class="content-card" data-type="prime">
+              <div class="card-inner">
+                <img class="card-poster" src="assets/poster_my_old_ass.png" alt="My Old Ass" loading="lazy"/>
+                <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="card-meta-overlay">
+                  <div class="card-meta-title">My Old Ass</div>
+                  <div class="card-meta-info"><span class="card-year">2024</span><span class="card-rating-badge">U/A 16+</span></div>
+                  <div class="card-actions"><button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button><button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="top10-card-wrap" id="top10-2">
+            <div class="top10-number">2</div>
+            <div class="content-card" data-type="prime">
+              <div class="card-inner">
+                <img class="card-poster" src="assets/poster_idea_of_you.png" alt="The Idea of You" loading="lazy"/>
+                <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="card-meta-overlay">
+                  <div class="card-meta-title">The Idea of You</div>
+                  <div class="card-meta-info"><span class="card-year">2024</span><span class="card-rating-badge">U/A 16+</span></div>
+                  <div class="card-actions"><button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button><button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="top10-card-wrap" id="top10-3">
+            <div class="top10-number">3</div>
+            <div class="content-card" data-type="tvod">
+              <div class="card-inner">
+                <img class="card-poster" src="assets/poster_jackpot.png" alt="Jackpot" loading="lazy"/>
+                <div class="card-flag tvod-flag"><svg viewBox="0 0 20 20" fill="none" class="tvod-bag"><path d="M7 7V5a5 5 0 0110 0v2" stroke="#FFD700" stroke-width="1.5"/><rect x="4" y="7" width="12" height="11" rx="2" fill="#FFD700"/><text x="10" y="16" text-anchor="middle" font-size="7" fill="#1a1a1a" font-weight="bold">$</text></svg></div>
+                <div class="card-meta-overlay">
+                  <div class="card-meta-title">Jackpot!</div>
+                  <div class="card-meta-info"><span class="card-year">2024</span><span class="card-rating-badge">U/A 16+</span></div>
+                  <div class="card-actions"><button class="card-play-btn tvod-play" title="Rent">Rent $3.99</button><button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="top10-card-wrap" id="top10-4">
+            <div class="top10-number">4</div>
+            <div class="content-card" data-type="prime">
+              <div class="card-inner">
+                <img class="card-poster" src="assets/poster_couple_drama.png" alt="Couple Drama" loading="lazy"/>
+                <div class="card-flag prime-flag"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="9" fill="#0066CC"/><path d="M6 10l3 3 5-6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                <div class="card-meta-overlay">
+                  <div class="card-meta-title">The Pradeep Pillai Story</div>
+                  <div class="card-meta-info"><span class="card-year">2024</span><span class="card-rating-badge">U/A 16+</span></div>
+                  <div class="card-actions"><button class="card-play-btn" title="Play"><svg viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg></button><button class="card-watchlist-btn" title="Add to My Stuff"><span class="watchlist-add">+</span><span class="watchlist-check" style="display:none;">✓</span></button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="carousel-arrow carousel-arrow-right" id="carousel-next-2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- VIDEO PLAYER OVERLAY -->
+  <div class="player-overlay" id="player-overlay" style="display:none;">
+    <div class="player-bg" id="player-bg"></div>
+    <div class="player-ui" id="player-ui">
+      <div class="player-top-bar">
+        <button class="player-back-btn" id="player-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        </button>
+        <div class="player-title-bar" id="player-title-bar">The Rings of Power</div>
+        <div class="player-top-right">
+          <button class="player-xray-btn" id="xray-toggle">X-Ray</button>
+        </div>
+      </div>
+
+      <!-- X-Ray Panel -->
+      <div class="xray-panel" id="xray-panel" style="display:none;">
+        <div class="xray-tabs">
+          <button class="xray-tab active" id="xray-cast-tab">Cast</button>
+          <button class="xray-tab" id="xray-trivia-tab">Trivia</button>
+          <button class="xray-tab" id="xray-music-tab">Music</button>
+        </div>
+        <div class="xray-content" id="xray-content">
+          <div class="xray-cast-row">
+            <div class="xray-actor"><div class="xray-avatar" style="background:#2a4a7f">M</div><div class="xray-name">Morfydd Clark</div></div>
+            <div class="xray-actor"><div class="xray-avatar" style="background:#4a2a7f">C</div><div class="xray-name">Charlie Vickers</div></div>
+            <div class="xray-actor"><div class="xray-avatar" style="background:#7f4a2a">R</div><div class="xray-name">Robert Aramayo</div></div>
+            <div class="xray-actor"><div class="xray-avatar" style="background:#2a7f4a">I</div><div class="xray-name">Ismael Cruz</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="player-center-controls" id="player-center">
+        <button class="player-rewind" id="player-rewind">
+          <svg viewBox="0 0 48 48" fill="white"><text x="24" y="36" text-anchor="middle" font-size="14" fill="white">10</text><path d="M24 8C14.06 8 6 16.06 6 26s8.06 18 18 18 18-8.06 18-18" stroke="white" stroke-width="3" fill="none"/><polygon points="22,4 10,8 22,12" fill="white"/></svg>
+        </button>
+        <button class="player-play-pause" id="player-play-pause">
+          <svg viewBox="0 0 24 24" fill="white" id="play-pause-icon"><polygon points="5,3 19,12 5,21"/></svg>
+        </button>
+        <button class="player-forward" id="player-forward">
+          <svg viewBox="0 0 48 48" fill="white"><text x="24" y="36" text-anchor="middle" font-size="14" fill="white">10</text><path d="M24 8C33.94 8 42 16.06 42 26s-8.06 18-18 18-18-8.06 18-18" stroke="white" stroke-width="3" fill="none"/><polygon points="26,4 38,8 26,12" fill="white"/></svg>
+        </button>
+      </div>
+
+      <div class="player-bottom-bar">
+        <div class="player-scrubber-wrap">
+          <input type="range" class="player-scrubber" id="player-scrubber" min="0" max="100" value="22" />
+          <div class="scrubber-time"><span id="current-time">14:28</span> / <span id="total-time">58:42</span></div>
+        </div>
+        <div class="player-bottom-controls">
+          <button class="player-ctrl" id="player-vol">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/><path d="M15.54,8.46a5,5,0,0,1,0,7.07"/></svg>
+          </button>
+          <span class="player-ep-title">S2:E5 · Rings of Power</span>
+          <div class="player-right-controls">
+            <button class="player-ctrl" id="player-subs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="14" y2="16"/></svg>
+            </button>
+            <button class="player-ctrl" id="player-settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="player-ctrl" id="player-fullscreen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="15,3 21,3 21,9"/><polyline points="9,21 3,21 3,15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
