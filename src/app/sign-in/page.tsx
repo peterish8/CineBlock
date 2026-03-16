@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
-
+import { useConvexAuth } from "convex/react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, KeyRound } from "lucide-react";
 import Link from "next/link";
 
@@ -15,6 +16,14 @@ type Step =
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
+  const { isAuthenticated } = useConvexAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/");
+    }
+  }, [isAuthenticated, router]);
 
   const [step, setStep] = useState<Step>("signIn");
   const [pendingEmail, setPendingEmail] = useState("");
@@ -42,7 +51,7 @@ export default function SignInPage() {
         setPendingEmail(email);
         setStep("email-verify");
       } else {
-        window.location.href = "/";
+        // auth state update triggers useEffect redirect
       }
     } catch (err: any) {
       const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
@@ -105,7 +114,7 @@ export default function SignInPage() {
     formData.set("flow", "reset-verification");
     try {
       await signIn("password", formData);
-      window.location.href = "/";
+      // auth state update triggers useEffect redirect
     } catch (err: any) {
       setError("Invalid or expired code. Please try again.");
     } finally {
@@ -123,7 +132,7 @@ export default function SignInPage() {
     formData.set("flow", "email-verification");
     try {
       await signIn("password", formData);
-      window.location.href = "/";
+      // auth state update triggers useEffect redirect
     } catch (err: any) {
       setError("Invalid or expired code. Please try again.");
     } finally {
