@@ -18,7 +18,7 @@ export default function ProfilePage() {
   const liked = useQuery(api.lists.getLiked);
   const upsertUser = useMutation(api.users.upsertUser);
   const deleteAccount = useMutation(api.users.deleteAccount);
-  const { signOut } = useAuthActions();
+  const { signOut, signIn } = useAuthActions();
   const router = useRouter();
 
   const [editingName, setEditingName] = useState(false);
