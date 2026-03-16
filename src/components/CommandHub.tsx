@@ -7,6 +7,9 @@ import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/consta
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 
+// ─── Feature Flags ────────────────────────────────────────────────────────────
+const SHOW_STREAMING = false; // set to true when streaming page is ready
+
 interface CommandHubProps {
   onFilterChange: (filters: {
     query: string;
@@ -202,7 +205,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             {browseOpen && (
               <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-bg border-3 border-brutal-border shadow-brutal z-50 animate-pop-in">
                 {[
-                  { href: "/streaming",  icon: Tv2,       label: "STREAMING",   accent: "hover:border-l-brutal-yellow",  color: "text-brutal-yellow"  },
+                  ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", accent: "hover:border-l-brutal-yellow", color: "text-brutal-yellow" }] : []),
                   { href: "/box-office", icon: Trophy,    label: "BOX OFFICE",  accent: "hover:border-l-brutal-lime",    color: "text-brutal-lime"    },
                   { href: "/collections",icon: Box,       label: "COLLECTIONS", accent: "hover:border-l-brutal-violet",  color: "text-brutal-violet"  },
                   { href: "/news",       icon: Newspaper, label: "NEWS",        accent: "hover:border-l-brutal-orange",  color: "text-brutal-orange"  },
