@@ -37,10 +37,15 @@ export default function SignInPage() {
     const email = formData.get("email") as string;
     try {
       await signIn("password", formData);
-      router.push("/");
+      if (step === "signUp") {
+        // Verification email sent — show OTP step
+        setPendingEmail(email);
+        setStep("email-verify");
+      } else {
+        router.push("/");
+      }
     } catch (err: any) {
       const msg = err instanceof Error ? err.message : "";
-      // Convex Auth throws when email verification is required
       if (msg.toLowerCase().includes("verif")) {
         setPendingEmail(email);
         setStep("email-verify");
