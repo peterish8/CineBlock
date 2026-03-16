@@ -29,7 +29,7 @@ export const ResendOTPPasswordReset = {
   from: "CineBlock <onboarding@resend.dev>",
   maxAge: 60 * 15, // 15 minutes
   generateVerificationToken: generateOTP,
-  async sendVerificationRequest({ identifier: email, token }) {
+  async sendVerificationRequest({ identifier: email, token }: { identifier: string; token: string; expires: Date; provider: Record<string, unknown> }) {
     await sendEmail(
       email,
       "Reset your CineBlock password",
@@ -46,7 +46,7 @@ export const ResendOTPEmailVerification = {
   from: "CineBlock <onboarding@resend.dev>",
   maxAge: 60 * 15, // 15 minutes
   generateVerificationToken: generateOTP,
-  async sendVerificationRequest({ identifier: email, token }) {
+  async sendVerificationRequest({ identifier: email, token }: { identifier: string; token: string; expires: Date; provider: Record<string, unknown> }) {
     await sendEmail(
       email,
       "Verify your CineBlock email",
