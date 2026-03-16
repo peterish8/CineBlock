@@ -74,7 +74,15 @@ export default function SignInPage() {
       setPendingEmail(email);
       setStep("reset-verify");
     } catch (err: any) {
-      setError("No account found with that email.");
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      if (msg.includes("not found") || msg.includes("no account") || msg.includes("invalid") || msg.includes("credentials")) {
+        setError("No account found with that email.");
+      } else {
+        // Account exists but something else failed (e.g. email sending)
+        // Still proceed to verify step so user can try the code if email arrived
+        setPendingEmail(email);
+        setStep("reset-verify");
+      }
     } finally {
       setLoading(false);
     }
