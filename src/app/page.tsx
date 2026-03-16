@@ -250,6 +250,34 @@ function HomeContent() {
   );
 }
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "CineBlock",
+  url: "https://cineblock.in",
+  description: "Free cinema discovery app to find, track and match movies with friends.",
+  applicationCategory: "EntertainmentApplication",
+  operatingSystem: "Web",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "Movie discovery by genre, language and mood",
+    "Personal watchlist and liked movies tracker",
+    "Watch rooms to match movies with friends",
+    "Box office charts and trending films",
+    "Personalised movie recommendations",
+    "Cinema news feed",
+  ],
+  keywords: "cineblock, cinema discovery, find movies, movie finder, cinema app, watch together, movie recommendations",
+};
+
 export default function Home() {
-  return <HomeContent />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <HomeContent />
+    </>
+  );
 }

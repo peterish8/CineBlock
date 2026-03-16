@@ -1,5 +1,3 @@
-import type { EmailConfig } from "@auth/core/providers/email.js";
-
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
@@ -24,7 +22,7 @@ async function sendEmail(to: string, subject: string, body: string) {
   }
 }
 
-export const ResendOTPPasswordReset: EmailConfig = {
+export const ResendOTPPasswordReset = {
   id: "resend-otp-reset",
   type: "email",
   name: "ResendOTPReset",
@@ -41,7 +39,7 @@ export const ResendOTPPasswordReset: EmailConfig = {
   options: {},
 };
 
-export const ResendOTPEmailVerification: EmailConfig = {
+export const ResendOTPEmailVerification = {
   id: "resend-otp-verify",
   type: "email",
   name: "ResendOTPVerify",
