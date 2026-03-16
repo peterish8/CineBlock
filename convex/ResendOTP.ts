@@ -24,7 +24,7 @@ async function sendEmail(to: string, subject: string, body: string) {
 
 export const ResendOTPPasswordReset = {
   id: "resend-otp-reset",
-  type: "email",
+  type: "email" as const,
   name: "ResendOTPReset",
   from: "CineBlock <onboarding@resend.dev>",
   maxAge: 60 * 15, // 15 minutes
@@ -41,7 +41,7 @@ export const ResendOTPPasswordReset = {
 
 export const ResendOTPEmailVerification = {
   id: "resend-otp-verify",
-  type: "email",
+  type: "email" as const,
   name: "ResendOTPVerify",
   from: "CineBlock <onboarding@resend.dev>",
   maxAge: 60 * 15, // 15 minutes
