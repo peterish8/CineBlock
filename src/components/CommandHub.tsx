@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
@@ -139,10 +140,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       {/* Single compact bar: logo | search | controls */}
       <div className="w-full px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3">
         {/* Logo — left */}
-        <h1 className="hidden sm:block font-display sm:text-2xl font-bold tracking-tight select-none shrink-0" title="CineBlock">
-          <span className="text-brutal-white">CINE</span>
-          <span className="text-brutal-yellow">BLOCK</span>
-        </h1>
+        <Link href="/" className="hidden sm:block shrink-0" title="CineBlock">
+          <Image src="/logo.png" alt="CineBlock" width={128} height={128} className="w-32 h-32 object-contain -my-6" />
+        </Link>
 
         {/* Search bar — grows to fill middle */}
         <div className="brutal-input flex items-center px-4 py-2 flex-1 focus-within:border-brutal-yellow focus-within:shadow-brutal-accent">

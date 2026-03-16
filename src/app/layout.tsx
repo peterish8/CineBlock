@@ -46,6 +46,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://cineblock.in",
   },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+    shortcut: "/logo.png",
+  },
 };
 
 export const viewport: Viewport = {
