@@ -137,9 +137,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   return (
     <div className="sticky top-0 z-50 w-full bg-bg">
       {/* Single compact bar: logo | search | controls */}
-      <div className="w-full px-4 sm:px-6 py-3 flex items-center gap-3">
+      <div className="w-full px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3">
         {/* Logo — left */}
-        <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight select-none shrink-0" title="CineBlock">
+        <h1 className="hidden sm:block font-display sm:text-2xl font-bold tracking-tight select-none shrink-0" title="CineBlock">
           <span className="text-brutal-white">CINE</span>
           <span className="text-brutal-yellow">BLOCK</span>
         </h1>
@@ -176,7 +176,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           {onSurpriseMe && (
             <button
               onClick={onSurpriseMe}
-              className="ml-2 brutal-btn px-2 py-1.5 !bg-brutal-yellow !text-black !border-brutal-yellow hover:scale-105 active:scale-95 transition-transform group"
+              className="ml-2 hidden sm:flex brutal-btn px-2 py-1.5 !bg-brutal-yellow !text-black !border-brutal-yellow hover:scale-105 active:scale-95 transition-transform group"
               title="Surprise Me!"
             >
               <Dices className="w-4 h-4 group-hover:rotate-12 transition-transform" strokeWidth={2.5} />
@@ -184,8 +184,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           )}
         </div>
 
-        {/* Right side controls */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right side controls — desktop only (mobile uses bottom nav) */}
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
 
           {/* BROWSE dropdown — Streaming, Box Office, Collections, News */}
           <div ref={browseRef} className="relative hidden lg:block">
@@ -246,10 +246,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             FIND MOVIE
           </button>
 
-          {/* THEME toggle */}
+          {/* THEME toggle — desktop only; mobile toggle lives in Profile page */}
           <button
             onClick={toggleTheme}
-            className={`brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest flex items-center gap-1.5 ${
+            className={`hidden lg:flex brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest items-center gap-1.5 ${
               isNetflixTheme
                 ? "bg-[#E50914] text-white border-[#E50914]"
                 : "bg-surface border-brutal-border hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
@@ -260,7 +260,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             <span className="hidden sm:inline-block">THEME</span>
           </button>
 
-          <AuthButton />
+          <div className="hidden lg:block">
+            <AuthButton />
+          </div>
         </div>
       </div>
 

@@ -3,11 +3,11 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 export default function ProfilePage() {
@@ -23,6 +23,25 @@ export default function ProfilePage() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isNetflixTheme, setIsNetflixTheme] = useState(false);
+
+  useEffect(() => {
+    setIsNetflixTheme(localStorage.getItem("theme") === "netflix");
+  }, []);
+
+  const toggleTheme = () => {
+    setIsNetflixTheme((prev) => {
+      const next = !prev;
+      if (next) {
+        document.body.classList.add("theme-netflix");
+        localStorage.setItem("theme", "netflix");
+      } else {
+        document.body.classList.remove("theme-netflix");
+        localStorage.setItem("theme", "default");
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -65,10 +84,10 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg pb-16 lg:pb-0">
       {/* Top bar */}
-      <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border px-4 sm:px-8 py-4 flex items-center justify-between">
-        <Link href="/" className="brutal-btn p-2">
+      <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border px-4 sm:px-8 py-5 flex items-center justify-between">
+        <Link href="/" className="brutal-btn p-2.5">
           <ArrowLeft className="w-4 h-4" strokeWidth={3} />
         </Link>
         <span className="font-display font-black text-lg text-brutal-white tracking-tight">
@@ -109,7 +128,7 @@ export default function ProfilePage() {
                       value={nameValue}
                       onChange={(e) => setNameValue(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") cancelEdit(); }}
-                      className="brutal-input px-3 py-1.5 text-xl font-black font-display uppercase bg-bg text-brutal-white w-48 focus:border-brutal-yellow focus:shadow-brutal-accent outline-none"
+                      className="brutal-input px-3 py-1.5 text-xl font-black font-display uppercase bg-bg text-brutal-white w-full max-w-xs focus:border-brutal-yellow focus:shadow-brutal-accent outline-none"
                       maxLength={40}
                     />
                     <button
@@ -148,7 +167,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {[
             { label: "LIKED", value: liked?.length ?? 0, icon: Heart, color: "text-brutal-red", bg: "bg-brutal-red", accent: "border-brutal-red" },
             { label: "WATCHLIST", value: watchlist?.length ?? 0, icon: Bookmark, color: "text-brutal-pink", bg: "bg-brutal-pink", accent: "border-brutal-pink" },
@@ -160,7 +179,7 @@ export default function ProfilePage() {
                 <span className="font-mono font-black text-[10px] text-black tracking-widest">{label}</span>
               </div>
               <div className="px-4 py-4 text-center">
-                <span className={`font-display font-black text-4xl ${color}`}>{value}</span>
+                <span className={`font-display font-black text-2xl sm:text-4xl ${color}`}>{value}</span>
                 <p className="text-brutal-dim text-[10px] font-mono mt-1">
                   {value === 1 ? "movie" : "movies"}
                 </p>
@@ -194,9 +213,9 @@ export default function ProfilePage() {
             {/* Email row */}
             <div className="flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border">
               <Mail className="w-4 h-4 text-brutal-cyan shrink-0" strokeWidth={2.5} />
-              <div>
+              <div className="min-w-0">
                 <p className="text-[9px] font-mono font-bold text-brutal-dim uppercase tracking-widest">Email</p>
-                <p className="text-sm font-bold text-brutal-white">{user?.email || "Not provided"}</p>
+                <p className="text-sm font-bold text-brutal-white truncate">{user?.email || "Not provided"}</p>
               </div>
             </div>
 
@@ -208,15 +227,37 @@ export default function ProfilePage() {
                 <p className="text-sm font-bold text-brutal-white">{memberSince}</p>
               </div>
             </div>
+
+            {/* Theme row */}
+            <div className="flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border">
+              <div className="flex items-center gap-3">
+                <Palette className="w-4 h-4 text-brutal-violet shrink-0" strokeWidth={2.5} />
+                <div>
+                  <p className="text-[9px] font-mono font-bold text-brutal-dim uppercase tracking-widest">Theme</p>
+                  <p className="text-sm font-bold text-brutal-white">{isNetflixTheme ? "Netflix Dark" : "CineBlock Default"}</p>
+                </div>
+              </div>
+              <button
+                onClick={toggleTheme}
+                className={`brutal-chip text-[9px] flex items-center gap-1 transition-colors ${
+                  isNetflixTheme
+                    ? "text-[#E50914] border-[#E50914] hover:bg-[#E50914] hover:text-white"
+                    : "text-brutal-violet border-brutal-violet hover:bg-brutal-violet hover:text-black"
+                }`}
+              >
+                <Palette className="w-2.5 h-2.5" />
+                {isNetflixTheme ? "RESET" : "NETFLIX"}
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Quick links */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
-            { href: "/liked", label: "MY LIKED", color: "hover:!bg-brutal-red hover:!border-brutal-red hover:!text-black" },
-            { href: "/watchlist", label: "MY WATCHLIST", color: "hover:!bg-brutal-pink hover:!border-brutal-pink hover:!text-black" },
-            { href: "/watched", label: "MY WATCHED", color: "hover:!bg-brutal-lime hover:!border-brutal-lime hover:!text-black" },
+            { href: "/liked", label: "MY LIKED", color: "[@media(hover:hover)]:hover:!bg-brutal-red [@media(hover:hover)]:hover:!border-brutal-red [@media(hover:hover)]:hover:!text-black" },
+            { href: "/watchlist", label: "MY WATCHLIST", color: "[@media(hover:hover)]:hover:!bg-brutal-pink [@media(hover:hover)]:hover:!border-brutal-pink [@media(hover:hover)]:hover:!text-black" },
+            { href: "/watched", label: "MY WATCHED", color: "[@media(hover:hover)]:hover:!bg-brutal-lime [@media(hover:hover)]:hover:!border-brutal-lime [@media(hover:hover)]:hover:!text-black" },
           ].map(({ href, label, color }) => (
             <Link key={href} href={href} className={`brutal-btn py-3 text-xs font-mono font-black tracking-widest text-center block ${color}`}>
               {label}

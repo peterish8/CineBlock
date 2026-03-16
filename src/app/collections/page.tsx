@@ -107,7 +107,7 @@ export default function CollectionsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-bg text-brutal-white flex flex-col pt-24">
+    <main className="min-h-screen bg-bg text-brutal-white flex flex-col pt-24 pb-16 lg:pb-0">
       {/* Background patterns */}
       {/* 4. The Back Button UI */}
       <div className="fixed top-6 left-6 z-50">
@@ -119,7 +119,7 @@ export default function CollectionsPage() {
           <span className="font-mono font-black text-sm uppercase">Back</span>
         </button>
       </div>
-      <div className="fixed inset-0 pointer-events-none opacity-20 z-0 overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none opacity-20 z-0 overflow-hidden hidden sm:block">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] border-[50px] border-brutal-border rounded-full -mr-24 -mt-24" />
         <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[radial-gradient(circle,var(--brutal-violet)_0%,transparent_70%)] opacity-30" />
       </div>

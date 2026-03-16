@@ -8,7 +8,6 @@ import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import MovieModal from "@/components/MovieModal";
-import Attribution from "@/components/Attribution";
 
 const ANIMATION_GENRE_ID = 16; // TMDB Animation
 
@@ -188,12 +187,12 @@ function RecommendationsContent() {
   };
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2">
+            <Link href="/" className="brutal-btn p-2.5">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
             </Link>
             <div className="flex items-center gap-3">
@@ -400,7 +399,6 @@ function RecommendationsContent() {
         )}
       </div>
 
-      <Attribution />
       <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </main>
   );

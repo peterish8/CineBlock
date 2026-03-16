@@ -11,7 +11,6 @@ import MovieModal from "@/components/MovieModal";
 import ActorModal from "@/components/ActorModal";
 import WatchlistPanel from "@/components/WatchlistPanel";
 import RecommendationsSection from "@/components/RecommendationsSection";
-import Attribution from "@/components/Attribution";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 
@@ -143,7 +142,7 @@ function HomeContent() {
   }, []);
 
   return (
-    <main className="min-h-screen flex flex-col bg-bg">
+    <main className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
       {/* Trending Hero */}
       <TrendingHero onMovieClick={handleMovieClick} />
 
@@ -151,7 +150,7 @@ function HomeContent() {
       <CommandHub onFilterChange={handleFilterChange} onSurpriseMe={handleSurpriseMe} />
 
       {/* Bottom FABs */}
-      <div className="fixed bottom-6 right-4 z-[80] flex flex-col sm:flex-row items-end sm:items-center gap-2">
+      <div className="fixed bottom-6 right-4 z-[80] hidden lg:flex flex-col sm:flex-row items-end sm:items-center gap-2">
         {likedCount > 0 && (
           <Link
             href="/recommendations"
@@ -176,8 +175,12 @@ function HomeContent() {
         </button>
       </div>
 
-      {/* Recommendations preview (Top when NOT searching) */}
-      {!isSearching && <RecommendationsSection onMovieClick={handleMovieClick} />}
+      {/* Recommendations preview (Top when NOT searching) — desktop only; mobile uses Browse > FOR YOU */}
+      {!isSearching && (
+        <div className="hidden lg:block">
+          <RecommendationsSection onMovieClick={handleMovieClick} />
+        </div>
+      )}
 
       {/* Media type tabs */}
       <div className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-2">
@@ -220,14 +223,12 @@ function HomeContent() {
         )}
       </div>
 
-      {/* Recommendations preview (Bottom when searching) */}
+      {/* Recommendations preview (Bottom when searching) — desktop only */}
       {isSearching && (
-        <div className="border-t-3 border-brutal-border bg-surface-2 mt-auto">
+        <div className="hidden lg:block border-t-3 border-brutal-border bg-surface-2 mt-auto">
           <RecommendationsSection onMovieClick={handleMovieClick} />
         </div>
       )}
-
-      <Attribution />
 
       {/* Modals */}
       <MovieModal

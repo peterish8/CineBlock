@@ -8,7 +8,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Layers, Plus, LogIn, Copy, Check, Trash2, Crown, ChevronRight, X } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
-import Attribution from "@/components/Attribution";
 
 // ─── Create Block Modal ───────────────────────────────────────────────────────
 
@@ -203,30 +202,30 @@ function BlocksContent() {
 
   return (
     <>
-      <main className="min-h-screen bg-bg flex flex-col">
+      <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
         {/* Header */}
         <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="brutal-btn p-2">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 sm:py-5 flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
+              <Link href="/" className="brutal-btn p-2.5">
                 <ArrowLeft className="w-4 h-4" strokeWidth={3} />
               </Link>
               <Layers className="w-5 h-5 text-brutal-violet" strokeWidth={2.5} />
-              <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">
+              <h1 className="font-display font-bold text-xl sm:text-2xl text-brutal-white uppercase tracking-tight">
                 WATCH BLOCKS
               </h1>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowJoin(true)}
-                className="brutal-btn px-3 py-1.5 flex items-center gap-2 text-xs font-mono font-black hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"
+                className="brutal-btn px-3 py-2.5 flex items-center justify-center gap-2 text-xs font-mono font-black hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"
               >
                 <LogIn className="w-3.5 h-3.5" strokeWidth={2.5} />
                 <span className="hidden sm:inline">JOIN</span>
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="brutal-btn px-3 py-1.5 flex items-center gap-2 text-xs font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime"
+                className="brutal-btn px-3 py-2.5 flex items-center justify-center gap-2 text-xs font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime"
               >
                 <Plus className="w-3.5 h-3.5" strokeWidth={3} />
                 <span className="hidden sm:inline">CREATE</span>
@@ -331,7 +330,6 @@ function BlocksContent() {
             </>
           )}
         </div>
-        <Attribution />
       </main>
 
       {showCreate && <CreateBlockModal onClose={() => setShowCreate(false)} />}

@@ -8,20 +8,19 @@ import Link from "next/link";
 import { CheckCheck, ArrowLeft, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import MovieModal from "@/components/MovieModal";
-import Attribution from "@/components/Attribution";
 
 function WatchedContent() {
   const { watched, toggleWatched } = useMovieLists();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2"><ArrowLeft className="w-4 h-4" strokeWidth={3} /></Link>
+            <Link href="/" className="brutal-btn p-2.5"><ArrowLeft className="w-4 h-4" strokeWidth={3} /></Link>
             <CheckCheck className="w-5 h-5 text-brutal-cyan" strokeWidth={2.5} />
-            <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">WATCHED</h1>
+            <h1 className="font-display font-bold text-xl sm:text-2xl text-brutal-white uppercase tracking-tight">WATCHED</h1>
           </div>
           <span className="brutal-chip text-brutal-cyan border-brutal-cyan text-[10px]">{watched.length} MOVIES SEEN</span>
         </div>
@@ -83,7 +82,6 @@ function WatchedContent() {
           </>
         )}
       </div>
-      <Attribution />
       <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </main>
   );

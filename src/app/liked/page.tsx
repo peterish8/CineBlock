@@ -8,23 +8,22 @@ import { Heart, ArrowLeft, Star, Bookmark, CheckCircle, Sparkles } from "lucide-
 import { useState } from "react";
 import MovieModal from "@/components/MovieModal";
 import { useMovieLists } from "@/hooks/useMovieLists";
-import Attribution from "@/components/Attribution";
 
 function LikedContent() {
   const { liked, isLiked, toggleLiked, toggleWatchlist, isInWatchlist } = useMovieLists();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2">
+            <Link href="/" className="brutal-btn p-2.5">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
             </Link>
             <Heart className="w-5 h-5 text-[var(--theme-primary)]" fill="currentColor" strokeWidth={2.5} />
-            <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">LIKED</h1>
+            <h1 className="font-display font-bold text-xl sm:text-2xl text-brutal-white uppercase tracking-tight">LIKED</h1>
           </div>
           <div className="flex items-center gap-3">
             <span className="brutal-chip text-[var(--theme-primary)] border-[var(--theme-primary)] text-[10px]">
@@ -109,7 +108,6 @@ function LikedContent() {
           </>
         )}
       </div>
-      <Attribution />
       <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </main>
   );

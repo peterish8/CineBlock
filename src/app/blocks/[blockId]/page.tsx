@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { posterUrl } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
-import Attribution from "@/components/Attribution";
 
 // ─── Member Avatar ────────────────────────────────────────────────────────────
 
@@ -226,7 +225,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
   }
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -350,7 +349,6 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
           )}
         </div>
       </div>
-      <Attribution />
     </main>
   );
 }

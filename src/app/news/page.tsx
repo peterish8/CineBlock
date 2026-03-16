@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowLeft, Newspaper, RefreshCw } from "lucide-react";
 import NewsFeed from "@/components/NewsFeed";
-import Attribution from "@/components/Attribution";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
@@ -23,15 +22,15 @@ export default function NewsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2">
+            <Link href="/" className="brutal-btn p-2.5">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
             </Link>
             <Newspaper className="w-5 h-5 text-brutal-orange" strokeWidth={2.5} />
-            <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">
+            <h1 className="font-display font-bold text-xl sm:text-2xl text-brutal-white uppercase tracking-tight">
               MOVIE NEWS
             </h1>
           </div>
@@ -58,7 +57,6 @@ export default function NewsPage() {
         <NewsFeed key={refreshKey} />
       </div>
 
-      <Attribution />
     </main>
   );
 }

@@ -8,7 +8,6 @@ import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import MovieModal from "@/components/MovieModal";
-import Attribution from "@/components/Attribution";
 import { GENRES, LANGUAGES, generateYearRange } from "@/lib/constants";
 
 function BoxOfficeContent() {
@@ -86,12 +85,12 @@ function BoxOfficeContent() {
   }, [fetchMovies, loading, loadingMore]);
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col">
+    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border shadow-brutal-sm">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2">
+            <Link href="/" className="brutal-btn p-2.5">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
             </Link>
             <Trophy className="w-6 h-6 text-brutal-yellow" strokeWidth={2.5} />
@@ -214,7 +213,6 @@ function BoxOfficeContent() {
         </div>
       </div>
 
-      <Attribution />
       <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </main>
   );

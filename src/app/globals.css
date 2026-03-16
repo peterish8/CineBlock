@@ -173,6 +173,10 @@ body {
   100% { background-position: -200% 0; }
 }
 
+/* Hide scrollbar for mobile quick-nav strip */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Select option styling for dark */
 option {
   background: #161616;

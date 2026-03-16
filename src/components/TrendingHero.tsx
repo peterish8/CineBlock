@@ -128,7 +128,7 @@ export default function TrendingHero({ onMovieClick }: TrendingHeroProps) {
                 className={`brutal-btn px-4 py-2.5 flex items-center gap-2 ${saved ? "!bg-brutal-lime !border-brutal-lime !text-black !shadow-none" : ""}`}
               >
                 <Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} strokeWidth={2.5} />
-                <span className="font-mono font-bold text-xs">{saved ? "SAVED" : "WATCHLIST"}</span>
+                <span className="hidden sm:inline font-mono font-bold text-xs">{saved ? "SAVED" : "WATCHLIST"}</span>
               </button>
             </div>
           </div>
