@@ -6,7 +6,7 @@ import {
 
 const isProtectedRoute = createRouteMatcher([
   "/watchlist(.*)",
-  "/rooms(.*)",
+  "/blocks(.*)",
   "/profile(.*)",
 ]);
 

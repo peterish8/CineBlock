@@ -124,7 +124,7 @@ async function fetchRedditFeeds(): Promise<NewsArticle[]> {
   const results = await Promise.allSettled(
     REDDIT_FEEDS.map(async (feed) => {
       const res = await fetch(feed.url, {
-        headers: { "User-Agent": "MovieX/1.0" },
+        headers: { "User-Agent": "CineBlock/1.0" },
       });
       if (!res.ok) return [];
       const data = await res.json();

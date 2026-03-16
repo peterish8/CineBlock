@@ -214,7 +214,7 @@ export const getRoom = query({
         const user = await ctx.db.get(m.userId);
         return {
           userId: m.userId,
-          name: user?.name || "MovieX User",
+          name: user?.name || "CineBlock User",
           joinedAt: m.joinedAt,
           isOwner: m.userId === room.ownerId,
           isMe: m.userId === userId,
@@ -271,7 +271,7 @@ export const getRoomMatches = query({
 
     for (const m of memberships) {
       const user = await ctx.db.get(m.userId);
-      const memberName = user?.name || "Someone";
+      const memberName = user?.name || "CineBlock User";
 
       const items = await ctx.db
         .query("watchlist")

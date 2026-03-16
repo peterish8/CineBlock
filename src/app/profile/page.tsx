@@ -37,7 +37,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const displayName = user?.name || "MovieX User";
+  const displayName = user?.name || "CineBlock User";
   const initials = displayName.slice(0, 2).toUpperCase();
   const memberSince = user?._creationTime
     ? new Date(user._creationTime).toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -72,7 +72,7 @@ export default function ProfilePage() {
           <ArrowLeft className="w-4 h-4" strokeWidth={3} />
         </Link>
         <span className="font-display font-black text-lg text-brutal-white tracking-tight">
-          MOVIE<span className="text-brutal-yellow">X</span>
+          CINE<span className="text-brutal-yellow">BLOCK</span>
         </span>
         <button
           onClick={() => { void signOut(); router.push("/"); }}

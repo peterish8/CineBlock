@@ -4,10 +4,10 @@ import ConvexClientProvider from "@/components/ConvexClientProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MovieX — Cinematic Discovery",
+  title: "CineBlock — Cinematic Discovery",
   description:
     "A neo-brutalist movie discovery engine powered by TMDB. Filter by genre, language, and year to find your next watch.",
-  keywords: ["movies", "discovery", "TMDB", "cinema", "film", "recommendations", "neo-brutalism"],
+  keywords: ["movies", "discovery", "TMDB", "cinema", "film", "recommendations", "neo-brutalism", "cineblock"],
 };
 
 export default function RootLayout({

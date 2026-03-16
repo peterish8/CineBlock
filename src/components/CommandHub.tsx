@@ -136,10 +136,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       {/* Single compact bar: logo | search | controls */}
       <div className="w-full px-4 sm:px-6 py-3 flex items-center gap-3">
         {/* Logo — left */}
-        <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight select-none shrink-0" title="MovieX">
-          <span className="text-brutal-white">M</span>
-          <span className="hidden sm:inline text-brutal-white">OVIE</span>
-          <span className="text-brutal-yellow ml-[1px] sm:ml-0">X</span>
+        <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight select-none shrink-0" title="CineBlock">
+          <span className="text-brutal-white">CINE</span>
+          <span className="text-brutal-yellow">BLOCK</span>
         </h1>
 
         {/* Search bar — grows to fill middle */}
@@ -226,12 +225,12 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
 
           {/* ROOMS — standalone, social feature */}
           <Link
-            href="/rooms"
+            href="/blocks"
             className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest items-center gap-2 bg-surface border-brutal-border hover:bg-brutal-violet hover:text-black hover:border-brutal-violet hidden lg:flex"
-            title="Watch Rooms"
+            title="Watch Blocks"
           >
             <Users className="w-4 h-4" strokeWidth={2.5} />
-            ROOMS
+            BLOCKS
           </Link>
 
           {/* FIND MOVIE — primary CTA */}

@@ -6,13 +6,13 @@ import { useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Users, Plus, LogIn, Copy, Check, Trash2, Crown, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, Layers, Plus, LogIn, Copy, Check, Trash2, Crown, ChevronRight, X } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import Attribution from "@/components/Attribution";
 
-// ─── Create Room Modal ────────────────────────────────────────────────────────
+// ─── Create Block Modal ───────────────────────────────────────────────────────
 
-function CreateRoomModal({ onClose }: { onClose: () => void }) {
+function CreateBlockModal({ onClose }: { onClose: () => void }) {
   const createRoom = useMutation(api.rooms.createRoom);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display font-black text-lg text-brutal-white uppercase tracking-tight">
-              {result ? "ROOM CREATED" : "CREATE ROOM"}
+              {result ? "BLOCK CREATED" : "CREATE BLOCK"}
             </h2>
             <button onClick={onClose} className="brutal-btn p-1.5">
               <X className="w-3.5 h-3.5" strokeWidth={3} />
@@ -55,7 +55,7 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
           {result ? (
             <div className="space-y-4">
               <p className="text-brutal-dim text-xs font-mono">
-                Share this code with friends to let them join.
+                Share this code with friends to let them join your Block.
               </p>
               <div className="flex items-center gap-2">
                 <div className="brutal-input flex-1 px-4 py-3 text-center">
@@ -76,17 +76,17 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
                 </button>
               </div>
               <button
-                onClick={() => router.push(`/rooms/${result.roomId}`)}
+                onClick={() => router.push(`/blocks/${result.roomId}`)}
                 className="brutal-btn w-full py-3 text-xs font-mono font-black tracking-widest !bg-brutal-lime !text-black !border-brutal-lime"
               >
-                GO TO ROOM →
+                GO TO BLOCK →
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div>
                 <label className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest block mb-1.5">
-                  Room Name
+                  Block Name
                 </label>
                 <input
                   autoFocus
@@ -103,7 +103,7 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
                 disabled={!name.trim() || loading}
                 className="brutal-btn w-full py-3 text-xs font-mono font-black tracking-widest !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-40"
               >
-                {loading ? "CREATING..." : "CREATE ROOM"}
+                {loading ? "CREATING..." : "CREATE BLOCK"}
               </button>
             </div>
           )}
@@ -113,9 +113,9 @@ function CreateRoomModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── Join Room Modal ──────────────────────────────────────────────────────────
+// ─── Join Block Modal ─────────────────────────────────────────────────────────
 
-function JoinRoomModal({ onClose }: { onClose: () => void }) {
+function JoinBlockModal({ onClose }: { onClose: () => void }) {
   const joinByCode = useMutation(api.rooms.joinByCode);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -128,7 +128,7 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
     setError("");
     try {
       const roomId = await joinByCode({ inviteCode: code.trim() });
-      router.push(`/rooms/${roomId}`);
+      router.push(`/blocks/${roomId}`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Invalid code");
     } finally {
@@ -143,7 +143,7 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display font-black text-lg text-brutal-white uppercase tracking-tight">
-              JOIN ROOM
+              JOIN BLOCK
             </h2>
             <button onClick={onClose} className="brutal-btn p-1.5">
               <X className="w-3.5 h-3.5" strokeWidth={3} />
@@ -173,7 +173,7 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
               disabled={code.trim().length < 6 || loading}
               className="brutal-btn w-full py-3 text-xs font-mono font-black tracking-widest !bg-brutal-cyan !text-black !border-brutal-cyan disabled:opacity-40"
             >
-              {loading ? "JOINING..." : "JOIN ROOM"}
+              {loading ? "JOINING..." : "JOIN BLOCK"}
             </button>
           </div>
         </div>
@@ -184,7 +184,7 @@ function JoinRoomModal({ onClose }: { onClose: () => void }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-function RoomsContent() {
+function BlocksContent() {
   const rooms = useQuery(api.rooms.getMyRooms);
   const deleteRoom = useMutation(api.rooms.deleteRoom);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
@@ -192,12 +192,12 @@ function RoomsContent() {
   const [showJoin, setShowJoin] = useState(false);
 
   const handleDelete = async (roomId: Id<"rooms">) => {
-    if (!confirm("Delete this room? This cannot be undone.")) return;
+    if (!confirm("Delete this Block? This cannot be undone.")) return;
     await deleteRoom({ roomId });
   };
 
   const handleLeave = async (roomId: Id<"rooms">) => {
-    if (!confirm("Leave this room?")) return;
+    if (!confirm("Leave this Block?")) return;
     await leaveRoom({ roomId });
   };
 
@@ -211,9 +211,9 @@ function RoomsContent() {
               <Link href="/" className="brutal-btn p-2">
                 <ArrowLeft className="w-4 h-4" strokeWidth={3} />
               </Link>
-              <Users className="w-5 h-5 text-brutal-violet" strokeWidth={2.5} />
+              <Layers className="w-5 h-5 text-brutal-violet" strokeWidth={2.5} />
               <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">
-                WATCH ROOMS
+                WATCH BLOCKS
               </h1>
             </div>
             <div className="flex items-center gap-2">
@@ -239,7 +239,7 @@ function RoomsContent() {
           {/* Explainer */}
           <div className="brutal-card p-4 mb-6 border-brutal-violet bg-surface">
             <p className="text-brutal-dim text-xs font-mono leading-relaxed">
-              <span className="text-brutal-violet font-black">WATCH ROOMS</span> let you discover which movies you and your friends all want to watch — without anyone seeing each other&apos;s full watchlist.{" "}
+              <span className="text-brutal-violet font-black">WATCH BLOCKS</span> let you discover which movies you and your friends all want to watch — without anyone seeing each other&apos;s full watchlist.{" "}
               <span className="text-brutal-white font-bold">Only matches are shown.</span>
             </p>
           </div>
@@ -251,17 +251,17 @@ function RoomsContent() {
           ) : rooms.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div className="brutal-card p-8 max-w-md w-full">
-                <Users className="w-12 h-12 text-brutal-dim mx-auto mb-4" strokeWidth={1.5} />
-                <p className="font-display font-bold text-lg text-brutal-white uppercase mb-2">NO ROOMS YET</p>
+                <Layers className="w-12 h-12 text-brutal-dim mx-auto mb-4" strokeWidth={1.5} />
+                <p className="font-display font-bold text-lg text-brutal-white uppercase mb-2">NO BLOCKS YET</p>
                 <p className="text-brutal-muted text-sm font-mono mb-6">
-                  Create a room and share the invite code with friends.
+                  Create a Block and share the invite code with friends.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={() => setShowCreate(true)}
                     className="brutal-btn flex-1 py-3 text-xs font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime"
                   >
-                    CREATE ROOM
+                    CREATE BLOCK
                   </button>
                   <button
                     onClick={() => setShowJoin(true)}
@@ -275,12 +275,11 @@ function RoomsContent() {
           ) : (
             <>
               <p className="text-brutal-dim text-[10px] font-mono uppercase tracking-wider mb-4">
-                {rooms.length} {rooms.length === 1 ? "ROOM" : "ROOMS"}
+                {rooms.length} {rooms.length === 1 ? "BLOCK" : "BLOCKS"}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {rooms.map((room) => (
                   <div key={room!._id} className="brutal-card p-0 overflow-hidden group">
-                    {/* Accent strip */}
                     <div className="h-1.5 w-full bg-brutal-violet" />
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-2 mb-3">
@@ -297,13 +296,12 @@ function RoomsContent() {
                             {room!.memberCount} {room!.memberCount === 1 ? "member" : "members"}
                           </p>
                         </div>
-                        {/* Actions */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           {room!.isOwner ? (
                             <button
                               onClick={() => void handleDelete(room!._id)}
                               className="brutal-btn p-1.5 hover:!bg-brutal-red hover:!border-brutal-red hover:!text-white"
-                              title="Delete room"
+                              title="Delete Block"
                             >
                               <Trash2 className="w-3 h-3" strokeWidth={2.5} />
                             </button>
@@ -311,7 +309,7 @@ function RoomsContent() {
                             <button
                               onClick={() => void handleLeave(room!._id)}
                               className="brutal-btn p-1.5 hover:!bg-brutal-red hover:!border-brutal-red hover:!text-white text-brutal-dim"
-                              title="Leave room"
+                              title="Leave Block"
                             >
                               <X className="w-3 h-3" strokeWidth={2.5} />
                             </button>
@@ -320,7 +318,7 @@ function RoomsContent() {
                       </div>
 
                       <Link
-                        href={`/rooms/${room!._id}`}
+                        href={`/blocks/${room!._id}`}
                         className="brutal-btn w-full py-2.5 text-[11px] font-mono font-black tracking-widest flex items-center justify-center gap-2 hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"
                       >
                         VIEW MATCHES
@@ -336,13 +334,13 @@ function RoomsContent() {
         <Attribution />
       </main>
 
-      {showCreate && <CreateRoomModal onClose={() => setShowCreate(false)} />}
-      {showJoin && <JoinRoomModal onClose={() => setShowJoin(false)} />}
+      {showCreate && <CreateBlockModal onClose={() => setShowCreate(false)} />}
+      {showJoin && <JoinBlockModal onClose={() => setShowJoin(false)} />}
     </>
   );
 }
 
-export default function RoomsPage() {
+export default function BlocksPage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
 
@@ -359,5 +357,5 @@ export default function RoomsPage() {
     return null;
   }
 
-  return <RoomsContent />;
+  return <BlocksContent />;
 }

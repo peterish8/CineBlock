@@ -594,7 +594,7 @@ export default function NetflixLayout({ platform, country, onBack }: Props) {
                 onClick={() => { setMobileMenuOpen(false); onBack(); }}
                 className="w-full text-center py-3 rounded border border-white/20 text-white/60 text-sm hover:border-white/40 transition-colors"
               >
-                ← Back to MovieX
+                ← Back to CineBlock
               </button>
             </div>
           </div>

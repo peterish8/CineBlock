@@ -25,9 +25,9 @@ interface MovieListsContextType {
 const MovieListsContext = createContext<MovieListsContextType | null>(null);
 
 const KEYS = {
-  liked: "moviex_liked",
-  watchlist: "moviex_watchlist",
-  watched: "moviex_watched",
+  liked: "cineblock_liked",
+  watchlist: "cineblock_watchlist",
+  watched: "cineblock_watched",
 };
 
 function loadList(key: string): TMDBMovie[] {

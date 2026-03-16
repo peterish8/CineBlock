@@ -1,6 +1,6 @@
-# MovieX — Neo-Brutalist Movie Discovery
+# CineBlock — Neo-Brutalist Cinematic Discovery
 
-MovieX is a high-energy movie discovery platform built with a bold Neo-Brutalist aesthetic. Explore, search, and manage your favourite movies and TV shows — with a cloud backend, daily news, and AI-assisted discovery.
+CineBlock is a high-energy movie discovery platform built with a bold Neo-Brutalist aesthetic. Explore, search, and manage your favourite movies and TV shows — with a cloud backend, daily news, AI-assisted discovery, and shared Watch Blocks for friends.
 
 ---
 
@@ -11,9 +11,12 @@ MovieX is a high-energy movie discovery platform built with a bold Neo-Brutalist
 - **Daily News Feed** — Latest movie news from Variety, Deadline, Collider, and Reddit. Images are sourced from RSS media, og:image scraping, or TMDB backdrops. Results are cached in Convex and refreshed daily via cron.
 - **User Accounts** — Sign up / sign in with email + password (Convex Auth). Lists sync to the cloud; anonymous users get localStorage.
 - **My Lists** — Liked, Watchlist, and Watched — each with a dedicated page.
+- **Watch Blocks** — Create a Block with friends, share a 6-character invite code, and discover which movies you all want to watch — without anyone seeing each other's full watchlist. Only overlapping movies are shown. Members who share the movie see each other's names; others see only the count.
+- **Let's Watch Votes** — Inside a Block, any member can flame-vote a matched movie to signal enthusiasm. Vote counts are shown to everyone in real-time.
 - **Collections** — Browse curated movie franchises (Marvel, John Wick, Harry Potter, etc.).
 - **Box Office & Streaming** — Dedicated pages for trending box office and what's streaming now.
 - **Profile Page** — Editable display name, live stat cards, quick-links to your lists.
+- **BROWSE Dropdown Nav** — Secondary pages (Streaming, Box Office, Collections, News) are grouped under a BROWSE dropdown to keep the nav clean.
 - **Neo-Brutalist UI** — High-contrast, bold design with thick borders and offset shadows.
 
 ---
@@ -44,8 +47,8 @@ MovieX is a high-energy movie discovery platform built with a bold Neo-Brutalist
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/your-username/moviex.git
-cd moviex
+git clone https://github.com/your-username/cineblock.git
+cd cineblock
 npm install
 ```
 
@@ -100,20 +103,23 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Project Structure
 
 ```
-moviex/
+cineblock/
 ├── convex/                  # Convex backend
-│   ├── schema.ts            # Database schema (lists, news_feed, users)
+│   ├── schema.ts            # Database schema (lists, news_feed, rooms, room_members, room_votes, users)
 │   ├── auth.config.ts       # JWT issuer config for Convex Auth
 │   ├── auth.ts              # Auth setup (Password provider)
 │   ├── http.ts              # HTTP router — exposes auth discovery endpoint
 │   ├── crons.ts             # Daily news refresh cron (3 AM UTC)
 │   ├── lists.ts             # Liked / Watchlist / Watched mutations & queries
 │   ├── news.ts              # News feed queries, cache store/invalidate
+│   ├── rooms.ts             # Watch Blocks — create, join, leave, delete, match, vote
 │   └── users.ts             # User upsert & profile queries
 │
 ├── src/
 │   ├── app/                 # Next.js App Router
 │   │   ├── page.tsx         # Home — hero + poster grid
+│   │   ├── blocks/          # Watch Blocks list page
+│   │   │   └── [blockId]/   # Individual Block — members, matches, votes
 │   │   ├── news/            # Daily news feed page
 │   │   ├── profile/         # Editable profile page
 │   │   ├── liked/           # Liked movies list
@@ -129,7 +135,7 @@ moviex/
 │   │           └── fetch-news/  # RSS fetch + og:image scraping + TMDB fallback
 │   │
 │   ├── components/          # Reusable UI components
-│   │   ├── CommandHub.tsx   # Top nav with search, filters, NEWS, FIND MOVIE
+│   │   ├── CommandHub.tsx   # Top nav — BROWSE dropdown, BLOCKS, FIND MOVIE, THEME, ACCOUNT
 │   │   ├── NewsFeed.tsx     # News grid — Convex cache-first, sort images-first
 │   │   ├── NewsArticleCard.tsx
 │   │   ├── PosterGrid.tsx
@@ -141,6 +147,18 @@ moviex/
 │   ├── lib/                 # Utility functions and type definitions
 │   └── proxy.ts             # Next.js 16 middleware (auth route protection)
 ```
+
+---
+
+## Watch Blocks — Privacy Model
+
+Watch Blocks let friends compare watchlists without revealing everything:
+
+- A **Block** is a group identified by a 6-character invite code.
+- A **match** is any movie that **2 or more members** have in their Watchlist.
+- If **you have the movie**, you see the names of other members who also want to watch it.
+- If **you don't have the movie**, you only see the count (`3/4 want to watch`) — no names.
+- Members can cast a **Let's Watch** flame vote on any match to show enthusiasm. Vote counts are visible to everyone in real-time.
 
 ---
 
@@ -161,7 +179,17 @@ Articles without images are sorted to the end of the news grid.
 - Authentication uses `@convex-dev/auth` with the **Password** provider.
 - `convex/auth.config.ts` configures the JWT issuer domain (`CONVEX_SITE_URL`).
 - `convex/http.ts` exposes the auth discovery endpoint required by the Next.js client.
-- Route protection (e.g. `/watchlist`) is handled in `src/proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`).
+- Route protection (`/watchlist`, `/blocks`, `/profile`) is handled in `src/proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`).
+
+---
+
+## Deploying to Vercel
+
+1. Push to GitHub and import the repo in Vercel.
+2. Add environment variables: `TMDB_API_KEY` and (after first deploy) `NEXT_PUBLIC_APP_URL`.
+3. Run `npx convex deploy` to push the production Convex backend — Vercel will automatically pick up `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` via the Convex Vercel integration.
+
+> **Note:** `NEXT_PUBLIC_APP_URL` is only used by the news cron — the app works without it on first deploy. Set it to your Vercel URL after the first deploy completes, then redeploy.
 
 ---
 

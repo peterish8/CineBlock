@@ -49,8 +49,8 @@ export default function SignInPage() {
           </h1>
           <p className="text-brutal-muted text-sm font-mono mb-6">
             {step === "signIn"
-              ? "Welcome back to MovieX"
-              : "Join MovieX to save your lists"}
+              ? "Welcome back to CineBlock"
+              : "Join CineBlock to save your lists"}
           </p>
 
           {error && (

@@ -76,16 +76,13 @@ function MatchCard({
 }) {
   const allIn = memberCount === totalMembers;
 
-  // Format "Alice, Bob" or "Alice, Bob +2 more"
   const MAX_SHOWN = 2;
   const shown = alsoWantedBy.slice(0, MAX_SHOWN);
   const extra = alsoWantedBy.length - MAX_SHOWN;
-  const nameLabel =
-    shown.join(", ") + (extra > 0 ? ` +${extra} more` : "");
+  const nameLabel = shown.join(", ") + (extra > 0 ? ` +${extra} more` : "");
 
   return (
     <div className="brutal-card p-0 overflow-hidden group">
-      {/* Match strength strip */}
       <div
         className={`h-1.5 w-full transition-colors ${
           allIn ? "bg-brutal-yellow" : memberCount >= 3 ? "bg-brutal-lime" : "bg-brutal-cyan"
@@ -119,7 +116,6 @@ function MatchCard({
               {movieTitle}
             </p>
 
-            {/* Count badge */}
             <div className="flex items-center gap-1.5 mt-1.5">
               <div
                 className={`brutal-chip text-[9px] font-mono flex items-center gap-1 ${
@@ -136,7 +132,6 @@ function MatchCard({
               )}
             </div>
 
-            {/* Who else wants it — names if involved, count-only if not */}
             {iInvolved ? (
               <p className="text-brutal-dim text-[10px] font-mono mt-1 leading-tight">
                 <span className="text-brutal-white font-bold">{nameLabel}</span>
@@ -150,7 +145,6 @@ function MatchCard({
             )}
           </div>
 
-          {/* Let's Watch button */}
           <button
             onClick={onVote}
             className={`mt-2 brutal-btn px-3 py-1.5 text-[10px] font-mono font-black tracking-wide flex items-center gap-1.5 w-fit transition-all ${
@@ -173,12 +167,12 @@ function MatchCard({
   );
 }
 
-// ─── Room Page ────────────────────────────────────────────────────────────────
+// ─── Block Page ───────────────────────────────────────────────────────────────
 
-function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
-  const room = useQuery(api.rooms.getRoom, { roomId });
-  const matches = useQuery(api.rooms.getRoomMatches, { roomId });
-  const votes = useQuery(api.rooms.getRoomVotes, { roomId });
+function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
+  const room = useQuery(api.rooms.getRoom, { roomId: blockId });
+  const matches = useQuery(api.rooms.getRoomMatches, { roomId: blockId });
+  const votes = useQuery(api.rooms.getRoomVotes, { roomId: blockId });
   const toggleVote = useMutation(api.rooms.toggleVote);
   const leaveRoom = useMutation(api.rooms.leaveRoom);
   const router = useRouter();
@@ -194,21 +188,20 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
   };
 
   const handleLeave = async () => {
-    if (!confirm("Leave this room?")) return;
+    if (!confirm("Leave this Block?")) return;
     setLeaving(true);
     try {
-      await leaveRoom({ roomId });
-      router.push("/rooms");
+      await leaveRoom({ roomId: blockId });
+      router.push("/blocks");
     } finally {
       setLeaving(false);
     }
   };
 
   const handleVote = async (movieId: number) => {
-    await toggleVote({ roomId, movieId });
+    await toggleVote({ roomId: blockId, movieId });
   };
 
-  // Build vote lookup: movieId → {voterCount, iVoted}
   const voteLookup = new Map(
     (votes ?? []).map((v) => [v.movieId, { voterCount: v.voterCount, iVoted: v.iVoted }])
   );
@@ -224,9 +217,9 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
   if (room === null) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-bg gap-4">
-        <p className="font-display font-black text-xl text-brutal-white uppercase">Room not found</p>
-        <Link href="/rooms" className="brutal-btn px-4 py-2 text-xs font-mono font-black">
-          BACK TO ROOMS
+        <p className="font-display font-black text-xl text-brutal-white uppercase">Block not found</p>
+        <Link href="/blocks" className="brutal-btn px-4 py-2 text-xs font-mono font-black">
+          BACK TO BLOCKS
         </Link>
       </div>
     );
@@ -234,11 +227,10 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
 
   return (
     <main className="min-h-screen bg-bg flex flex-col">
-      {/* Header */}
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/rooms" className="brutal-btn p-2 shrink-0">
+            <Link href="/blocks" className="brutal-btn p-2 shrink-0">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
             </Link>
             <div className="min-w-0">
@@ -252,7 +244,6 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Invite code chip */}
             <button
               onClick={copyCode}
               className={`brutal-btn px-3 py-1.5 flex items-center gap-2 text-[10px] font-mono font-black transition-all ${
@@ -270,13 +261,12 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
               <span className="tracking-[0.15em]">{room.inviteCode}</span>
             </button>
 
-            {/* Leave */}
             {!room.isOwner && (
               <button
                 onClick={() => void handleLeave()}
                 disabled={leaving}
                 className="brutal-btn p-2 hover:!bg-brutal-red hover:!border-brutal-red hover:!text-white text-brutal-dim"
-                title="Leave room"
+                title="Leave Block"
               >
                 <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
               </button>
@@ -287,7 +277,7 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
 
       <div className="flex-1 max-w-[1200px] mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
 
-        {/* Members row */}
+        {/* Members */}
         <div className="brutal-card p-4">
           <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
             Members
@@ -367,11 +357,11 @@ function RoomContent({ roomId }: { roomId: Id<"rooms"> }) {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export default function RoomPage() {
+export default function BlockPage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
   const params = useParams();
-  const roomId = params.roomId as Id<"rooms">;
+  const blockId = params.blockId as Id<"rooms">;
 
   if (isLoading) {
     return (
@@ -386,5 +376,5 @@ export default function RoomPage() {
     return null;
   }
 
-  return <RoomContent roomId={roomId} />;
+  return <BlockContent blockId={blockId} />;
 }
