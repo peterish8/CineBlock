@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { WizardState } from "@/lib/tmdbQueryBuilder";
 import StepMood from "./StepMood";
 import StepTime from "./StepTime";
@@ -17,8 +17,10 @@ interface FindMyMovieWizardProps {
 export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [rerolling, setRerolling] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState<any[] | null>(null);
+  const seenIds = useRef<Set<number>>(new Set());
 
   const [state, setState] = useState<WizardState>({
     mood: "brain-off",
@@ -48,11 +50,13 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
       const res = await fetch("/api/find-movie", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(state),
+        body: JSON.stringify({ ...state, excludeIds: [] }),
       });
       if (!res.ok) throw new Error("Failed to find movies");
       const data = await res.json();
-      setResults(data.movies || []);
+      const movies = data.movies || [];
+      movies.forEach((m: any) => seenIds.current.add(m.id));
+      setResults(movies);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -60,10 +64,32 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
     }
   };
 
+  const handleReroll = async () => {
+    setRerolling(true);
+    setError("");
+    try {
+      const res = await fetch("/api/find-movie", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...state, excludeIds: [...seenIds.current] }),
+      });
+      if (!res.ok) throw new Error("Failed to find movies");
+      const data = await res.json();
+      const movies = data.movies || [];
+      movies.forEach((m: any) => seenIds.current.add(m.id));
+      setResults(movies);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setRerolling(false);
+    }
+  };
+
   const resetWizard = () => {
     setResults(null);
     setStep(1);
     setError("");
+    seenIds.current = new Set();
   };
 
   const progress = (step / 5) * 100;
@@ -71,8 +97,8 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in shadow-brutal-modal-overlay">
       <div className="absolute inset-0 bg-bg/95 backdrop-blur-sm" onClick={onClose} />
-      
-      <div className="relative w-full max-w-xl brutal-card bg-bg border-4 border-brutal-pink shadow-brutal-hover flex flex-col max-h-[90vh] overflow-hidden animate-slide-up">
+
+      <div className="relative w-full max-w-xl brutal-card bg-bg border-4 wizard-glitch flex flex-col max-h-[90vh] overflow-hidden animate-slide-up">
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-6 border-b-2 border-brutal-border bg-surface shrink-0">
           <div className="flex items-center gap-2">
@@ -89,7 +115,13 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
         {/* Content */}
         {results ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <ResultsGrid movies={results} onRetry={resetWizard} onClose={onClose} />
+            <ResultsGrid
+              movies={results}
+              onRetry={resetWizard}
+              onReroll={handleReroll}
+              rerolling={rerolling}
+              onClose={onClose}
+            />
           </div>
         ) : loading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-12 py-24">
@@ -104,12 +136,12 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
         ) : (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 sm:pb-6">
             <div className="h-1 bg-surface-2 mb-8">
-              <div 
+              <div
                 className="h-full bg-brutal-pink transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            
+
             {step === 1 && <StepMood value={state.mood} onChange={(v) => updateState({ mood: v as any })} />}
             {step === 2 && <StepTime value={state.maxRuntime} onChange={(v) => updateState({ maxRuntime: v as any })} />}
             {step === 3 && <StepIntensity value={state.intensity} onChange={(v) => updateState({ intensity: v as any })} />}
@@ -124,7 +156,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
           </div>
         )}
 
-        {/* Footer (only show if not loading and no results) */}
+        {/* Footer — only during steps */}
         {!results && !loading && (
           <div className="p-4 sm:p-6 border-t-2 border-brutal-border bg-surface shrink-0 flex items-center justify-between">
             <button

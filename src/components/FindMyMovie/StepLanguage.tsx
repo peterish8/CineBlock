@@ -140,7 +140,7 @@ export default function StepLanguage({ value, onChange }: StepLanguageProps) {
       </h2>
       <p className="text-brutal-muted text-xs font-mono mb-5">Pick your preferred language</p>
 
-      <div ref={containerRef} className="relative w-full">
+      <div ref={containerRef} className="w-full">
         {/* Trigger */}
         <button
           onClick={() => setOpen((o) => !o)}
@@ -158,11 +158,11 @@ export default function StepLanguage({ value, onChange }: StepLanguageProps) {
           />
         </button>
 
-        {/* Dropdown */}
+        {/* Inline list — renders in flow so modal scroll handles it */}
         {open && (
-          <div className="absolute left-0 top-[calc(100%+4px)] w-full bg-bg border-3 border-brutal-border shadow-brutal z-50 animate-pop-in">
+          <div className="w-full mt-1 bg-bg border-3 border-brutal-border shadow-brutal animate-pop-in">
             {/* Search input */}
-            <div className="flex items-center gap-2 px-3 py-2 border-b-2 border-brutal-border">
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b-2 border-brutal-border sticky top-0 bg-bg z-10">
               <Search className="w-3.5 h-3.5 text-brutal-dim shrink-0" strokeWidth={2.5} />
               <input
                 ref={searchRef}
@@ -178,8 +178,8 @@ export default function StepLanguage({ value, onChange }: StepLanguageProps) {
               )}
             </div>
 
-            {/* Options list */}
-            <div className="max-h-64 overflow-y-auto">
+            {/* Options — no max-height, modal scroll takes over */}
+            <div>
               {filtered.length === 0 ? (
                 <p className="px-4 py-3 text-brutal-dim text-xs font-mono">No match</p>
               ) : (

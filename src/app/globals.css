@@ -161,6 +161,13 @@ body {
   }
 }
 
+/* Find My Movie modal — black border + red shadow, fully static */
+.wizard-glitch {
+  border-color: #000000;
+  border-width: 4px;
+  box-shadow: 6px 6px 0px 0px #E50914;
+}
+
 @keyframes shimmerSlide {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }

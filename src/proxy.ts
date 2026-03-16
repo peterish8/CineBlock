@@ -1,22 +1,8 @@
-import {
-  convexAuthNextjsMiddleware,
-  createRouteMatcher,
-  nextjsMiddlewareRedirect,
-} from "@convex-dev/auth/nextjs/server";
+import { convexAuthNextjsMiddleware } from "@convex-dev/auth/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher([
-  "/watchlist(.*)",
-  "/blocks(.*)",
-  "/profile(.*)",
-]);
-
-export default convexAuthNextjsMiddleware(
-  async (request, { convexAuth }) => {
-    if (isProtectedRoute(request) && !(await convexAuth.isAuthenticated())) {
-      return nextjsMiddlewareRedirect(request, "/sign-in");
-    }
-  }
-);
+// Middleware only wraps auth token into requests — client-side guards handle redirects
+// (server-side isAuthenticated() has a race condition with the auth cookie on first navigation)
+export default convexAuthNextjsMiddleware();
 
 export const config = {
   // Exclude API routes, static files, and _next — proxy only guards pages

@@ -2,11 +2,13 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
+  const router = useRouter();
   const [step, setStep] = useState<"signIn" | "signUp">("signIn");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,7 @@ export default function SignInPage() {
     const formData = new FormData(e.currentTarget);
     try {
       await signIn("password", formData);
+      router.push("/");
     } catch (err: any) {
       setError(
         err instanceof Error

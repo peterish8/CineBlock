@@ -184,8 +184,9 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             )}
           </div>
 
-          {/* Right Side: Actions and Close Button */}
-          <div className="flex items-start gap-2 pointer-events-auto">
+          {/* Right Side: Actions and Close Button — hidden while trailer plays, reveal on corner hover */}
+          <div className={`group/ctrl pointer-events-auto ${playingTrailer ? "p-6" : ""}`}>
+          <div className={`flex items-start gap-2 transition-opacity duration-150 ${playingTrailer ? "opacity-0 group-hover/ctrl:opacity-100" : ""}`}>
             {/* Horizontal actions revealed to the left */}
             {showActions && (
               <div className="flex flex-row-reverse gap-0.5 animate-slide-up-faint">
@@ -231,6 +232,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             >
               <X className="w-5 h-5" strokeWidth={3} />
             </button>
+          </div>
           </div>
         </div>
 
