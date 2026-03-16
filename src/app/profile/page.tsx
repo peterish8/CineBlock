@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, EyeOff, ArrowLeft, Palette, Trash2 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const watched = useQuery(api.lists.getWatched);
   const liked = useQuery(api.lists.getLiked);
   const upsertUser = useMutation(api.users.upsertUser);
+  const deleteAccount = useMutation(api.users.deleteAccount);
   const { signOut } = useAuthActions();
   const router = useRouter();
 
@@ -24,6 +25,12 @@ export default function ProfilePage() {
   const [nameValue, setNameValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [isNetflixTheme, setIsNetflixTheme] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [showDeletePassword, setShowDeletePassword] = useState(false);
+  const [wrongPassCount, setWrongPassCount] = useState(0);
 
   useEffect(() => {
     setIsNetflixTheme(localStorage.getItem("theme") === "netflix");
@@ -51,10 +58,13 @@ export default function ProfilePage() {
     );
   }
 
-  if (!isAuthenticated) {
-    router.push("/sign-in");
-    return null;
-  }
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/sign-in");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (!isAuthenticated) return null;
 
   const displayName = user?.name || "CineBlock User";
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -81,6 +91,39 @@ export default function ProfilePage() {
   const cancelEdit = () => {
     setEditingName(false);
     setNameValue("");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) return;
+    setDeleteError("");
+    setDeleting(true);
+    try {
+      // Verify password first
+      const formData = new FormData();
+      formData.set("flow", "signIn");
+      formData.set("email", user?.email || "");
+      formData.set("password", deletePassword);
+      await signIn("password", formData);
+    } catch (err: any) {
+      const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+      // "Invalid credentials" = wrong password. Anything else (e.g. verification required) = password was correct
+      if (msg.includes("invalid") || msg.includes("credentials") || msg.includes("incorrect")) {
+        const attempts = wrongPassCount + 1;
+        setWrongPassCount(attempts);
+        setDeleteError(attempts >= 3 ? "Too many wrong attempts." : `Incorrect password. ${3 - attempts} attempt${3 - attempts === 1 ? "" : "s"} left.`);
+        setDeleting(false);
+        return;
+      }
+      // Password is correct — proceed with deletion despite other errors
+    }
+    try {
+      await deleteAccount();
+      await signOut();
+      router.push("/");
+    } catch {
+      setDeleteError("Something went wrong. Please try again.");
+      setDeleting(false);
+    }
   };
 
   return (
@@ -120,25 +163,25 @@ export default function ProfilePage() {
 
             {/* Name + email */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-3">
                 {editingName ? (
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 w-full">
                     <input
                       autoFocus
                       value={nameValue}
                       onChange={(e) => setNameValue(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") void saveName(); if (e.key === "Escape") cancelEdit(); }}
-                      className="brutal-input px-3 py-1.5 text-xl font-black font-display uppercase bg-bg text-brutal-white w-full max-w-xs focus:border-brutal-yellow focus:shadow-brutal-accent outline-none"
+                      className="brutal-input px-3 py-1.5 text-xl font-black font-display uppercase bg-bg text-brutal-white flex-1 min-w-0 focus:border-brutal-yellow focus:shadow-brutal-accent outline-none"
                       maxLength={40}
                     />
                     <button
                       onClick={() => void saveName()}
                       disabled={saving || !nameValue.trim()}
-                      className="brutal-btn p-2 !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-40"
+                      className="brutal-btn p-2 !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-40 shrink-0"
                     >
                       <Check className="w-4 h-4" strokeWidth={3} />
                     </button>
-                    <button onClick={cancelEdit} className="brutal-btn p-2 !bg-brutal-red !text-white !border-brutal-red">
+                    <button onClick={cancelEdit} className="brutal-btn p-2 !bg-brutal-red !text-white !border-brutal-red shrink-0">
                       <X className="w-4 h-4" strokeWidth={3} />
                     </button>
                   </div>
@@ -264,6 +307,92 @@ export default function ProfilePage() {
             </Link>
           ))}
         </div>
+
+        {/* Danger zone */}
+        <div className="brutal-card p-6 border-2 border-brutal-red">
+          <h2 className="text-[10px] font-mono font-black text-brutal-red uppercase tracking-[0.2em] mb-4">Danger Zone</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-brutal-white">Delete Account</p>
+              <p className="text-[11px] font-mono text-brutal-muted mt-0.5">Wipes all your lists, rooms and data permanently.</p>
+            </div>
+            <button
+              onClick={() => { setShowDeleteModal(true); setDeleteError(""); setDeletePassword(""); setWrongPassCount(0); }}
+              className="brutal-btn px-3 py-2 text-xs font-mono font-bold !bg-brutal-red !text-white !border-brutal-red hover:opacity-80 flex items-center gap-2 shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+              DELETE
+            </button>
+          </div>
+        </div>
+
+        {/* Delete confirmation modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/70">
+            <div className="brutal-card w-full max-w-sm p-6 space-y-4 animate-fade-in">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display font-black text-lg text-brutal-red uppercase tracking-tight">Delete Account</h3>
+                  <p className="text-[11px] font-mono text-brutal-muted mt-1">This wipes everything permanently. Enter your password to confirm.</p>
+                </div>
+                <button onClick={() => setShowDeleteModal(false)} className="brutal-btn p-1.5 shrink-0">
+                  <X className="w-4 h-4" strokeWidth={3} />
+                </button>
+              </div>
+
+              {deleteError && (
+                <div className="space-y-2">
+                  <div className="brutal-chip text-brutal-red border-brutal-red px-3 py-2 text-xs text-center w-full">
+                    {deleteError}
+                  </div>
+                  {wrongPassCount >= 3 && (
+                    <div className="text-center">
+                      <Link
+                        href="/sign-in"
+                        onClick={() => setShowDeleteModal(false)}
+                        className="text-brutal-yellow text-xs font-mono underline hover:opacity-80"
+                      >
+                        Forgot your password?
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-brutal-muted uppercase tracking-[0.15em] mb-1.5">Your Password</label>
+                <div className="brutal-input flex items-center px-3 py-2.5 focus-within:border-brutal-red">
+                  <input
+                    autoFocus
+                    type={showDeletePassword ? "text" : "password"}
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") void handleDeleteAccount(); }}
+                    placeholder="••••••••"
+                    className="flex-1 bg-transparent text-brutal-white text-sm font-body placeholder:text-brutal-dim outline-none"
+                  />
+                  <button type="button" onClick={() => setShowDeletePassword(p => !p)} className="text-brutal-dim hover:text-brutal-white transition-colors ml-2">
+                    {showDeletePassword ? <EyeOff className="w-4 h-4" strokeWidth={2.5} /> : <Eye className="w-4 h-4" strokeWidth={2.5} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || !deletePassword || wrongPassCount >= 3}
+                  className="brutal-btn flex-1 py-2.5 text-xs font-mono font-bold !bg-brutal-red !text-white !border-brutal-red hover:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {deleting ? "DELETING..." : "DELETE FOREVER"}
+                </button>
+                <button onClick={() => setShowDeleteModal(false)} className="brutal-btn px-4 py-2.5 text-xs font-mono font-bold">
+                  CANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

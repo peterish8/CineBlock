@@ -423,12 +423,12 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                       className="group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"
                     >
                       {sim.poster_path ? (
-                        <Image src={posterUrl(sim.poster_path)} alt={sim.title} fill className="object-cover transition-transform group-hover:scale-110" sizes="120px" />
+                        <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="120px" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] font-black uppercase">{sim.title}</div>
+                        <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] font-black uppercase">{sim.title ?? sim.name}</div>
                       )}
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
-                        <p className="text-[9px] font-black uppercase text-white line-clamp-2">{sim.title}</p>
+                        <p className="text-[9px] font-black uppercase text-white line-clamp-2">{sim.title ?? sim.name}</p>
                       </div>
                     </div>
                   ))}

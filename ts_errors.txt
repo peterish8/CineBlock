@@ -1,3 +1,0 @@
-.next/types/app/streaming/page.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/nithy/Desktop/1 prats projects/movieX/src/app/streaming/page"), "metadata" | "default" | "config" | "generateStaticParams" | "revalidate" | "dynamic" | ... 7 more ... | "generateViewport", "">' does not satisfy the constraint '{ [x: string]: never; }'.
-  Property 'PLATFORMS' is incompatible with index signature.
-    Type 'Platform[]' is not assignable to type 'never'.

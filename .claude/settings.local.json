@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(find 'c:\\\\Users\\\\nithy\\\\Desktop\\\\1 prats projects\\\\movieX\\\\node_modules\\\\@auth\\\\core' -name resend*)",
+      "Bash(npx convex:*)"
     ]
   }
 }
