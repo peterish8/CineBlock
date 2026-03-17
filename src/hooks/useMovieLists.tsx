@@ -1,27 +1,23 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { useMutation } from "convex/react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { TMDBMovie } from "@/lib/types";
 
 interface MovieListsContextType {
-  // Liked — powers recommendations
   liked: TMDBMovie[];
   isLiked: (id: number) => boolean;
   toggleLiked: (movie: TMDBMovie) => void;
 
-  // Watchlist — to-watch queue
   watchlist: TMDBMovie[];
   isInWatchlist: (id: number) => boolean;
   toggleWatchlist: (movie: TMDBMovie) => void;
 
-  // Watched — completed history
   watched: TMDBMovie[];
   isWatched: (id: number) => boolean;
   toggleWatched: (movie: TMDBMovie) => void;
-  // Move from watchlist to watched in one action
   moveToWatched: (movie: TMDBMovie) => void;
 }
 
@@ -42,14 +38,40 @@ function loadList(key: string): TMDBMovie[] {
   }
 }
 
+function toMovie(item: { movieId: number; movieTitle: string; posterPath: string }): TMDBMovie {
+  return {
+    id: item.movieId,
+    title: item.movieTitle,
+    poster_path: item.posterPath || null,
+    original_title: item.movieTitle,
+    overview: "",
+    backdrop_path: null,
+    release_date: "",
+    vote_average: 0,
+    vote_count: 0,
+    genre_ids: [],
+    original_language: "",
+    popularity: 0,
+    adult: false,
+  };
+}
+
 export function MovieListsProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
-  const [liked, setLiked] = useState<TMDBMovie[]>([]);
-  const [watchlist, setWatchlist] = useState<TMDBMovie[]>([]);
-  const [watched, setWatched] = useState<TMDBMovie[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
-  // Convex mutations — only fire when authenticated
+  // Local state — used when unauthenticated or before Convex loads
+  const [localLiked, setLocalLiked] = useState<TMDBMovie[]>([]);
+  const [localWatchlist, setLocalWatchlist] = useState<TMDBMovie[]>([]);
+  const [localWatched, setLocalWatched] = useState<TMDBMovie[]>([]);
+  const [localLoaded, setLocalLoaded] = useState(false);
+  const didSyncUp = useRef(false);
+
+  // Convex queries — reactive; returns [] when unauthenticated
+  const convexLiked = useQuery(api.lists.getLiked);
+  const convexWatchlist = useQuery(api.lists.getWatchlist);
+  const convexWatched = useQuery(api.lists.getWatched);
+
+  // Convex mutations
   const convexAddWatchlist = useMutation(api.lists.addToWatchlist);
   const convexRemoveWatchlist = useMutation(api.lists.removeFromWatchlist);
   const convexAddLiked = useMutation(api.lists.addToLiked);
@@ -57,109 +79,119 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
   const convexAddWatched = useMutation(api.lists.addToWatched);
   const convexRemoveWatched = useMutation(api.lists.removeFromWatched);
 
-  // Load all three from localStorage on mount
+  // Load from localStorage on mount
   useEffect(() => {
-    setLiked(loadList(KEYS.liked));
-    setWatchlist(loadList(KEYS.watchlist));
-    setWatched(loadList(KEYS.watched));
-    setLoaded(true);
+    setLocalLiked(loadList(KEYS.liked));
+    setLocalWatchlist(loadList(KEYS.watchlist));
+    setLocalWatched(loadList(KEYS.watched));
+    setLocalLoaded(true);
   }, []);
 
-  // Persist each list whenever it changes
+  // Persist local state to localStorage (for unauthenticated use)
   useEffect(() => {
-    if (loaded) localStorage.setItem(KEYS.liked, JSON.stringify(liked));
-  }, [liked, loaded]);
+    if (localLoaded) localStorage.setItem(KEYS.liked, JSON.stringify(localLiked));
+  }, [localLiked, localLoaded]);
   useEffect(() => {
-    if (loaded) localStorage.setItem(KEYS.watchlist, JSON.stringify(watchlist));
-  }, [watchlist, loaded]);
+    if (localLoaded) localStorage.setItem(KEYS.watchlist, JSON.stringify(localWatchlist));
+  }, [localWatchlist, localLoaded]);
   useEffect(() => {
-    if (loaded) localStorage.setItem(KEYS.watched, JSON.stringify(watched));
-  }, [watched, loaded]);
+    if (localLoaded) localStorage.setItem(KEYS.watched, JSON.stringify(localWatched));
+  }, [localWatched, localLoaded]);
 
-  // --- Liked ---
+  // On first sign-in: upload any localStorage items not yet in Convex (merge)
+  useEffect(() => {
+    if (!isAuthenticated || didSyncUp.current) return;
+    if (convexLiked === undefined || convexWatchlist === undefined || convexWatched === undefined) return;
+    didSyncUp.current = true;
+
+    const convexLikedIds = new Set(convexLiked.map((i) => i.movieId));
+    for (const m of localLiked) {
+      if (!convexLikedIds.has(m.id)) {
+        void convexAddLiked({ movieId: m.id, movieTitle: m.title, posterPath: m.poster_path ?? "" });
+      }
+    }
+
+    const convexWatchlistIds = new Set(convexWatchlist.map((i) => i.movieId));
+    for (const m of localWatchlist) {
+      if (!convexWatchlistIds.has(m.id)) {
+        void convexAddWatchlist({ movieId: m.id, movieTitle: m.title, posterPath: m.poster_path ?? "" });
+      }
+    }
+
+    const convexWatchedIds = new Set(convexWatched.map((i) => i.movieId));
+    for (const m of localWatched) {
+      if (!convexWatchedIds.has(m.id)) {
+        void convexAddWatched({ movieId: m.id, movieTitle: m.title, posterPath: m.poster_path ?? "" });
+      }
+    }
+  }, [isAuthenticated, convexLiked, convexWatchlist, convexWatched, localLiked, localWatchlist, localWatched,
+      convexAddLiked, convexAddWatchlist, convexAddWatched]);
+
+  // Source of truth: Convex when authenticated, localStorage when not
+  const liked = isAuthenticated && convexLiked !== undefined ? convexLiked.map(toMovie) : localLiked;
+  const watchlist = isAuthenticated && convexWatchlist !== undefined ? convexWatchlist.map(toMovie) : localWatchlist;
+  const watched = isAuthenticated && convexWatched !== undefined ? convexWatched.map(toMovie) : localWatched;
+
   const isLiked = useCallback((id: number) => liked.some((m) => m.id === id), [liked]);
+  const isInWatchlist = useCallback((id: number) => watchlist.some((m) => m.id === id), [watchlist]);
+  const isWatched = useCallback((id: number) => watched.some((m) => m.id === id), [watched]);
+
   const toggleLiked = useCallback((movie: TMDBMovie) => {
     const currentlyLiked = liked.some((m) => m.id === movie.id);
-    setLiked((prev) =>
-      currentlyLiked ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
-    );
-    // Auto-add to watched when liking
-    if (!currentlyLiked) {
-      setWatched((prev) => {
-        const isAlreadyWatched = prev.some((m) => m.id === movie.id);
-        return isAlreadyWatched ? prev : [movie, ...prev];
-      });
-    }
-    // Sync to Convex
     if (isAuthenticated) {
+      // Server handles auto-add to watched when liking (see lists.ts addToLiked)
       if (currentlyLiked) {
         void convexRemoveLiked({ movieId: movie.id });
       } else {
-        void convexAddLiked({
-          movieId: movie.id,
-          movieTitle: movie.title,
-          posterPath: movie.poster_path ?? "",
-        });
+        void convexAddLiked({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
+      }
+    } else {
+      setLocalLiked((prev) =>
+        currentlyLiked ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+      );
+      if (!currentlyLiked && !localWatched.some((m) => m.id === movie.id)) {
+        setLocalWatched((prev) => [movie, ...prev]);
       }
     }
-  }, [liked, isAuthenticated, convexAddLiked, convexRemoveLiked]);
+  }, [liked, localWatched, isAuthenticated, convexAddLiked, convexRemoveLiked]);
 
-  // --- Watchlist ---
-  const isInWatchlist = useCallback((id: number) => watchlist.some((m) => m.id === id), [watchlist]);
   const toggleWatchlist = useCallback((movie: TMDBMovie) => {
     const currentlyIn = watchlist.some((m) => m.id === movie.id);
-    setWatchlist((prev) =>
-      currentlyIn ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
-    );
-    // Sync to Convex
     if (isAuthenticated) {
       if (currentlyIn) {
         void convexRemoveWatchlist({ movieId: movie.id });
       } else {
-        void convexAddWatchlist({
-          movieId: movie.id,
-          movieTitle: movie.title,
-          posterPath: movie.poster_path ?? "",
-        });
+        void convexAddWatchlist({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
       }
+    } else {
+      setLocalWatchlist((prev) =>
+        currentlyIn ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+      );
     }
   }, [watchlist, isAuthenticated, convexAddWatchlist, convexRemoveWatchlist]);
 
-  // --- Watched ---
-  const isWatched = useCallback((id: number) => watched.some((m) => m.id === id), [watched]);
   const toggleWatched = useCallback((movie: TMDBMovie) => {
     const currentlyWatched = watched.some((m) => m.id === movie.id);
-    setWatched((prev) =>
-      currentlyWatched ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
-    );
-    // Sync to Convex
     if (isAuthenticated) {
       if (currentlyWatched) {
         void convexRemoveWatched({ movieId: movie.id });
       } else {
-        void convexAddWatched({
-          movieId: movie.id,
-          movieTitle: movie.title,
-          posterPath: movie.poster_path ?? "",
-        });
+        void convexAddWatched({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
       }
+    } else {
+      setLocalWatched((prev) =>
+        currentlyWatched ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
+      );
     }
   }, [watched, isAuthenticated, convexAddWatched, convexRemoveWatched]);
 
-  // Move from watchlist → watched
   const moveToWatched = useCallback((movie: TMDBMovie) => {
-    setWatchlist((prev) => prev.filter((m) => m.id !== movie.id));
-    setWatched((prev) => {
-      const exists = prev.some((m) => m.id === movie.id);
-      return exists ? prev : [movie, ...prev];
-    });
     if (isAuthenticated) {
       void convexRemoveWatchlist({ movieId: movie.id });
-      void convexAddWatched({
-        movieId: movie.id,
-        movieTitle: movie.title,
-        posterPath: movie.poster_path ?? "",
-      });
+      void convexAddWatched({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
+    } else {
+      setLocalWatchlist((prev) => prev.filter((m) => m.id !== movie.id));
+      setLocalWatched((prev) => prev.some((m) => m.id === movie.id) ? prev : [movie, ...prev]);
     }
   }, [isAuthenticated, convexRemoveWatchlist, convexAddWatched]);
 
@@ -182,13 +214,9 @@ export function useMovieLists() {
   return ctx;
 }
 
-// Backwards-compatible alias so existing pages that use WatchlistProvider/useWatchlist still compile
 export { MovieListsProvider as WatchlistProvider };
 export function useWatchlist() {
-  const {
-    liked, isLiked, toggleLiked,
-    watchlist, isInWatchlist, toggleWatchlist,
-  } = useMovieLists();
+  const { liked, isLiked, toggleLiked, watchlist, isInWatchlist, toggleWatchlist } = useMovieLists();
   return {
     watchlist: liked,
     isInWatchlist: isLiked,
