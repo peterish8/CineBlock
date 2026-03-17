@@ -51,7 +51,7 @@ export default function SignInPage() {
         setPendingEmail(email);
         setStep("email-verify");
       } else {
-        router.replace("/");
+        window.location.href = "/";
       }
     } catch (err: any) {
       const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
@@ -114,7 +114,7 @@ export default function SignInPage() {
     formData.set("flow", "reset-verification");
     try {
       await signIn("password", formData);
-      router.replace("/");
+      window.location.href = "/";
     } catch (err: any) {
       setError("Invalid or expired code. Please try again.");
     } finally {
@@ -132,7 +132,7 @@ export default function SignInPage() {
     formData.set("flow", "email-verification");
     try {
       await signIn("password", formData);
-      router.replace("/");
+      window.location.href = "/";
     } catch (err: any) {
       setError("Invalid or expired code. Please try again.");
     } finally {
