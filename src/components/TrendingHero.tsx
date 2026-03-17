@@ -9,9 +9,11 @@ import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface TrendingHeroProps {
   onMovieClick: (movie: TMDBMovie) => void;
+  preferredLanguage?: string;
 }
 
-export default function TrendingHero({ onMovieClick }: TrendingHeroProps) {
+export default function TrendingHero({ onMovieClick, preferredLanguage }: TrendingHeroProps) {
+  const [allMovies, setAllMovies] = useState<TMDBMovie[]>([]);
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function TrendingHero({ onMovieClick }: TrendingHeroProps) {
         const res = await fetch("/api/movies?action=trending&window=day");
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
-        setMovies(data.results?.slice(0, 8) || []);
+        setAllMovies(data.results?.slice(0, 20) || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -31,6 +33,16 @@ export default function TrendingHero({ onMovieClick }: TrendingHeroProps) {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    if (!preferredLanguage) {
+      setMovies(allMovies.slice(0, 8));
+    } else {
+      const filtered = allMovies.filter((m) => m.original_language === preferredLanguage);
+      setMovies((filtered.length > 0 ? filtered : allMovies).slice(0, 8));
+    }
+    setCurrent(0);
+  }, [allMovies, preferredLanguage]);
 
   // Auto-rotate every 6 seconds
   useEffect(() => {

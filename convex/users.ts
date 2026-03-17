@@ -49,6 +49,16 @@ export const setUsername = mutation({
   },
 });
 
+export const setPreferredLanguage = mutation({
+  args: { language: v.string() },
+  handler: async (ctx, { language }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    // "" means "no preference" (all languages)
+    await ctx.db.patch(userId, { preferredLanguage: language || undefined });
+  },
+});
+
 export const getUserByUsername = query({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {

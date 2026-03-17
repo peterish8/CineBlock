@@ -12,6 +12,7 @@ import ActorModal from "@/components/ActorModal";
 import WatchlistPanel from "@/components/WatchlistPanel";
 import RecommendationsSection from "@/components/RecommendationsSection";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 
 function HomeContent() {
@@ -31,6 +32,13 @@ function HomeContent() {
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
   const { liked, watchlist, watched } = useMovieLists();
   const likedCount = liked.length;
+  const preferredLanguage = usePreferredLanguage();
+
+  // Apply preferredLanguage as default when user hasn't manually set a language filter
+  const effectiveFilters = {
+    ...filters,
+    language: filters.language || preferredLanguage,
+  };
 
   const isSearching = filters.query.trim().length > 0 || filters.genre !== "" || filters.year !== "" || filters.language !== "";
 
@@ -144,7 +152,7 @@ function HomeContent() {
   return (
     <main className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
       {/* Trending Hero */}
-      <TrendingHero onMovieClick={handleMovieClick} />
+      <TrendingHero onMovieClick={handleMovieClick} preferredLanguage={preferredLanguage} />
 
       {/* Command Hub */}
       <CommandHub onFilterChange={handleFilterChange} onSurpriseMe={handleSurpriseMe} />
@@ -217,9 +225,9 @@ function HomeContent() {
       {/* Content Grid */}
       <div className="flex-1 max-w-[1600px] mx-auto w-full pt-4 pb-8">
         {mediaTab === "movies" ? (
-          <PosterGrid filters={filters} onMovieClick={handleMovieClick} />
+          <PosterGrid filters={effectiveFilters} onMovieClick={handleMovieClick} />
         ) : (
-          <TVGrid filters={filters} onShowClick={handleTVClick} />
+          <TVGrid filters={effectiveFilters} onShowClick={handleTVClick} />
         )}
       </div>
 

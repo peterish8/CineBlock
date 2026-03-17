@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, EyeOff, ArrowLeft, Palette, Trash2, AtSign } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, EyeOff, ArrowLeft, Palette, Trash2, AtSign, Globe } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const liked = useQuery(api.lists.getLiked);
   const upsertUser = useMutation(api.users.upsertUser);
   const setUsername = useMutation(api.users.setUsername);
+  const setPreferredLanguage = useMutation(api.users.setPreferredLanguage);
   const deleteAccount = useMutation(api.users.deleteAccount);
   const { signOut, signIn } = useAuthActions();
   const router = useRouter();
@@ -363,6 +364,42 @@ export default function ProfilePage() {
                 <Palette className="w-2.5 h-2.5" />
                 {isNetflixTheme ? "RESET" : "NETFLIX"}
               </button>
+            </div>
+
+            {/* Preferred Language row */}
+            <div className="flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <Globe className="w-4 h-4 text-brutal-cyan shrink-0" strokeWidth={2.5} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] font-mono font-bold text-brutal-dim uppercase tracking-widest">Preferred Language</p>
+                  <p className="text-[10px] font-mono text-brutal-dim mt-0.5">Movies & shows will default to this language</p>
+                </div>
+              </div>
+              <select
+                value={user?.preferredLanguage ?? ""}
+                onChange={(e) => void setPreferredLanguage({ language: e.target.value })}
+                className="brutal-input px-2 py-1 text-xs font-mono font-bold bg-bg text-brutal-white border-brutal-border focus:border-brutal-cyan outline-none cursor-pointer shrink-0 ml-3"
+              >
+                <option value="">All Languages</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="ta">Tamil</option>
+                <option value="te">Telugu</option>
+                <option value="ml">Malayalam</option>
+                <option value="kn">Kannada</option>
+                <option value="ko">Korean</option>
+                <option value="ja">Japanese</option>
+                <option value="zh">Chinese</option>
+                <option value="fr">French</option>
+                <option value="es">Spanish</option>
+                <option value="de">German</option>
+                <option value="it">Italian</option>
+                <option value="pt">Portuguese</option>
+                <option value="ru">Russian</option>
+                <option value="ar">Arabic</option>
+                <option value="tr">Turkish</option>
+                <option value="th">Thai</option>
+              </select>
             </div>
           </div>
         </div>
