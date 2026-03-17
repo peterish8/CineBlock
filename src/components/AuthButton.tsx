@@ -1,16 +1,22 @@
 "use client";
 
-import { useConvexAuth } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState, useRef, useEffect } from "react";
-import { LogIn, LogOut, User, Bookmark } from "lucide-react";
+import { LogIn, LogOut, User, Bookmark, Layers } from "lucide-react";
 import Link from "next/link";
+import { api } from "../../convex/_generated/api";
 
 export default function AuthButton() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signOut } = useAuthActions();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pendingInvites = useQuery(
+    api.blocks.getPendingInvitations,
+    isAuthenticated ? {} : "skip"
+  );
+  const inviteCount = pendingInvites?.length ?? 0;
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -46,12 +52,17 @@ export default function AuthButton() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="brutal-btn p-1.5 sm:px-3 sm:py-1.5 flex items-center gap-2 bg-surface border-brutal-border hover:!border-brutal-yellow hover:!text-brutal-yellow"
+        className="brutal-btn p-1.5 sm:px-3 sm:py-1.5 flex items-center gap-2 bg-surface border-brutal-border hover:!border-brutal-yellow hover:!text-brutal-yellow relative"
       >
         <User className="w-4 h-4" strokeWidth={2.5} />
         <span className="hidden sm:inline-block text-xs font-bold font-mono tracking-widest">
           ACCOUNT
         </span>
+        {inviteCount > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brutal-yellow text-black text-[9px] font-black flex items-center justify-center border border-black">
+            {inviteCount > 9 ? "9+" : inviteCount}
+          </span>
+        )}
       </button>
 
       {dropdownOpen && (
@@ -71,6 +82,21 @@ export default function AuthButton() {
           >
             <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
             MY LISTS
+          </Link>
+          <Link
+            href="/blocks"
+            onClick={() => setDropdownOpen(false)}
+            className="flex items-center justify-between px-4 py-3 text-xs font-mono font-bold text-brutal-white hover:bg-surface-2 hover:text-brutal-violet transition-colors border-b-2 border-brutal-border"
+          >
+            <div className="flex items-center gap-3">
+              <Layers className="w-3.5 h-3.5" strokeWidth={2.5} />
+              BLOCKS
+            </div>
+            {inviteCount > 0 && (
+              <span className="bg-brutal-yellow text-black text-[9px] font-black px-1.5 py-0.5 rounded-sm">
+                {inviteCount}
+              </span>
+            )}
           </Link>
           <button
             onClick={() => {

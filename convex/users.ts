@@ -22,6 +22,46 @@ export const upsertUser = mutation({
   },
 });
 
+export const setUsername = mutation({
+  args: { username: v.string() },
+  handler: async (ctx, { username }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    // Validate format: 3-20 chars, lowercase alphanumeric + underscores
+    const cleaned = username.toLowerCase().trim();
+    if (!/^[a-z0-9_]{3,20}$/.test(cleaned)) {
+      throw new Error("Username must be 3–20 characters: letters, numbers, underscores only.");
+    }
+
+    // Check uniqueness
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", cleaned))
+      .first();
+
+    if (existing && existing._id !== userId) {
+      throw new Error("That username is already taken.");
+    }
+
+    await ctx.db.patch(userId, { username: cleaned });
+    return cleaned;
+  },
+});
+
+export const getUserByUsername = query({
+  args: { username: v.string() },
+  handler: async (ctx, { username }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username.toLowerCase().trim()))
+      .first();
+    if (!user) return null;
+    // Only return safe fields — never expose email
+    return { _id: user._id, name: user.name, username: user.username };
+  },
+});
+
 export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
@@ -34,6 +74,13 @@ export const deleteAccount = mutation({
       for (const e of entries) await ctx.db.delete(e._id);
     }
 
+    // Delete block invitations (sent and received)
+    const receivedInvites = await ctx.db
+      .query("block_invitations")
+      .withIndex("by_invitedUser", (q) => q.eq("invitedUserId", userId))
+      .collect();
+    for (const inv of receivedInvites) await ctx.db.delete(inv._id);
+
     // Delete room memberships and votes in rooms the user joined
     const memberships = await ctx.db.query("room_members").withIndex("by_userId", q => q.eq("userId", userId)).collect();
     for (const m of memberships) {
@@ -42,13 +89,15 @@ export const deleteAccount = mutation({
       await ctx.db.delete(m._id);
     }
 
-    // Delete rooms the user owns + all their members/votes
+    // Delete rooms the user owns + all their members/votes/invitations
     const ownedRooms = await ctx.db.query("rooms").withIndex("by_ownerId", q => q.eq("ownerId", userId)).collect();
     for (const room of ownedRooms) {
       const members = await ctx.db.query("room_members").withIndex("by_roomId", q => q.eq("roomId", room._id)).collect();
       for (const m of members) await ctx.db.delete(m._id);
       const votes = await ctx.db.query("room_votes").withIndex("by_roomId", q => q.eq("roomId", room._id)).collect();
       for (const v of votes) await ctx.db.delete(v._id);
+      const invites = await ctx.db.query("block_invitations").withIndex("by_roomId", q => q.eq("roomId", room._id)).collect();
+      for (const inv of invites) await ctx.db.delete(inv._id);
       await ctx.db.delete(room._id);
     }
 

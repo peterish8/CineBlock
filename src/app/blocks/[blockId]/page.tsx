@@ -174,10 +174,15 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
   const votes = useQuery(api.blocks.getRoomVotes, { roomId: blockId });
   const toggleVote = useMutation(api.blocks.toggleVote);
   const leaveRoom = useMutation(api.blocks.leaveRoom);
+  const inviteByUsername = useMutation(api.blocks.inviteByUsername);
   const router = useRouter();
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [inviteUsername, setInviteUsername] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState(false);
 
   const copyCode = () => {
     if (!room) return;
@@ -199,6 +204,24 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
 
   const handleVote = async (movieId: number) => {
     await toggleVote({ roomId: blockId, movieId });
+  };
+
+  const handleInvite = async () => {
+    const u = inviteUsername.replace(/^@/, "").trim();
+    if (!u) return;
+    setInviteLoading(true);
+    setInviteError("");
+    setInviteSuccess(false);
+    try {
+      await inviteByUsername({ roomId: blockId, username: u });
+      setInviteSuccess(true);
+      setInviteUsername("");
+      setTimeout(() => setInviteSuccess(false), 3000);
+    } catch (err: any) {
+      setInviteError(err.message?.replace("Uncaught Error: ", "") || "Failed to send invite.");
+    } finally {
+      setInviteLoading(false);
+    }
   };
 
   const voteLookup = new Map(
@@ -291,6 +314,36 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
               />
             ))}
           </div>
+        </div>
+
+        {/* Invite by username */}
+        <div className="brutal-card p-4">
+          <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
+            Invite by Username
+          </p>
+          <div className="flex gap-2">
+            <div className="flex-1 flex items-center brutal-input px-3 gap-1.5 focus-within:border-brutal-violet">
+              <span className="text-brutal-dim font-mono text-sm shrink-0">@</span>
+              <input
+                value={inviteUsername}
+                onChange={(e) => { setInviteUsername(e.target.value); setInviteError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") void handleInvite(); }}
+                placeholder="username"
+                className="flex-1 bg-transparent text-brutal-white text-sm font-mono outline-none placeholder:text-brutal-dim"
+                maxLength={20}
+              />
+            </div>
+            <button
+              onClick={() => void handleInvite()}
+              disabled={inviteLoading || !inviteUsername.trim()}
+              className={`brutal-btn px-4 font-mono text-xs font-black tracking-wider shrink-0 disabled:opacity-40 transition-all ${
+                inviteSuccess ? "!bg-brutal-lime !text-black !border-brutal-lime" : "hover:!border-brutal-violet hover:!text-brutal-violet"
+              }`}
+            >
+              {inviteSuccess ? "SENT ✓" : inviteLoading ? "..." : "INVITE"}
+            </button>
+          </div>
+          {inviteError && <p className="text-brutal-red text-[10px] font-mono mt-2">{inviteError}</p>}
         </div>
 
         {/* Privacy note */}

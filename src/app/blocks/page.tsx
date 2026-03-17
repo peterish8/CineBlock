@@ -185,10 +185,24 @@ function JoinBlockModal({ onClose }: { onClose: () => void }) {
 
 function BlocksContent() {
   const rooms = useQuery(api.blocks.getMyRooms);
+  const pendingInvites = useQuery(api.blocks.getPendingInvitations);
   const deleteRoom = useMutation(api.blocks.deleteRoom);
   const leaveRoom = useMutation(api.blocks.leaveRoom);
+  const respondToInvitation = useMutation(api.blocks.respondToInvitation);
+  const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+
+  const handleRespond = async (invitationId: string, accept: boolean) => {
+    setRespondingId(invitationId);
+    try {
+      const roomId = await respondToInvitation({ invitationId: invitationId as any, accept });
+      if (accept && roomId) router.push(`/blocks/${roomId}`);
+    } finally {
+      setRespondingId(null);
+    }
+  };
 
   const handleDelete = async (roomId: Id<"rooms">) => {
     if (!confirm("Delete this Block? This cannot be undone.")) return;
@@ -235,6 +249,43 @@ function BlocksContent() {
         </div>
 
         <div className="flex-1 max-w-[1200px] mx-auto w-full px-4 sm:px-6 py-8">
+
+          {/* Pending Invitations */}
+          {pendingInvites && pendingInvites.length > 0 && (
+            <div className="mb-6 space-y-3">
+              <p className="text-[9px] font-mono font-black text-brutal-yellow uppercase tracking-[0.2em] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-brutal-yellow animate-pulse inline-block" />
+                Pending Invitations ({pendingInvites.length})
+              </p>
+              {pendingInvites.map((inv) => (
+                <div key={inv._id} className="brutal-card p-4 border-brutal-yellow flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display font-black text-sm text-brutal-white uppercase truncate">{inv.roomName}</p>
+                    <p className="text-brutal-dim text-[11px] font-mono mt-0.5">
+                      Invited by {inv.invitedByUsername ? `@${inv.invitedByUsername}` : inv.invitedByName}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => void handleRespond(inv._id, true)}
+                      disabled={respondingId === inv._id}
+                      className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-50"
+                    >
+                      JOIN
+                    </button>
+                    <button
+                      onClick={() => void handleRespond(inv._id, false)}
+                      disabled={respondingId === inv._id}
+                      className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black hover:!bg-brutal-red hover:!text-white hover:!border-brutal-red disabled:opacity-50"
+                    >
+                      DECLINE
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Explainer */}
           <div className="brutal-card p-4 mb-6 border-brutal-violet bg-surface">
             <p className="text-brutal-dim text-xs font-mono leading-relaxed">

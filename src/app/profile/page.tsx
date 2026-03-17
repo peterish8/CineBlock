@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, EyeOff, ArrowLeft, Palette, Trash2 } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, EyeOff, ArrowLeft, Palette, Trash2, AtSign } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const watched = useQuery(api.lists.getWatched);
   const liked = useQuery(api.lists.getLiked);
   const upsertUser = useMutation(api.users.upsertUser);
+  const setUsername = useMutation(api.users.setUsername);
   const deleteAccount = useMutation(api.users.deleteAccount);
   const { signOut, signIn } = useAuthActions();
   const router = useRouter();
@@ -24,6 +25,10 @@ export default function ProfilePage() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameValue, setUsernameValue] = useState("");
+  const [savingUsername, setSavingUsername] = useState(false);
+  const [usernameError, setUsernameError] = useState("");
   const [isNetflixTheme, setIsNetflixTheme] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
@@ -91,6 +96,32 @@ export default function ProfilePage() {
   const cancelEdit = () => {
     setEditingName(false);
     setNameValue("");
+  };
+
+  const startEditUsername = () => {
+    setUsernameValue(user?.username || "");
+    setUsernameError("");
+    setEditingUsername(true);
+  };
+
+  const saveUsername = async () => {
+    if (!usernameValue.trim()) return;
+    setSavingUsername(true);
+    setUsernameError("");
+    try {
+      await setUsername({ username: usernameValue.trim() });
+      setEditingUsername(false);
+    } catch (err: any) {
+      setUsernameError(err.message?.replace("Uncaught Error: ", "") || "Failed to save username.");
+    } finally {
+      setSavingUsername(false);
+    }
+  };
+
+  const cancelEditUsername = () => {
+    setEditingUsername(false);
+    setUsernameValue("");
+    setUsernameError("");
   };
 
   const handleDeleteAccount = async () => {
@@ -249,6 +280,47 @@ export default function ProfilePage() {
                 <button onClick={startEdit} className="brutal-chip text-brutal-yellow border-brutal-yellow hover:bg-brutal-yellow hover:text-black transition-colors text-[9px] flex items-center gap-1">
                   <Pencil className="w-2.5 h-2.5" />
                   EDIT
+                </button>
+              )}
+            </div>
+
+            {/* Username row */}
+            <div className="flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <AtSign className="w-4 h-4 text-brutal-lime shrink-0" strokeWidth={2.5} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[9px] font-mono font-bold text-brutal-dim uppercase tracking-widest">Username</p>
+                  {editingUsername ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-brutal-dim font-mono text-sm">@</span>
+                      <input
+                        autoFocus
+                        value={usernameValue}
+                        onChange={(e) => { setUsernameValue(e.target.value); setUsernameError(""); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") void saveUsername(); if (e.key === "Escape") cancelEditUsername(); }}
+                        className="brutal-input px-2 py-1 text-sm font-bold bg-bg text-brutal-white flex-1 min-w-0 focus:border-brutal-lime outline-none"
+                        maxLength={20}
+                        placeholder="your_username"
+                      />
+                      <button onClick={() => void saveUsername()} disabled={savingUsername || !usernameValue.trim()} className="brutal-btn p-1.5 !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-40 shrink-0">
+                        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                      </button>
+                      <button onClick={cancelEditUsername} className="brutal-btn p-1.5 !bg-brutal-red !text-white !border-brutal-red shrink-0">
+                        <X className="w-3.5 h-3.5" strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm font-bold text-brutal-white">
+                      {user?.username ? `@${user.username}` : <span className="text-brutal-dim italic">Not set</span>}
+                    </p>
+                  )}
+                  {usernameError && <p className="text-brutal-red text-[10px] font-mono mt-1">{usernameError}</p>}
+                </div>
+              </div>
+              {!editingUsername && (
+                <button onClick={startEditUsername} className="brutal-chip text-brutal-lime border-brutal-lime hover:bg-brutal-lime hover:text-black transition-colors text-[9px] flex items-center gap-1 shrink-0">
+                  <Pencil className="w-2.5 h-2.5" />
+                  {user?.username ? "EDIT" : "SET"}
                 </button>
               )}
             </div>

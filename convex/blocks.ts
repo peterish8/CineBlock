@@ -389,3 +389,116 @@ export const getRoomVotes = query({
     }));
   },
 });
+
+// ─── Invitations ──────────────────────────────────────────────────────────────
+
+export const inviteByUsername = mutation({
+  args: { roomId: v.id("rooms"), username: v.string() },
+  handler: async (ctx, { roomId, username }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    // Caller must be a member
+    const callerMembership = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    if (!callerMembership) throw new Error("You're not a member of this Block.");
+
+    // Find target user by username
+    const target = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username.toLowerCase().trim()))
+      .first();
+    if (!target) throw new Error("No user found with that username.");
+    if (target._id === userId) throw new Error("You can't invite yourself.");
+
+    // Already a member?
+    const alreadyMember = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", target._id))
+      .first();
+    if (alreadyMember) throw new Error("That user is already in this Block.");
+
+    // Duplicate pending invite?
+    const existing = await ctx.db
+      .query("block_invitations")
+      .withIndex("by_roomId_invitedUser", (q) => q.eq("roomId", roomId).eq("invitedUserId", target._id))
+      .first();
+    if (existing && existing.status === "pending") throw new Error("Invite already sent to that user.");
+
+    // If previously declined, delete old record and re-invite
+    if (existing) await ctx.db.delete(existing._id);
+
+    await ctx.db.insert("block_invitations", {
+      roomId,
+      invitedUserId: target._id,
+      invitedByUserId: userId,
+      status: "pending",
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const getPendingInvitations = query({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const invites = await ctx.db
+      .query("block_invitations")
+      .withIndex("by_invitedUser_status", (q) =>
+        q.eq("invitedUserId", userId).eq("status", "pending")
+      )
+      .collect();
+
+    const results = await Promise.all(
+      invites.map(async (inv) => {
+        const room = await ctx.db.get(inv.roomId);
+        const inviter = await ctx.db.get(inv.invitedByUserId);
+        return {
+          _id: inv._id,
+          roomId: inv.roomId,
+          roomName: room?.name ?? "Deleted Block",
+          invitedByName: inviter?.name ?? "Someone",
+          invitedByUsername: inviter?.username ?? null,
+          createdAt: inv.createdAt,
+        };
+      })
+    );
+
+    return results.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+export const respondToInvitation = mutation({
+  args: { invitationId: v.id("block_invitations"), accept: v.boolean() },
+  handler: async (ctx, { invitationId, accept }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const invite = await ctx.db.get(invitationId);
+    if (!invite || invite.invitedUserId !== userId) throw new Error("Invitation not found.");
+    if (invite.status !== "pending") throw new Error("Invitation already responded to.");
+
+    if (accept) {
+      // Check not already a member
+      const alreadyMember = await ctx.db
+        .query("room_members")
+        .withIndex("by_roomId_userId", (q) => q.eq("roomId", invite.roomId).eq("userId", userId))
+        .first();
+      if (!alreadyMember) {
+        await ctx.db.insert("room_members", {
+          roomId: invite.roomId,
+          userId,
+          joinedAt: Date.now(),
+        });
+      }
+      await ctx.db.patch(invitationId, { status: "accepted" });
+      return invite.roomId;
+    } else {
+      await ctx.db.patch(invitationId, { status: "declined" });
+      return null;
+    }
+  },
+});
