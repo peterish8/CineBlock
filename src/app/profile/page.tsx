@@ -113,7 +113,7 @@ export default function ProfilePage() {
       await setUsername({ username: usernameValue.trim() });
       setEditingUsername(false);
     } catch (err: any) {
-      setUsernameError(err.message?.replace("Uncaught Error: ", "") || "Failed to save username.");
+      setUsernameError(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to save username.");
     } finally {
       setSavingUsername(false);
     }

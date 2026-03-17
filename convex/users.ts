@@ -1,5 +1,5 @@
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
 
@@ -10,7 +10,7 @@ export const upsertUser = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const existing = await ctx.db.get(userId);
     if (existing) {
@@ -26,12 +26,12 @@ export const setUsername = mutation({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Validate format: 3-20 chars, lowercase alphanumeric + underscores
     const cleaned = username.toLowerCase().trim();
     if (!/^[a-z0-9_]{3,20}$/.test(cleaned)) {
-      throw new Error("Username must be 3–20 characters: letters, numbers, underscores only.");
+      throw new ConvexError("Username must be 3–20 characters: letters, numbers, underscores only.");
     }
 
     // Check uniqueness
@@ -41,7 +41,7 @@ export const setUsername = mutation({
       .first();
 
     if (existing && existing._id !== userId) {
-      throw new Error("That username is already taken.");
+      throw new ConvexError("That username is already taken.");
     }
 
     await ctx.db.patch(userId, { username: cleaned });
@@ -53,7 +53,7 @@ export const setPreferredLanguage = mutation({
   args: { language: v.string() },
   handler: async (ctx, { language }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
     // "" means "no preference" (all languages)
     await ctx.db.patch(userId, { preferredLanguage: language || undefined });
   },
@@ -76,7 +76,7 @@ export const deleteAccount = mutation({
   args: {},
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Delete all list entries
     for (const table of ["watchlist", "watched", "liked"] as const) {

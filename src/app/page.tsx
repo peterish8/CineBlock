@@ -13,6 +13,7 @@ import WatchlistPanel from "@/components/WatchlistPanel";
 import RecommendationsSection from "@/components/RecommendationsSection";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
+import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 
 function HomeContent() {
@@ -33,11 +34,14 @@ function HomeContent() {
   const { liked, watchlist, watched } = useMovieLists();
   const likedCount = liked.length;
   const preferredLanguage = usePreferredLanguage();
+  const { region } = useRegion();
+  // Use explicit preference if set, else fall back to region-based language
+  const activeLanguage = preferredLanguage || REGION_TO_LANGUAGE[region] || "";
 
-  // Apply preferredLanguage as default when user hasn't manually set a language filter
+  // Apply language preference as default when user hasn't manually set a language filter
   const effectiveFilters = {
     ...filters,
-    language: filters.language || preferredLanguage,
+    language: filters.language || activeLanguage,
   };
 
   const isSearching = filters.query.trim().length > 0 || filters.genre !== "" || filters.year !== "" || filters.language !== "";
@@ -152,7 +156,7 @@ function HomeContent() {
   return (
     <main className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
       {/* Trending Hero */}
-      <TrendingHero onMovieClick={handleMovieClick} preferredLanguage={preferredLanguage} />
+      <TrendingHero onMovieClick={handleMovieClick} preferredLanguage={activeLanguage} />
 
       {/* Command Hub */}
       <CommandHub onFilterChange={handleFilterChange} onSurpriseMe={handleSurpriseMe} />

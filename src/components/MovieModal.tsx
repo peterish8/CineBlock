@@ -6,6 +6,7 @@ import { X, Star, Calendar, Clock, Users, Bookmark, Play, Tv, ExternalLink, Link
 import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { useRegion } from "@/hooks/useRegion";
 
 interface MovieModalProps {
   movie: TMDBMovie | null;
@@ -41,7 +42,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
 
   const [details, setDetails] = useState<TMDBMovieDetail | null>(null);
   const [watchProviders, setWatchProviders] = useState<{ [countryCode: string]: any } | null>(null);
-  const [region, setRegion] = useState("US");
+  const { region, setRegion } = useRegion();
   const [loading, setLoading] = useState(false);
   const [playingTrailer, setPlayingTrailer] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -78,11 +79,12 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
 
       if (wpRes.ok) {
         const wpData = await wpRes.json();
-        setWatchProviders(wpData.results || null);
-        if (wpData.results && !wpData.results["US"] && Object.keys(wpData.results).length > 0) {
-          setRegion(Object.keys(wpData.results)[0]);
-        } else {
-          setRegion("US");
+        const results = wpData.results || {};
+        setWatchProviders(results);
+        // Keep user's detected region if available, else fallback
+        if (!results[region]) {
+          if (results["US"]) setRegion("US");
+          else if (Object.keys(results).length > 0) setRegion(Object.keys(results)[0]);
         }
       }
       
@@ -145,17 +147,49 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   ) || details?.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
 
   const currentProviders = watchProviders?.[region] || null;
-  const allStreamProviders = [
-    ...(currentProviders?.flatrate || []),
-    ...(currentProviders?.rent || []),
-    ...(currentProviders?.buy || []),
+  const jwLink = currentProviders?.link || null;
+
+  // Direct OTT links by TMDB provider_id
+  const PROVIDER_URLS: Record<number, string> = {
+    8: "https://www.netflix.com",
+    9: "https://www.primevideo.com",
+    15: "https://www.hulu.com",
+    337: "https://www.disneyplus.com",
+    350: "https://tv.apple.com",
+    384: "https://www.max.com",
+    386: "https://www.peacocktv.com",
+    531: "https://www.paramountplus.com",
+    283: "https://www.crunchyroll.com",
+    11: "https://mubi.com",
+    122: "https://www.hotstar.com",
+    220: "https://www.jiocinema.com",
+    232: "https://www.zee5.com",
+    237: "https://www.sonyliv.com",
+    315: "https://www.sonyliv.com",
+    190: "https://www.erosnow.com",
+    218: "https://www.altbalaji.com",
+    121: "https://www.mxplayer.in",
+    191: "https://www.sunnxt.com",
+    633: "https://www.aha.video",
+    226: "https://www.discovery.com",
+    257: "https://www.fubo.tv",
+    43: "https://www.starz.com",
+  };
+
+  const REGIONS = [
+    { code: "IN", label: "India" },
+    { code: "US", label: "USA" },
+    { code: "GB", label: "UK" },
+    { code: "CA", label: "Canada" },
+    { code: "AU", label: "Australia" },
+    { code: "DE", label: "Germany" },
+    { code: "FR", label: "France" },
+    { code: "JP", label: "Japan" },
+    { code: "KR", label: "Korea" },
+    { code: "BR", label: "Brazil" },
+    { code: "MX", label: "Mexico" },
+    { code: "SG", label: "Singapore" },
   ];
-  const seenProviderIds = new Set<number>();
-  const uniqueProviders = allStreamProviders.filter((p) => {
-    if (seenProviderIds.has(p.provider_id)) return false;
-    seenProviderIds.add(p.provider_id);
-    return true;
-  }).slice(0, 8);
 
   return (
     <div
@@ -325,6 +359,134 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             <div className="brutal-chip bg-brutal-cyan text-black px-2 py-0.5 text-[10px] uppercase font-black">TV SERIES</div>
           )}
         </div>
+
+        {/* WHERE TO WATCH */}
+        {watchProviders !== null && (
+          <div className="px-6 py-4 border-b-3 border-brutal-border">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">WHERE TO WATCH</h3>
+              <select
+                value={region}
+                onChange={(e) => setRegion(e.target.value)}
+                className="brutal-input px-2 py-0.5 text-[9px] font-mono font-bold bg-surface text-brutal-white border-brutal-border focus:border-brutal-yellow outline-none cursor-pointer"
+              >
+                {REGIONS.map((r) => (
+                  <option key={r.code} value={r.code}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {currentProviders?.flatrate?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2">STREAM</p>
+                <div className="flex flex-wrap gap-2">
+                  {currentProviders.flatrate.map((p: TMDBWatchProvider) => {
+                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    return (
+                      <a
+                        key={p.provider_id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={p.provider_name}
+                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-lime hover:shadow-brutal-sm transition-all group"
+                      >
+                        {p.logo_path && (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                            alt={p.provider_name}
+                            width={20}
+                            height={20}
+                            className="rounded-sm w-5 h-5 object-cover"
+                          />
+                        )}
+                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-lime transition-colors whitespace-nowrap">{p.provider_name}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-lime transition-colors" strokeWidth={2.5} />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {currentProviders?.rent?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2">RENT</p>
+                <div className="flex flex-wrap gap-2">
+                  {currentProviders.rent.map((p: TMDBWatchProvider) => {
+                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    return (
+                      <a
+                        key={p.provider_id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={p.provider_name}
+                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-yellow hover:shadow-brutal-sm transition-all group"
+                      >
+                        {p.logo_path && (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                            alt={p.provider_name}
+                            width={20}
+                            height={20}
+                            className="rounded-sm w-5 h-5 object-cover"
+                          />
+                        )}
+                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-yellow transition-colors whitespace-nowrap">{p.provider_name}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-yellow transition-colors" strokeWidth={2.5} />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {currentProviders?.buy?.length > 0 && (
+              <div className="mb-1">
+                <p className="text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2">BUY</p>
+                <div className="flex flex-wrap gap-2">
+                  {currentProviders.buy.map((p: TMDBWatchProvider) => {
+                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    return (
+                      <a
+                        key={p.provider_id}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={p.provider_name}
+                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-cyan hover:shadow-brutal-sm transition-all group"
+                      >
+                        {p.logo_path && (
+                          <Image
+                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                            alt={p.provider_name}
+                            width={20}
+                            height={20}
+                            className="rounded-sm w-5 h-5 object-cover"
+                          />
+                        )}
+                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-cyan transition-colors whitespace-nowrap">{p.provider_name}</span>
+                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-cyan transition-colors" strokeWidth={2.5} />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {!currentProviders && (
+              <p className="text-[11px] font-mono text-brutal-dim italic">Not available for streaming in {REGIONS.find(r => r.code === region)?.label ?? region}</p>
+            )}
+
+            {jwLink && (
+              <a href={jwLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-[9px] font-mono font-bold text-brutal-dim hover:text-brutal-yellow transition-colors uppercase tracking-widest">
+                <ExternalLink className="w-2.5 h-2.5" strokeWidth={2.5} />
+                View all options on JustWatch
+              </a>
+            )}
+          </div>
+        )}
 
         {/* Collection Banner */}
         {details?.belongs_to_collection && (

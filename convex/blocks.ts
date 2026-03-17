@@ -1,5 +1,5 @@
 import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ export const createRoom = mutation({
   args: { name: v.string() },
   handler: async (ctx, { name }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Generate a unique invite code
     let inviteCode = generateInviteCode();
@@ -55,7 +55,7 @@ export const joinByCode = mutation({
   args: { inviteCode: v.string() },
   handler: async (ctx, { inviteCode }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const room = await ctx.db
       .query("rooms")
@@ -64,7 +64,7 @@ export const joinByCode = mutation({
       )
       .first();
 
-    if (!room) throw new Error("Room not found. Check the invite code.");
+    if (!room) throw new ConvexError("Room not found. Check the invite code.");
 
     const existing = await ctx.db
       .query("room_members")
@@ -90,12 +90,12 @@ export const leaveRoom = mutation({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const room = await ctx.db.get(roomId);
     if (!room) return;
     if (room.ownerId === userId)
-      throw new Error("Room owner cannot leave — delete the room instead.");
+      throw new ConvexError("Room owner cannot leave — delete the room instead.");
 
     const membership = await ctx.db
       .query("room_members")
@@ -132,11 +132,11 @@ export const deleteRoom = mutation({
   args: { roomId: v.id("rooms") },
   handler: async (ctx, { roomId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Room not found");
-    if (room.ownerId !== userId) throw new Error("Only the room owner can delete it");
+    if (!room) throw new ConvexError("Room not found");
+    if (room.ownerId !== userId) throw new ConvexError("Only the room owner can delete it");
 
     // Delete all members
     const members = await ctx.db
@@ -329,7 +329,7 @@ export const toggleVote = mutation({
   },
   handler: async (ctx, { roomId, movieId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Must be member
     const membership = await ctx.db
@@ -338,7 +338,7 @@ export const toggleVote = mutation({
         q.eq("roomId", roomId).eq("userId", userId)
       )
       .first();
-    if (!membership) throw new Error("Not a room member");
+    if (!membership) throw new ConvexError("Not a room member");
 
     const existing = await ctx.db
       .query("room_votes")
@@ -403,36 +403,46 @@ export const inviteByUsername = mutation({
   args: { roomId: v.id("rooms"), username: v.string() },
   handler: async (ctx, { roomId, username }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Caller must be a member
     const callerMembership = await ctx.db
       .query("room_members")
       .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
-    if (!callerMembership) throw new Error("You're not a member of this Block.");
+    if (!callerMembership) throw new ConvexError("You're not a member of this Block.");
 
-    // Find target user by username
-    const target = await ctx.db
+    // Find target user by username (case-insensitive via lowercase storage)
+    const cleaned = username.toLowerCase().trim();
+    let target = await ctx.db
       .query("users")
-      .withIndex("by_username", (q) => q.eq("username", username.toLowerCase().trim()))
+      .withIndex("by_username", (q) => q.eq("username", cleaned))
       .first();
-    if (!target) throw new Error("No user found with that username.");
-    if (target._id === userId) throw new Error("You can't invite yourself.");
+
+    // Fallback: search by display name (case-insensitive scan) for users who haven't set a username
+    if (!target) {
+      const allUsers = await ctx.db.query("users").collect();
+      target = allUsers.find(
+        (u) => u.name?.toLowerCase() === cleaned || u.username?.toLowerCase() === cleaned
+      ) ?? null;
+    }
+
+    if (!target) throw new ConvexError(`No user found with username "@${cleaned}". Make sure they've set a username in their Profile.`);
+    if (target._id === userId) throw new ConvexError("You can't invite yourself.");
 
     // Already a member?
     const alreadyMember = await ctx.db
       .query("room_members")
       .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", target._id))
       .first();
-    if (alreadyMember) throw new Error("That user is already in this Block.");
+    if (alreadyMember) throw new ConvexError("That user is already in this Block.");
 
     // Duplicate pending invite?
     const existing = await ctx.db
       .query("block_invitations")
       .withIndex("by_roomId_invitedUser", (q) => q.eq("roomId", roomId).eq("invitedUserId", target._id))
       .first();
-    if (existing && existing.status === "pending") throw new Error("Invite already sent to that user.");
+    if (existing && existing.status === "pending") throw new ConvexError("Invite already sent to that user.");
 
     // If previously declined, delete old record and re-invite
     if (existing) await ctx.db.delete(existing._id);
@@ -482,11 +492,11 @@ export const respondToInvitation = mutation({
   args: { invitationId: v.id("block_invitations"), accept: v.boolean() },
   handler: async (ctx, { invitationId, accept }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const invite = await ctx.db.get(invitationId);
-    if (!invite || invite.invitedUserId !== userId) throw new Error("Invitation not found.");
-    if (invite.status !== "pending") throw new Error("Invitation already responded to.");
+    if (!invite || invite.invitedUserId !== userId) throw new ConvexError("Invitation not found.");
+    if (invite.status !== "pending") throw new ConvexError("Invitation already responded to.");
 
     if (accept) {
       // Check not already a member
@@ -517,7 +527,7 @@ export const promoteToAdmin = mutation({
   args: { roomId: v.id("rooms"), targetUserId: v.id("users") },
   handler: async (ctx, { roomId, targetUserId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     // Caller must be admin
     const callerMembership = await ctx.db
@@ -526,15 +536,15 @@ export const promoteToAdmin = mutation({
       .first();
     const room = await ctx.db.get(roomId);
     const callerRole = callerMembership?.role ?? (room?.ownerId === userId ? "admin" : "member");
-    if (callerRole !== "admin") throw new Error("Only admins can promote members.");
+    if (callerRole !== "admin") throw new ConvexError("Only admins can promote members.");
 
     // Target must be a member
     const targetMembership = await ctx.db
       .query("room_members")
       .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", targetUserId))
       .first();
-    if (!targetMembership) throw new Error("User is not a member of this Block.");
-    if (targetMembership.role === "admin") throw new Error("User is already an admin.");
+    if (!targetMembership) throw new ConvexError("User is not a member of this Block.");
+    if (targetMembership.role === "admin") throw new ConvexError("User is already an admin.");
 
     await ctx.db.patch(targetMembership._id, { role: "admin" });
   },
@@ -544,10 +554,10 @@ export const removeMember = mutation({
   args: { roomId: v.id("rooms"), targetUserId: v.id("users") },
   handler: async (ctx, { roomId, targetUserId }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    if (!userId) throw new ConvexError("Not authenticated");
 
     const room = await ctx.db.get(roomId);
-    if (!room) throw new Error("Block not found.");
+    if (!room) throw new ConvexError("Block not found.");
 
     // Caller must be admin
     const callerMembership = await ctx.db
@@ -555,17 +565,17 @@ export const removeMember = mutation({
       .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", userId))
       .first();
     const callerRole = callerMembership?.role ?? (room.ownerId === userId ? "admin" : "member");
-    if (callerRole !== "admin") throw new Error("Only admins can remove members.");
+    if (callerRole !== "admin") throw new ConvexError("Only admins can remove members.");
 
     // Target must not be an admin (can't remove other admins)
     const targetMembership = await ctx.db
       .query("room_members")
       .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", targetUserId))
       .first();
-    if (!targetMembership) throw new Error("User is not a member.");
+    if (!targetMembership) throw new ConvexError("User is not a member.");
     const targetRole = targetMembership.role ?? (room.ownerId === targetUserId ? "admin" : "member");
-    if (targetRole === "admin") throw new Error("Cannot remove an admin.");
-    if (targetUserId === userId) throw new Error("Cannot remove yourself.");
+    if (targetRole === "admin") throw new ConvexError("Cannot remove an admin.");
+    if (targetUserId === userId) throw new ConvexError("Cannot remove yourself.");
 
     // Delete their votes in this room
     const votes = await ctx.db

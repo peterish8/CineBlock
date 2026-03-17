@@ -248,7 +248,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
       setInviteUsername("");
       setTimeout(() => setInviteSuccess(false), 3000);
     } catch (err: any) {
-      setInviteError(err.message?.replace("Uncaught Error: ", "") || "Failed to send invite.");
+      setInviteError(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to send invite.");
     } finally {
       setInviteLoading(false);
     }
@@ -259,7 +259,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
     try {
       await promoteToAdmin({ roomId: blockId, targetUserId: targetUserId as any });
     } catch (err: any) {
-      alert(err.message?.replace("Uncaught Error: ", "") || "Failed to promote.");
+      alert(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to promote.");
     }
   };
 
@@ -268,7 +268,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
     try {
       await removeMember({ roomId: blockId, targetUserId: targetUserId as any });
     } catch (err: any) {
-      alert(err.message?.replace("Uncaught Error: ", "") || "Failed to remove.");
+      alert(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to remove.");
     }
   };
 
