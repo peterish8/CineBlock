@@ -169,11 +169,11 @@ function MatchCard({
 // ─── Block Page ───────────────────────────────────────────────────────────────
 
 function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
-  const room = useQuery(api.rooms.getRoom, { roomId: blockId });
-  const matches = useQuery(api.rooms.getRoomMatches, { roomId: blockId });
-  const votes = useQuery(api.rooms.getRoomVotes, { roomId: blockId });
-  const toggleVote = useMutation(api.rooms.toggleVote);
-  const leaveRoom = useMutation(api.rooms.leaveRoom);
+  const room = useQuery(api.blocks.getRoom, { roomId: blockId });
+  const matches = useQuery(api.blocks.getRoomMatches, { roomId: blockId });
+  const votes = useQuery(api.blocks.getRoomVotes, { roomId: blockId });
+  const toggleVote = useMutation(api.blocks.toggleVote);
+  const leaveRoom = useMutation(api.blocks.leaveRoom);
   const router = useRouter();
 
   const [copiedCode, setCopiedCode] = useState(false);

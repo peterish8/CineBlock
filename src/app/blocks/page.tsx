@@ -12,7 +12,7 @@ import type { Id } from "../../../convex/_generated/dataModel";
 // ─── Create Block Modal ───────────────────────────────────────────────────────
 
 function CreateBlockModal({ onClose }: { onClose: () => void }) {
-  const createRoom = useMutation(api.rooms.createRoom);
+  const createRoom = useMutation(api.blocks.createRoom);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ roomId: string; inviteCode: string } | null>(null);
@@ -115,7 +115,7 @@ function CreateBlockModal({ onClose }: { onClose: () => void }) {
 // ─── Join Block Modal ─────────────────────────────────────────────────────────
 
 function JoinBlockModal({ onClose }: { onClose: () => void }) {
-  const joinByCode = useMutation(api.rooms.joinByCode);
+  const joinByCode = useMutation(api.blocks.joinByCode);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -184,9 +184,9 @@ function JoinBlockModal({ onClose }: { onClose: () => void }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function BlocksContent() {
-  const rooms = useQuery(api.rooms.getMyRooms);
-  const deleteRoom = useMutation(api.rooms.deleteRoom);
-  const leaveRoom = useMutation(api.rooms.leaveRoom);
+  const rooms = useQuery(api.blocks.getMyRooms);
+  const deleteRoom = useMutation(api.blocks.deleteRoom);
+  const leaveRoom = useMutation(api.blocks.leaveRoom);
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
