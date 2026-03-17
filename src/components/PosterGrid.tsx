@@ -46,6 +46,8 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
         if (filters.query) {
           params.set("action", "search");
           params.set("query", filters.query);
+          if (filters.year) params.set("year", filters.year);
+          if (filters.language) params.set("lang", filters.language);
         } else {
           params.set("action", "discover");
           if (filters.genre) params.set("genre", filters.genre);

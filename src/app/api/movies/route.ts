@@ -19,14 +19,26 @@ export async function GET(request: NextRequest) {
     switch (action) {
       case "search": {
         const query = searchParams.get("query") || "";
+        const year = searchParams.get("year");
+        const lang = searchParams.get("lang");
         const params = new URLSearchParams({
           query,
           language: "en-US",
           include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
           page,
         });
+        if (year) params.set("year", year);
         url = `${TMDB_BASE}/search/movie?${params.toString()}`;
-        break;
+        // lang is not supported by TMDB search endpoint — filter results below
+        const searchRes = await fetch(url, { headers });
+        if (!searchRes.ok) return NextResponse.json({ error: `TMDB API error: ${searchRes.status}` }, { status: searchRes.status });
+        const searchData = await searchRes.json();
+        if (lang) {
+          searchData.results = (searchData.results || []).filter(
+            (m: { original_language: string }) => m.original_language === lang
+          );
+        }
+        return NextResponse.json(searchData);
       }
 
       case "search-tv": {
