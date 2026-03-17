@@ -20,9 +20,10 @@ interface ResultsGridProps {
   onReroll: () => void;
   rerolling: boolean;
   onClose: () => void;
+  onMovieClick: (movie: Movie) => void;
 }
 
-export default function ResultsGrid({ movies, onRetry, onReroll, rerolling, onClose }: ResultsGridProps) {
+export default function ResultsGrid({ movies, onRetry, onReroll, rerolling, onClose, onMovieClick }: ResultsGridProps) {
   if (movies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -45,7 +46,7 @@ export default function ResultsGrid({ movies, onRetry, onReroll, rerolling, onCl
       <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-2">
         {movies.map((movie, i) => (
           <div key={movie.id} className="brutal-card p-3 flex gap-4 animate-fade-in" style={{ animationDelay: `${i * 100}ms` }}>
-            <div className="w-24 shrink-0 bg-surface border-2 border-brutal-border aspect-[2/3] relative">
+            <button onClick={() => onMovieClick(movie)} className="w-24 shrink-0 bg-surface border-2 border-brutal-border aspect-[2/3] relative hover:border-brutal-pink transition-colors">
               {movie.poster_path ? (
                 <Image
                   src={`${TMDB_IMAGE_BASE}/${POSTER_SIZES.medium}${movie.poster_path}`}
@@ -64,13 +65,15 @@ export default function ResultsGrid({ movies, onRetry, onReroll, rerolling, onCl
                   {movie.vote_average.toFixed(1)}
                 </div>
               )}
-            </div>
+            </button>
 
             <div className="flex-1 flex flex-col justify-between py-1">
               <div>
-                <h3 className="font-display font-bold text-sm text-brutal-white leading-tight mb-1">
+                <button onClick={() => onMovieClick(movie)} className="text-left w-full">
+                <h3 className="font-display font-bold text-sm text-brutal-white leading-tight mb-1 hover:text-brutal-pink transition-colors">
                   {movie.title}
                 </h3>
+                </button>
                 <div className="text-brutal-muted text-xs font-mono mb-2">
                   <span>{movie.release_date?.substring(0, 4)}</span>
                 </div>

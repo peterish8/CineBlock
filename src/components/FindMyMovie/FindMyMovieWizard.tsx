@@ -8,6 +8,7 @@ import StepIntensity from "./StepIntensity";
 import StepLanguage from "./StepLanguage";
 import StepDealbreakers from "./StepDealbreakers";
 import ResultsGrid from "./ResultsGrid";
+import MovieModal from "../MovieModal";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, X } from "lucide-react";
 
 interface FindMyMovieWizardProps {
@@ -20,6 +21,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
   const [rerolling, setRerolling] = useState(false);
   const [error, setError] = useState("");
   const [results, setResults] = useState<any[] | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const seenIds = useRef<Set<number>>(new Set());
 
   const [state, setState] = useState<WizardState>({
@@ -95,6 +97,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
   const progress = (step / 5) * 100;
 
   return (
+    <>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 animate-fade-in shadow-brutal-modal-overlay">
       <div className="absolute inset-0 bg-bg/95 backdrop-blur-sm" onClick={onClose} />
 
@@ -121,6 +124,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
               onReroll={handleReroll}
               rerolling={rerolling}
               onClose={onClose}
+              onMovieClick={(m) => setSelectedMovie(m)}
             />
           </div>
         ) : loading ? (
@@ -189,5 +193,14 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
         )}
       </div>
     </div>
+
+    {selectedMovie && (
+      <MovieModal
+        movie={selectedMovie}
+        onClose={onClose}
+        onBack={() => setSelectedMovie(null)}
+      />
+    )}
+    </>
   );
 }
