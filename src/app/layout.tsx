@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | CineBlock",
   },
   description:
-    "CineBlock is a free cinema discovery app to find, track and match movies with friends. Search by genre, language and mood. Create watch rooms and discover what to watch next.",
+    "CineBlock is a free cinema discovery app to find, track and match movies with friends. Search by genre, language and mood. Create blocks and discover what to watch next.",
   keywords: [
     "cineblock", "cine block", "cinblock", "cineblok", "cinebloc",
     "cinema discovery", "find movies", "cinema finder", "movie finder",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     url: "https://cineblock.in",
     siteName: "CineBlock",
     title: "CineBlock — Find Movies Together",
-    description: "Discover, track and match movies with friends. Free cinema discovery app with mood-based recommendations, watch rooms and personalised lists.",
+    description: "Discover, track and match movies with friends. Free cinema discovery app with mood-based recommendations, blocks and personalised lists.",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "CineBlock — Cinema Discovery" }],
   },
   twitter: {

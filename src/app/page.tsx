@@ -262,7 +262,7 @@ const jsonLd = {
   featureList: [
     "Movie discovery by genre, language and mood",
     "Personal watchlist and liked movies tracker",
-    "Watch rooms to match movies with friends",
+    "Blocks to match movies with friends",
     "Box office charts and trending films",
     "Personalised movie recommendations",
     "Cinema news feed",

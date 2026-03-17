@@ -314,7 +314,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-bold text-brutal-white">Delete Account</p>
-              <p className="text-[11px] font-mono text-brutal-muted mt-0.5">Wipes all your lists, rooms and data permanently.</p>
+              <p className="text-[11px] font-mono text-brutal-muted mt-0.5">Wipes all your lists, blocks and data permanently.</p>
             </div>
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteError(""); setDeletePassword(""); setWrongPassCount(0); }}
