@@ -6,7 +6,7 @@ import { useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Layers, Plus, LogIn, Copy, Check, Trash2, Crown, ChevronRight, X } from "lucide-react";
+import { ArrowLeft, Layers, Plus, LogIn, Copy, Check, Trash2, Crown, ChevronRight, X, Bell } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 // ─── Create Block Modal ───────────────────────────────────────────────────────
@@ -186,12 +186,14 @@ function JoinBlockModal({ onClose }: { onClose: () => void }) {
 function BlocksContent() {
   const rooms = useQuery(api.blocks.getMyRooms);
   const pendingInvites = useQuery(api.blocks.getPendingInvitations);
+  const inviteCount = pendingInvites?.length ?? 0;
   const deleteRoom = useMutation(api.blocks.deleteRoom);
   const leaveRoom = useMutation(api.blocks.leaveRoom);
   const respondToInvitation = useMutation(api.blocks.respondToInvitation);
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
+  const [showInvites, setShowInvites] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
 
   const handleRespond = async (invitationId: string, accept: boolean) => {
@@ -230,6 +232,19 @@ function BlocksContent() {
               </h1>
             </div>
             <div className="flex items-center gap-2">
+              {/* Invitations bell */}
+              <button
+                onClick={() => setShowInvites((v) => !v)}
+                className={`brutal-btn p-2.5 relative flex items-center justify-center transition-all ${showInvites ? "!bg-brutal-yellow !text-black !border-brutal-yellow" : "hover:!border-brutal-yellow hover:!text-brutal-yellow"}`}
+                title="Invitations"
+              >
+                <Bell className="w-4 h-4" strokeWidth={2.5} />
+                {inviteCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brutal-yellow text-black text-[9px] font-black flex items-center justify-center border border-black">
+                    {inviteCount > 9 ? "9+" : inviteCount}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={() => setShowJoin(true)}
                 className="brutal-btn px-3 py-2.5 flex items-center justify-center gap-2 text-xs font-mono font-black hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"
@@ -250,39 +265,50 @@ function BlocksContent() {
 
         <div className="flex-1 max-w-[1200px] mx-auto w-full px-4 sm:px-6 py-8">
 
-          {/* Pending Invitations */}
-          {pendingInvites && pendingInvites.length > 0 && (
-            <div className="mb-6 space-y-3">
-              <p className="text-[9px] font-mono font-black text-brutal-yellow uppercase tracking-[0.2em] flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-brutal-yellow animate-pulse inline-block" />
-                Pending Invitations ({pendingInvites.length})
+          {/* Pending Invitations Panel */}
+          {showInvites && (
+            <div className="mb-6 brutal-card p-4 border-brutal-yellow">
+              <p className="text-[9px] font-mono font-black text-brutal-yellow uppercase tracking-[0.2em] flex items-center gap-2 mb-3">
+                <Bell className="w-3 h-3" />
+                Invitations
+                {inviteCount > 0 && (
+                  <span className="bg-brutal-yellow text-black px-1.5 py-0.5 text-[9px] font-black rounded-sm">{inviteCount} pending</span>
+                )}
               </p>
-              {pendingInvites.map((inv) => (
-                <div key={inv._id} className="brutal-card p-4 border-brutal-yellow flex items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display font-black text-sm text-brutal-white uppercase truncate">{inv.roomName}</p>
-                    <p className="text-brutal-dim text-[11px] font-mono mt-0.5">
-                      Invited by {inv.invitedByUsername ? `@${inv.invitedByUsername}` : inv.invitedByName}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => void handleRespond(inv._id, true)}
-                      disabled={respondingId === inv._id}
-                      className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-50"
-                    >
-                      JOIN
-                    </button>
-                    <button
-                      onClick={() => void handleRespond(inv._id, false)}
-                      disabled={respondingId === inv._id}
-                      className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black hover:!bg-brutal-red hover:!text-white hover:!border-brutal-red disabled:opacity-50"
-                    >
-                      DECLINE
-                    </button>
-                  </div>
+              {!pendingInvites ? (
+                <p className="text-brutal-dim text-xs font-mono">Loading...</p>
+              ) : pendingInvites.length === 0 ? (
+                <p className="text-brutal-dim text-xs font-mono">No pending invitations.</p>
+              ) : (
+                <div className="space-y-3">
+                  {pendingInvites.map((inv) => (
+                    <div key={inv._id} className="flex items-center gap-4 p-3 bg-surface-2 border-2 border-brutal-border">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-display font-black text-sm text-brutal-white uppercase truncate">{inv.roomName}</p>
+                        <p className="text-brutal-dim text-[11px] font-mono mt-0.5">
+                          from {inv.invitedByUsername ? `@${inv.invitedByUsername}` : inv.invitedByName}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => void handleRespond(inv._id, true)}
+                          disabled={respondingId === inv._id}
+                          className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black !bg-brutal-lime !text-black !border-brutal-lime disabled:opacity-50"
+                        >
+                          JOIN
+                        </button>
+                        <button
+                          onClick={() => void handleRespond(inv._id, false)}
+                          disabled={respondingId === inv._id}
+                          className="brutal-btn px-3 py-1.5 text-[10px] font-mono font-black hover:!bg-brutal-red hover:!text-white hover:!border-brutal-red disabled:opacity-50"
+                        >
+                          DECLINE
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
 
