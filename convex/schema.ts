@@ -83,6 +83,7 @@ const schema = defineSchema({
     roomId: v.id("rooms"),
     userId: v.id("users"),
     joinedAt: v.number(),
+    role: v.optional(v.union(v.literal("admin"), v.literal("member"))),
   })
     .index("by_roomId", ["roomId"])
     .index("by_userId", ["userId"])

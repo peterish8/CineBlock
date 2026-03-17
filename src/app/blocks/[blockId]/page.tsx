@@ -9,42 +9,70 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowLeft, Users, Copy, Check, Crown, Popcorn, LogOut, Loader2,
-  Flame, Star,
+  Flame, Star, Shield, UserMinus, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { posterUrl } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
-// ─── Member Avatar ────────────────────────────────────────────────────────────
+// ─── Member Card ──────────────────────────────────────────────────────────────
 
-function MemberAvatar({
-  name,
-  isOwner,
-  isMe,
+function MemberCard({
+  member,
+  isAdmin,
+  onPromote,
+  onRemove,
 }: {
-  name: string;
-  isOwner: boolean;
-  isMe: boolean;
+  member: { userId: string; name: string; username: string | null; isOwner: boolean; isMe: boolean; role: string };
+  isAdmin: boolean;
+  onPromote: (userId: string) => void;
+  onRemove: (userId: string) => void;
 }) {
-  const initials = name.slice(0, 2).toUpperCase();
+  const initials = member.name.slice(0, 2).toUpperCase();
+  const isAdminMember = member.role === "admin";
+  const canAct = isAdmin && !member.isMe && !isAdminMember;
+
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div
-        className={`w-11 h-11 flex items-center justify-center font-display font-black text-sm border-3 border-brutal-border shadow-brutal relative ${
-          isMe ? "bg-brutal-violet text-white" : "bg-surface-2 text-brutal-white"
-        }`}
-      >
+    <div className={`flex items-center gap-3 p-3 border-2 ${member.isMe ? "border-brutal-violet bg-brutal-violet/10" : "border-brutal-border bg-surface-2"}`}>
+      <div className={`w-10 h-10 shrink-0 flex items-center justify-center font-display font-black text-sm border-2 border-brutal-border relative ${member.isMe ? "bg-brutal-violet text-white" : "bg-surface text-brutal-white"}`}>
         {initials}
-        {isOwner && (
-          <Crown
-            className="w-3 h-3 text-brutal-yellow absolute -top-1.5 -right-1.5"
-            strokeWidth={2.5}
-            fill="currentColor"
-          />
+        {member.isOwner && (
+          <Crown className="w-2.5 h-2.5 text-brutal-yellow absolute -top-1 -right-1" strokeWidth={2.5} fill="currentColor" />
         )}
       </div>
-      <span className="text-[9px] font-mono text-brutal-dim max-w-[52px] truncate text-center">
-        {isMe ? "YOU" : name.split(" ")[0]}
-      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-brutal-white truncate">
+            {member.isMe ? "You" : member.name}
+          </span>
+          {isAdminMember && (
+            <span className="flex items-center gap-0.5 bg-brutal-yellow/20 text-brutal-yellow text-[9px] font-black px-1.5 py-0.5 border border-brutal-yellow/50">
+              <Shield className="w-2.5 h-2.5" strokeWidth={2.5} />
+              ADMIN
+            </span>
+          )}
+        </div>
+        {member.username && (
+          <p className="text-[10px] font-mono text-brutal-dim">@{member.username}</p>
+        )}
+      </div>
+      {canAct && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onPromote(member.userId)}
+            className="brutal-btn p-1.5 hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow"
+            title="Make Admin"
+          >
+            <Shield className="w-3 h-3" strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={() => onRemove(member.userId)}
+            className="brutal-btn p-1.5 hover:!bg-brutal-red hover:!text-white hover:!border-brutal-red"
+            title="Remove from Block"
+          >
+            <UserMinus className="w-3 h-3" strokeWidth={2.5} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -175,6 +203,8 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
   const toggleVote = useMutation(api.blocks.toggleVote);
   const leaveRoom = useMutation(api.blocks.leaveRoom);
   const inviteByUsername = useMutation(api.blocks.inviteByUsername);
+  const promoteToAdmin = useMutation(api.blocks.promoteToAdmin);
+  const removeMember = useMutation(api.blocks.removeMember);
   const router = useRouter();
 
   const [copiedCode, setCopiedCode] = useState(false);
@@ -221,6 +251,24 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
       setInviteError(err.message?.replace("Uncaught Error: ", "") || "Failed to send invite.");
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  const handlePromote = async (targetUserId: string) => {
+    if (!confirm("Make this member an admin?")) return;
+    try {
+      await promoteToAdmin({ roomId: blockId, targetUserId: targetUserId as any });
+    } catch (err: any) {
+      alert(err.message?.replace("Uncaught Error: ", "") || "Failed to promote.");
+    }
+  };
+
+  const handleRemoveMember = async (targetUserId: string) => {
+    if (!confirm("Remove this member from the Block?")) return;
+    try {
+      await removeMember({ roomId: blockId, targetUserId: targetUserId as any });
+    } catch (err: any) {
+      alert(err.message?.replace("Uncaught Error: ", "") || "Failed to remove.");
     }
   };
 
@@ -302,15 +350,16 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
         {/* Members */}
         <div className="brutal-card p-4">
           <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
-            Members
+            Members — {room.members.length}
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="space-y-2">
             {room.members.map((m) => (
-              <MemberAvatar
+              <MemberCard
                 key={m.userId}
-                name={m.name}
-                isOwner={m.isOwner}
-                isMe={m.isMe}
+                member={m}
+                isAdmin={room.isAdmin ?? false}
+                onPromote={handlePromote}
+                onRemove={handleRemoveMember}
               />
             ))}
           </div>

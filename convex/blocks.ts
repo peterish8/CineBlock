@@ -44,6 +44,7 @@ export const createRoom = mutation({
       roomId,
       userId,
       joinedAt: Date.now(),
+      role: "admin",
     });
 
     return { roomId, inviteCode };
@@ -78,6 +79,7 @@ export const joinByCode = mutation({
       roomId: room._id,
       userId,
       joinedAt: Date.now(),
+      role: "member",
     });
 
     return room._id;
@@ -215,19 +217,24 @@ export const getRoom = query({
         return {
           userId: m.userId,
           name: user?.name || "CineBlock User",
+          username: user?.username ?? null,
           joinedAt: m.joinedAt,
           isOwner: m.userId === room.ownerId,
           isMe: m.userId === userId,
+          role: m.role ?? (m.userId === room.ownerId ? "admin" : "member"),
         };
       })
     );
 
     members.sort((a, b) => a.joinedAt - b.joinedAt);
 
+    const myRole = membership.role ?? (room.ownerId === userId ? "admin" : "member");
+
     return {
       ...room,
       members,
       isOwner: room.ownerId === userId,
+      isAdmin: myRole === "admin",
     };
   },
 });
@@ -492,6 +499,7 @@ export const respondToInvitation = mutation({
           roomId: invite.roomId,
           userId,
           joinedAt: Date.now(),
+          role: "member",
         });
       }
       await ctx.db.patch(invitationId, { status: "accepted" });
@@ -500,5 +508,74 @@ export const respondToInvitation = mutation({
       await ctx.db.patch(invitationId, { status: "declined" });
       return null;
     }
+  },
+});
+
+// ─── Admin Controls ───────────────────────────────────────────────────────────
+
+export const promoteToAdmin = mutation({
+  args: { roomId: v.id("rooms"), targetUserId: v.id("users") },
+  handler: async (ctx, { roomId, targetUserId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    // Caller must be admin
+    const callerMembership = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    const room = await ctx.db.get(roomId);
+    const callerRole = callerMembership?.role ?? (room?.ownerId === userId ? "admin" : "member");
+    if (callerRole !== "admin") throw new Error("Only admins can promote members.");
+
+    // Target must be a member
+    const targetMembership = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", targetUserId))
+      .first();
+    if (!targetMembership) throw new Error("User is not a member of this Block.");
+    if (targetMembership.role === "admin") throw new Error("User is already an admin.");
+
+    await ctx.db.patch(targetMembership._id, { role: "admin" });
+  },
+});
+
+export const removeMember = mutation({
+  args: { roomId: v.id("rooms"), targetUserId: v.id("users") },
+  handler: async (ctx, { roomId, targetUserId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Block not found.");
+
+    // Caller must be admin
+    const callerMembership = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", userId))
+      .first();
+    const callerRole = callerMembership?.role ?? (room.ownerId === userId ? "admin" : "member");
+    if (callerRole !== "admin") throw new Error("Only admins can remove members.");
+
+    // Target must not be an admin (can't remove other admins)
+    const targetMembership = await ctx.db
+      .query("room_members")
+      .withIndex("by_roomId_userId", (q) => q.eq("roomId", roomId).eq("userId", targetUserId))
+      .first();
+    if (!targetMembership) throw new Error("User is not a member.");
+    const targetRole = targetMembership.role ?? (room.ownerId === targetUserId ? "admin" : "member");
+    if (targetRole === "admin") throw new Error("Cannot remove an admin.");
+    if (targetUserId === userId) throw new Error("Cannot remove yourself.");
+
+    // Delete their votes in this room
+    const votes = await ctx.db
+      .query("room_votes")
+      .withIndex("by_roomId", (q) => q.eq("roomId", roomId))
+      .collect();
+    for (const v of votes.filter((v) => v.userId === targetUserId)) {
+      await ctx.db.delete(v._id);
+    }
+
+    await ctx.db.delete(targetMembership._id);
   },
 });
