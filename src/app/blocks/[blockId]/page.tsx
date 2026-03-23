@@ -297,8 +297,10 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
 
   return (
     <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
+
+      {/* ── Top Bar ── */}
       <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <Link href="/blocks" className="brutal-btn p-2 shrink-0">
               <ArrowLeft className="w-4 h-4" strokeWidth={3} />
@@ -308,7 +310,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
                 {room.name}
               </h1>
               <p className="text-brutal-dim text-[10px] font-mono mt-0.5">
-                {room.members.length} {room.members.length === 1 ? "member" : "members"}
+                {room.members.length} {room.members.length === 1 ? "member" : "members"} · BLOCK
               </p>
             </div>
           </div>
@@ -317,20 +319,13 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
             <button
               onClick={copyCode}
               className={`brutal-btn px-3 py-1.5 flex items-center gap-2 text-[10px] font-mono font-black transition-all ${
-                copiedCode
-                  ? "!bg-brutal-lime !text-black !border-brutal-lime"
-                  : "hover:!border-brutal-violet hover:!text-brutal-violet"
+                copiedCode ? "!bg-brutal-lime !text-black !border-brutal-lime" : "hover:!border-brutal-violet hover:!text-brutal-violet"
               }`}
               title="Copy invite code"
             >
-              {copiedCode ? (
-                <Check className="w-3 h-3" strokeWidth={3} />
-              ) : (
-                <Copy className="w-3 h-3" strokeWidth={2.5} />
-              )}
+              {copiedCode ? <Check className="w-3 h-3" strokeWidth={3} /> : <Copy className="w-3 h-3" strokeWidth={2.5} />}
               <span className="tracking-[0.15em]">{room.inviteCode}</span>
             </button>
-
             {!room.isOwner && (
               <button
                 onClick={() => void handleLeave()}
@@ -345,110 +340,151 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
         </div>
       </div>
 
-      <div className="flex-1 max-w-[1200px] mx-auto w-full px-4 sm:px-6 py-6 space-y-6">
+      {/* ── Bento Body ── */}
+      <div className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-6">
 
-        {/* Members */}
-        <div className="brutal-card p-4">
-          <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
-            Members — {room.members.length}
-          </p>
-          <div className="space-y-2">
-            {room.members.map((m) => (
-              <MemberCard
-                key={m.userId}
-                member={m}
-                isAdmin={room.isAdmin ?? false}
-                onPromote={handlePromote}
-                onRemove={handleRemoveMember}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Mobile: stack / Tablet+: two-column bento */}
+        <div className="flex flex-col md:flex-row gap-4 md:gap-5 md:items-start">
 
-        {/* Invite by username */}
-        <div className="brutal-card p-4">
-          <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
-            Invite by Username
-          </p>
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center brutal-input px-3 gap-1.5 focus-within:border-brutal-violet">
-              <span className="text-brutal-dim font-mono text-sm shrink-0">@</span>
-              <input
-                value={inviteUsername}
-                onChange={(e) => { setInviteUsername(e.target.value); setInviteError(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter") void handleInvite(); }}
-                placeholder="username"
-                className="flex-1 bg-transparent text-brutal-white text-sm font-mono outline-none placeholder:text-brutal-dim"
-                maxLength={20}
-              />
+          {/* ── LEFT PANEL (sidebar on md+) ── */}
+          <div className="w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-4 md:sticky md:top-[73px]">
+
+            {/* Members bento card */}
+            <div className="brutal-card p-0 overflow-hidden">
+              {/* Accent header */}
+              <div className="h-1.5 w-full bg-brutal-violet" />
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <Users className="w-3 h-3" strokeWidth={2.5} />
+                    Members
+                  </p>
+                  <span className="brutal-chip text-brutal-violet border-brutal-violet text-[9px] px-2 py-0">
+                    {room.members.length}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {room.members.map((m) => (
+                    <MemberCard
+                      key={m.userId}
+                      member={m}
+                      isAdmin={room.isAdmin ?? false}
+                      onPromote={handlePromote}
+                      onRemove={handleRemoveMember}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-            <button
-              onClick={() => void handleInvite()}
-              disabled={inviteLoading || !inviteUsername.trim()}
-              className={`brutal-btn px-4 font-mono text-xs font-black tracking-wider shrink-0 disabled:opacity-40 transition-all ${
-                inviteSuccess ? "!bg-brutal-lime !text-black !border-brutal-lime" : "hover:!border-brutal-violet hover:!text-brutal-violet"
-              }`}
-            >
-              {inviteSuccess ? "SENT ✓" : inviteLoading ? "..." : "INVITE"}
-            </button>
-          </div>
-          {inviteError && <p className="text-brutal-red text-[10px] font-mono mt-2">{inviteError}</p>}
-        </div>
 
-        {/* Privacy note */}
-        <div className="flex items-start gap-3 px-4 py-3 bg-surface border-2 border-brutal-border">
-          <span className="text-lg shrink-0">🔒</span>
-          <p className="text-brutal-dim text-xs font-mono leading-relaxed">
-            If <span className="text-brutal-white font-bold">you have</span> a matched movie, you see <span className="text-brutal-white font-bold">who else</span> wants to watch it.
-            If you don&apos;t have it, you only see the count — <span className="text-brutal-white font-bold">no names</span>.
-          </p>
-        </div>
+            {/* Invite bento card */}
+            <div className="brutal-card p-0 overflow-hidden">
+              <div className="h-1.5 w-full bg-brutal-yellow" />
+              <div className="p-4">
+                <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
+                  Invite by Username
+                </p>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex items-center brutal-input px-3 gap-1.5 focus-within:border-brutal-yellow">
+                    <span className="text-brutal-dim font-mono text-sm shrink-0">@</span>
+                    <input
+                      value={inviteUsername}
+                      onChange={(e) => { setInviteUsername(e.target.value); setInviteError(""); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") void handleInvite(); }}
+                      placeholder="username or name"
+                      className="flex-1 bg-transparent text-brutal-white text-sm font-mono outline-none placeholder:text-brutal-dim"
+                      maxLength={30}
+                    />
+                  </div>
+                  <button
+                    onClick={() => void handleInvite()}
+                    disabled={inviteLoading || !inviteUsername.trim()}
+                    className={`brutal-btn px-3 font-mono text-xs font-black tracking-wider shrink-0 disabled:opacity-40 transition-all ${
+                      inviteSuccess ? "!bg-brutal-lime !text-black !border-brutal-lime" : "hover:!border-brutal-yellow hover:!text-brutal-yellow"
+                    }`}
+                  >
+                    {inviteSuccess ? "SENT ✓" : inviteLoading ? "..." : "INVITE"}
+                  </button>
+                </div>
+                {inviteError && <p className="text-brutal-red text-[10px] font-mono mt-2 leading-snug">{inviteError}</p>}
+                {inviteSuccess && <p className="text-brutal-lime text-[10px] font-mono mt-2">Invite sent! They'll see it in their Blocks page.</p>}
+              </div>
+            </div>
 
-        {/* Matches */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]">
-              Matches {matches !== null && matches.length > 0 && `— ${matches.length} movies`}
-            </p>
-            {matches !== null && matches.length > 0 && (
-              <span className="brutal-chip text-brutal-violet border-brutal-violet text-[9px]">
-                REAL-TIME
-              </span>
-            )}
-          </div>
-
-          {matches === null || matches.length === 0 ? (
-            <div className="brutal-card p-8 text-center">
-              <Popcorn className="w-10 h-10 text-brutal-dim mx-auto mb-3" strokeWidth={1.5} />
-              <p className="font-display font-black text-base text-brutal-white uppercase mb-1">
-                NO MATCHES YET
-              </p>
-              <p className="text-brutal-muted text-sm font-mono">
-                When 2+ members share a movie in their Watchlist, it shows up here.
+            {/* Privacy note — hidden on mobile, shown on sidebar */}
+            <div className="hidden md:flex items-start gap-3 px-3 py-3 bg-surface border-2 border-brutal-border">
+              <span className="text-base shrink-0">🔒</span>
+              <p className="text-brutal-dim text-[10px] font-mono leading-relaxed">
+                If <span className="text-brutal-white font-bold">you have</span> a matched movie, you see who else wants to watch. Otherwise only the count is shown.
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {matches.map((m) => {
-                const voteData = voteLookup.get(m.movieId);
-                return (
-                  <MatchCard
-                    key={m.movieId}
-                    movieId={m.movieId}
-                    movieTitle={m.movieTitle}
-                    posterPath={m.posterPath}
-                    memberCount={m.memberCount}
-                    totalMembers={m.totalMembers}
-                    iInvolved={m.iInvolved}
-                    alsoWantedBy={m.alsoWantedBy}
-                    voted={voteData?.iVoted ?? false}
-                    voteCount={voteData?.voterCount ?? 0}
-                    onVote={() => void handleVote(m.movieId)}
-                  />
-                );
-              })}
+          </div>
+
+          {/* ── RIGHT PANEL (main content) ── */}
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
+
+            {/* Privacy note — mobile only */}
+            <div className="flex md:hidden items-start gap-3 px-4 py-3 bg-surface border-2 border-brutal-border">
+              <span className="text-base shrink-0">🔒</span>
+              <p className="text-brutal-dim text-xs font-mono leading-relaxed">
+                If <span className="text-brutal-white font-bold">you have</span> a matched movie, you see <span className="text-brutal-white font-bold">who else</span> wants to watch it. Otherwise only the count is shown.
+              </p>
             </div>
-          )}
+
+            {/* Matches */}
+            <div className="brutal-card p-0 overflow-hidden flex-1">
+              <div className="h-1.5 w-full bg-brutal-orange" />
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <Flame className="w-3 h-3 text-brutal-orange" strokeWidth={2.5} />
+                    Matches
+                    {matches !== null && matches.length > 0 && (
+                      <span className="text-brutal-white ml-1">— {matches.length} movies</span>
+                    )}
+                  </p>
+                  {matches !== null && matches.length > 0 && (
+                    <span className="brutal-chip text-brutal-violet border-brutal-violet text-[9px]">
+                      REAL-TIME
+                    </span>
+                  )}
+                </div>
+
+                {matches === null || matches.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Popcorn className="w-12 h-12 text-brutal-dim mx-auto mb-4" strokeWidth={1.5} />
+                    <p className="font-display font-black text-lg text-brutal-white uppercase mb-2">
+                      NO MATCHES YET
+                    </p>
+                    <p className="text-brutal-muted text-sm font-mono max-w-xs">
+                      When 2+ members share a movie in their Watchlist, it appears here in real-time.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {matches.map((m) => {
+                      const voteData = voteLookup.get(m.movieId);
+                      return (
+                        <MatchCard
+                          key={m.movieId}
+                          movieId={m.movieId}
+                          movieTitle={m.movieTitle}
+                          posterPath={m.posterPath}
+                          memberCount={m.memberCount}
+                          totalMembers={m.totalMembers}
+                          iInvolved={m.iInvolved}
+                          alsoWantedBy={m.alsoWantedBy}
+                          voted={voteData?.iVoted ?? false}
+                          voteCount={voteData?.voterCount ?? 0}
+                          onVote={() => void handleVote(m.movieId)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
