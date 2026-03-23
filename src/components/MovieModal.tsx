@@ -149,31 +149,35 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   const currentProviders = watchProviders?.[region] || null;
   const jwLink = currentProviders?.link || null;
 
-  // Direct OTT links by TMDB provider_id
-  const PROVIDER_URLS: Record<number, string> = {
-    8: "https://www.netflix.com",
-    9: "https://www.primevideo.com",
-    15: "https://www.hulu.com",
-    337: "https://www.disneyplus.com",
-    350: "https://tv.apple.com",
-    384: "https://www.max.com",
-    386: "https://www.peacocktv.com",
-    531: "https://www.paramountplus.com",
-    283: "https://www.crunchyroll.com",
-    11: "https://mubi.com",
-    122: "https://www.hotstar.com",
-    220: "https://www.jiocinema.com",
-    232: "https://www.zee5.com",
-    237: "https://www.sonyliv.com",
-    315: "https://www.sonyliv.com",
-    190: "https://www.erosnow.com",
-    218: "https://www.altbalaji.com",
-    121: "https://www.mxplayer.in",
-    191: "https://www.sunnxt.com",
-    633: "https://www.aha.video",
-    226: "https://www.discovery.com",
-    257: "https://www.fubo.tv",
-    43: "https://www.starz.com",
+  // Search-based OTT deep links — takes user directly to movie search on each platform
+  const getProviderUrl = (providerId: number, title: string): string => {
+    const q = encodeURIComponent(title);
+    const urls: Record<number, string> = {
+      8:   `https://www.netflix.com/search?q=${q}`,
+      9:   `https://www.primevideo.com/search/ref=atv_sr_sug_1?phrase=${q}&ie=UTF8`,
+      15:  `https://www.hulu.com/search?q=${q}`,
+      337: `https://www.disneyplus.com/search/${q}`,
+      350: `https://tv.apple.com/search?term=${q}`,
+      384: `https://www.max.com/search?q=${q}`,
+      386: `https://www.peacocktv.com/search?query=${q}`,
+      531: `https://www.paramountplus.com/search/${q}/`,
+      283: `https://www.crunchyroll.com/search?q=${q}`,
+      11:  `https://mubi.com/search?q=${q}`,
+      122: `https://www.hotstar.com/in/search?q=${q}`,
+      220: `https://www.jiocinema.com/search/${q}`,
+      232: `https://www.zee5.com/search?q=${q}`,
+      237: `https://www.sonyliv.com/search?q=${q}`,
+      315: `https://www.sonyliv.com/search?q=${q}`,
+      190: `https://erosnow.com/search?query=${q}`,
+      218: `https://www.altbalaji.com/search?q=${q}`,
+      121: `https://www.mxplayer.in/search?q=${q}`,
+      191: `https://www.sunnxt.com/search?query=${q}`,
+      633: `https://www.aha.video/search?q=${q}`,
+      226: `https://www.discoveryplus.com/search/${q}`,
+      257: `https://www.fubo.tv/search/${q}`,
+      43:  `https://www.starz.com/us/en/search?q=${q}`,
+    };
+    return urls[providerId] ?? jwLink ?? "#";
   };
 
   const REGIONS = [
@@ -381,7 +385,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2">STREAM</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.flatrate.map((p: TMDBWatchProvider) => {
-                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
                     return (
                       <a
                         key={p.provider_id}
@@ -414,7 +418,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2">RENT</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.rent.map((p: TMDBWatchProvider) => {
-                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
                     return (
                       <a
                         key={p.provider_id}
@@ -447,7 +451,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2">BUY</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.buy.map((p: TMDBWatchProvider) => {
-                    const url = PROVIDER_URLS[p.provider_id] || jwLink || "#";
+                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
                     return (
                       <a
                         key={p.provider_id}
