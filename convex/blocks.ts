@@ -269,21 +269,27 @@ export const getRoomMatches = query({
 
     const myMovieSet = new Set(myItems.map((i) => i.movieId));
 
-    // Step 2 — scan every member's watchlist, build a global movie map
+    // Step 2 — batch fetch all users + watchlists in parallel (avoids N+1)
+    const [allUsers, allWatchlists] = await Promise.all([
+      Promise.all(memberships.map((m) => ctx.db.get(m.userId))),
+      Promise.all(
+        memberships.map((m) =>
+          ctx.db.query("watchlist").withIndex("by_userId", (q) => q.eq("userId", m.userId)).collect()
+        )
+      ),
+    ]);
+
     // movieMap: movieId → { title, poster, memberCount, names of ALL who have it }
     const movieMap = new Map<
       number,
       { movieTitle: string; posterPath: string; count: number; names: string[] }
     >();
 
-    for (const m of memberships) {
-      const user = await ctx.db.get(m.userId);
+    for (let i = 0; i < memberships.length; i++) {
+      const m = memberships[i];
+      const user = allUsers[i];
       const memberName = user?.name || "CineBlock User";
-
-      const items = await ctx.db
-        .query("watchlist")
-        .withIndex("by_userId", (q) => q.eq("userId", m.userId))
-        .collect();
+      const items = allWatchlists[i];
 
       for (const item of items) {
         const entry = movieMap.get(item.movieId) ?? {
@@ -412,22 +418,14 @@ export const inviteByUsername = mutation({
       .first();
     if (!callerMembership) throw new ConvexError("You're not a member of this Block.");
 
-    // Find target user by username (case-insensitive via lowercase storage)
+    // Find target user by username (stored lowercase)
     const cleaned = username.toLowerCase().trim();
-    let target = await ctx.db
+    const target = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", cleaned))
       .first();
 
-    // Fallback: search by display name (case-insensitive scan) for users who haven't set a username
-    if (!target) {
-      const allUsers = await ctx.db.query("users").collect();
-      target = allUsers.find(
-        (u) => u.name?.toLowerCase() === cleaned || u.username?.toLowerCase() === cleaned
-      ) ?? null;
-    }
-
-    if (!target) throw new ConvexError(`No user found with username "@${cleaned}". Make sure they've set a username in their Profile.`);
+    if (!target) throw new ConvexError(`No user found with username "@${cleaned}". Ask them to set a username in their Profile settings first.`);
     if (target._id === userId) throw new ConvexError("You can't invite yourself.");
 
     // Already a member?

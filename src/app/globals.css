@@ -11,7 +11,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior: smooth removed — blocks main thread on low-end devices */
 }
 
 :root {
@@ -150,8 +150,8 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(110deg, transparent 25%, #1E1E1E 37%, transparent 63%);
-    background-size: 200% 100%;
+    background: linear-gradient(110deg, transparent 25%, #1E1E1E 50%, transparent 75%);
+    transform: translateX(-100%);
     animation: shimmerSlide 1.5s ease-in-out infinite;
   }
 
@@ -169,8 +169,8 @@ body {
 }
 
 @keyframes shimmerSlide {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
 }
 
 /* Hide scrollbar for mobile quick-nav strip */

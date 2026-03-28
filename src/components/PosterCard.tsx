@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import Image from "next/image";
 import { Star, Heart, Bookmark, CheckCircle } from "lucide-react";
 import { TMDBMovie } from "@/lib/types";
@@ -12,7 +13,7 @@ interface PosterCardProps {
   index: number;
 }
 
-export default function PosterCard({ movie, onClick, index }: PosterCardProps) {
+const PosterCard = memo(function PosterCard({ movie, onClick, index }: PosterCardProps) {
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const hasImage = movie.poster_path !== null;
   const year = movie.release_date?.split("-")[0] || "—";
@@ -124,4 +125,6 @@ export default function PosterCard({ movie, onClick, index }: PosterCardProps) {
       </div>
     </button>
   );
-}
+});
+
+export default PosterCard;

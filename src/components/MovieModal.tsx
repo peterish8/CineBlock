@@ -327,17 +327,16 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
           </div>
         </div>
 
-        {/* Everything below hero — smooth grid-row reveal (Apple-style) */}
+        {/* Everything below hero — GPU-composited reveal (opacity + transform only, no layout triggers) */}
         <div
           style={{
-            display: "grid",
-            gridTemplateRows: cinemaRevealed ? "1fr" : "0fr",
-            transition: "grid-template-rows 0.5s cubic-bezier(0.3, 1.25, 0.4, 1)",
-            willChange: "grid-template-rows",
+            overflow: "hidden",
+            maxHeight: cinemaRevealed ? "9999px" : "0px",
+            transition: cinemaRevealed ? "max-height 0.6s cubic-bezier(0.3, 1.25, 0.4, 1)" : "max-height 0.3s ease",
           }}
         >
-          <div style={{ overflow: "hidden" }}>
-            {/* Fade + slide inner wrapper */}
+          <div>
+            {/* Fade + slide — GPU composited (opacity + transform only) */}
             <div
               style={{
                 opacity: cinemaRevealed ? 1 : 0,
@@ -604,8 +603,8 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
           </div>
         </div>{/* end content section */}
             </div>{/* end fade+slide inner wrapper */}
-          </div>{/* end overflow:hidden inner */}
-        </div>{/* end grid-row collapsible wrapper */}
+          </div>
+        </div>{/* end max-height reveal wrapper */}
       </div>
     </div>
   );

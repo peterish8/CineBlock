@@ -277,7 +277,13 @@ async function tmdbBackdrop(query: string, apiKey: string): Promise<string | und
   return undefined;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Protect internal route — only callable with the correct secret header
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (secret && request.headers.get("x-internal-secret") !== secret) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const [rssArticles, redditArticles] = await Promise.all([
       fetchRSSFeeds(),

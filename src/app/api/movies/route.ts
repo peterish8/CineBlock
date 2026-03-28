@@ -11,14 +11,24 @@ const headers: HeadersInit = {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "discover";
-  const page = searchParams.get("page") || "1";
+
+  // Basic input validation
+  const rawPage = parseInt(searchParams.get("page") || "1", 10);
+  const page = String(isNaN(rawPage) || rawPage < 1 || rawPage > 500 ? 1 : rawPage);
+
+  // Validate numeric IDs to prevent URL injection
+  const validateId = (raw: string | null): string | null => {
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return isNaN(n) || n <= 0 ? null : String(n);
+  };
 
   try {
     let url: string;
 
     switch (action) {
       case "search": {
-        const query = searchParams.get("query") || "";
+        const query = (searchParams.get("query") || "").slice(0, 150);
         const year = searchParams.get("year");
         const lang = searchParams.get("lang");
         const params = new URLSearchParams({
@@ -42,7 +52,7 @@ export async function GET(request: NextRequest) {
       }
 
       case "search-tv": {
-        const query = searchParams.get("query") || "";
+        const query = (searchParams.get("query") || "").slice(0, 150);
         const params = new URLSearchParams({
           query,
           language: "en-US",
@@ -54,36 +64,36 @@ export async function GET(request: NextRequest) {
       }
 
       case "details": {
-        const movieId = searchParams.get("id");
-        if (!movieId) return NextResponse.json({ error: "Movie ID required" }, { status: 400 });
+        const movieId = validateId(searchParams.get("id"));
+        if (!movieId) return NextResponse.json({ error: "Invalid movie ID" }, { status: 400 });
         url = `${TMDB_BASE}/movie/${movieId}?append_to_response=credits,videos&language=en-US`;
         break;
       }
 
       case "tv-details": {
-        const tvId = searchParams.get("id");
-        if (!tvId) return NextResponse.json({ error: "TV ID required" }, { status: 400 });
+        const tvId = validateId(searchParams.get("id"));
+        if (!tvId) return NextResponse.json({ error: "Invalid TV ID" }, { status: 400 });
         url = `${TMDB_BASE}/tv/${tvId}?append_to_response=credits,videos&language=en-US`;
         break;
       }
 
       case "watch-providers": {
-        const movieId = searchParams.get("id");
-        if (!movieId) return NextResponse.json({ error: "Movie ID required" }, { status: 400 });
+        const movieId = validateId(searchParams.get("id"));
+        if (!movieId) return NextResponse.json({ error: "Invalid movie ID" }, { status: 400 });
         url = `${TMDB_BASE}/movie/${movieId}/watch/providers`;
         break;
       }
 
       case "recommendations": {
-        const movieId = searchParams.get("id");
-        if (!movieId) return NextResponse.json({ error: "Movie ID required" }, { status: 400 });
+        const movieId = validateId(searchParams.get("id"));
+        if (!movieId) return NextResponse.json({ error: "Invalid movie ID" }, { status: 400 });
         url = `${TMDB_BASE}/movie/${movieId}/recommendations?language=en-US&page=1`;
         break;
       }
 
       case "recommendations-tv": {
-        const tvId = searchParams.get("id");
-        if (!tvId) return NextResponse.json({ error: "TV ID required" }, { status: 400 });
+        const tvId = validateId(searchParams.get("id"));
+        if (!tvId) return NextResponse.json({ error: "Invalid TV ID" }, { status: 400 });
         url = `${TMDB_BASE}/tv/${tvId}/recommendations?language=en-US&page=1`;
         break;
       }
@@ -364,7 +374,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
     }
     const data = await res.json();
-    return NextResponse.json(data);
+    // Cache TMDB responses at CDN for 5 min, serve stale for up to 10 min
+    const cacheResponse = NextResponse.json(data);
+    cacheResponse.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    return cacheResponse;
   } catch (error) {
     console.error("TMDB API error:", error);
     return NextResponse.json({ error: "Failed to fetch from TMDB" }, { status: 500 });

@@ -43,6 +43,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const browseRef = useRef<HTMLDivElement>(null);
   const years = generateYearRange();
 
+  // Clean up pending debounce on unmount to prevent memory leaks
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+
   useEffect(() => {
     // Load theme setting
     const savedTheme = localStorage.getItem("theme");

@@ -152,7 +152,7 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 sm:px-6">
         {movies.map((movie, i) => (
           <PosterCard
-            key={`${movie.id}-${i}`}
+            key={movie.id}
             movie={movie}
             onClick={() => onMovieClick(movie)}
             index={i % 20}

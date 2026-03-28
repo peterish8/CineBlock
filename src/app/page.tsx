@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Bookmark, Sparkles, Film, Tv } from "lucide-react";
 import Link from "next/link";
 import CommandHub from "@/components/CommandHub";
 import PosterGrid from "@/components/PosterGrid";
 import TVGrid from "@/components/TVGrid";
 import TrendingHero from "@/components/TrendingHero";
-import MovieModal from "@/components/MovieModal";
-import ActorModal from "@/components/ActorModal";
-import WatchlistPanel from "@/components/WatchlistPanel";
 import RecommendationsSection from "@/components/RecommendationsSection";
+// Lazy-load modals — not needed on initial paint, improves FCP
+const MovieModal = dynamic(() => import("@/components/MovieModal"), { ssr: false });
+const ActorModal = dynamic(() => import("@/components/ActorModal"), { ssr: false });
+const WatchlistPanel = dynamic(() => import("@/components/WatchlistPanel"), { ssr: false });
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
