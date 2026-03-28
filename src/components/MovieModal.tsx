@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, Star, Calendar, Clock, Users, Bookmark, Play, Tv, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical } from "lucide-react";
 import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider } from "@/lib/types";
@@ -19,6 +19,20 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   const [history, setHistory] = useState<TMDBMovie[]>([]);
   const [showActions, setShowActions] = useState(false);
   const [cinemaRevealed, setCinemaRevealed] = useState(false);
+  const [dragY, setDragY] = useState(0);
+  const touchStartY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const delta = Math.max(0, e.touches[0].clientY - touchStartY.current);
+    setDragY(delta);
+  };
+  const handleTouchEnd = () => {
+    if (dragY > 90) { onClose(); }
+    setDragY(0);
+  };
 
   const movie = history[history.length - 1] || null;
 
@@ -207,7 +221,20 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
       <div
         className="relative w-full sm:max-w-3xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overscroll-contain bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up rounded-t-xl sm:rounded-none"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY * 0.4}px)` : undefined,
+          transition: dragY === 0 ? "transform 0.3s cubic-bezier(0.22, 1, 0.36, 1)" : "none",
+          opacity: dragY > 0 ? Math.max(0.6, 1 - dragY / 300) : 1,
+        }}
       >
+        {/* Swipe handle — mobile only */}
+        <div className="flex justify-center pt-2.5 pb-1 sm:hidden sticky top-0 z-50 pointer-events-none">
+          <div className="w-10 h-1 bg-brutal-dim rounded-full opacity-60" />
+        </div>
+
         {/* Top Header Controls Area (Absolute Layer for UI overlays) */}
         <div className="absolute top-0 left-0 right-0 z-50 h-32 pointer-events-none p-3 flex justify-between items-start">
           {/* Left Side: Back */}

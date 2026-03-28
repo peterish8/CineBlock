@@ -84,7 +84,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
             src={backdropUrl(movie.backdrop_path)}
             alt={movie.title}
             fill
-            className="object-cover animate-fade-in"
+            className="object-cover hero-img-enter"
             sizes="100vw"
             priority
           />
@@ -92,9 +92,11 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
           <div className="w-full h-full bg-surface" />
         )}
 
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-bg/80 via-transparent to-transparent" />
+        {/* Stronger cinematic gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/20 to-transparent" />
+        {/* Extra top fade for mobile readability */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-bg/60 to-transparent sm:hidden" />
 
         {/* Content */}
         <div className="absolute inset-0 flex items-end">
@@ -107,8 +109,8 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
               </span>
             </div>
 
-            {/* Title */}
-            <h2 className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-brutal-white uppercase leading-none tracking-tight max-w-xl">
+            {/* Title — animate on each slide change */}
+            <h2 key={`title-${movie.id}`} className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-brutal-white uppercase leading-none tracking-tight max-w-xl animate-fade-in-up">
               {movie.title}
             </h2>
 
@@ -164,15 +166,24 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
           </button>
         </div>
 
-        {/* Dots */}
-        <div className="absolute bottom-3 right-4 sm:right-6 flex items-center gap-1.5">
+        {/* Progress bar (mobile) */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-brutal-border sm:hidden">
+          <div
+            key={current}
+            className="h-full bg-brutal-yellow animate-progress"
+            style={{ animationDuration: "6s" }}
+          />
+        </div>
+
+        {/* Dots (desktop) */}
+        <div className="absolute bottom-4 right-4 sm:right-6 hidden sm:flex items-center gap-1.5">
           {movies.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`h-1.5 transition-all duration-200 ${
+              className={`h-1.5 rounded-none transition-all duration-300 tap-target ${
                 i === current
-                  ? "w-6 bg-brutal-yellow"
+                  ? "w-8 bg-brutal-yellow"
                   : "w-1.5 bg-brutal-dim hover:bg-brutal-muted"
               }`}
             />

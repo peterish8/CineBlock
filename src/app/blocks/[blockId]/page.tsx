@@ -213,6 +213,8 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState(false);
+  // Mobile tab switcher
+  const [mobileTab, setMobileTab] = useState<"members" | "matches" | "invite">("matches");
 
   const copyCode = () => {
     if (!room) return;
@@ -343,14 +345,31 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
       {/* ── Bento Body ── */}
       <div className="flex-1 max-w-[1400px] mx-auto w-full px-4 sm:px-6 py-6">
 
-        {/* Mobile: stack / Tablet+: two-column bento */}
+        {/* ── MOBILE TAB BAR (hidden on md+) ── */}
+        <div className="flex md:hidden border-3 border-brutal-border mb-4 overflow-hidden">
+          {(["matches", "members", "invite"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              className={`flex-1 py-3 text-[10px] font-mono font-black uppercase tracking-widest tap-target transition-all ${
+                mobileTab === tab
+                  ? "bg-brutal-yellow text-black"
+                  : "bg-surface text-brutal-dim"
+              }`}
+            >
+              {tab === "matches" ? `Matches${matches?.length ? ` (${matches.length})` : ""}` : tab === "members" ? `Members (${room.members.length})` : "Invite"}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile: tab content / Tablet+: two-column bento */}
         <div className="flex flex-col md:flex-row gap-4 md:gap-5 md:items-start">
 
-          {/* ── LEFT PANEL (sidebar on md+) ── */}
-          <div className="w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-4 md:sticky md:top-[73px]">
+          {/* ── LEFT PANEL (sidebar on md+, tab-controlled on mobile) ── */}
+          <div className={`w-full md:w-[300px] lg:w-[320px] shrink-0 flex flex-col gap-4 md:sticky md:top-[73px] ${mobileTab === "matches" ? "hidden md:flex" : ""}`}>
 
-            {/* Members bento card */}
-            <div className="brutal-card p-0 overflow-hidden">
+            {/* Members bento card — show only on members tab on mobile */}
+            <div className={`brutal-card p-0 overflow-hidden ${mobileTab === "invite" ? "hidden md:block" : ""}`}>
               {/* Accent header */}
               <div className="h-1.5 w-full bg-brutal-violet" />
               <div className="p-4">
@@ -377,8 +396,8 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
               </div>
             </div>
 
-            {/* Invite bento card */}
-            <div className="brutal-card p-0 overflow-hidden">
+            {/* Invite bento card — show only on invite tab on mobile */}
+            <div className={`brutal-card p-0 overflow-hidden ${mobileTab === "members" ? "hidden md:block" : ""}`}>
               <div className="h-1.5 w-full bg-brutal-yellow" />
               <div className="p-4">
                 <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] mb-3">
@@ -420,8 +439,8 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
             </div>
           </div>
 
-          {/* ── RIGHT PANEL (main content) ── */}
-          <div className="flex-1 min-w-0 flex flex-col gap-4">
+          {/* ── RIGHT PANEL (matches — tab-controlled on mobile) ── */}
+          <div className={`flex-1 min-w-0 flex-col gap-4 ${mobileTab === "matches" ? "flex" : "hidden md:flex"}`}>
 
             {/* Privacy note — mobile only */}
             <div className="flex md:hidden items-start gap-3 px-4 py-3 bg-surface border-2 border-brutal-border">

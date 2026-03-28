@@ -29,8 +29,8 @@ export default function MobileBottomNav() {
     path === "/" ? pathname === "/" : pathname.startsWith(path);
 
   const navItem = (active: boolean) =>
-    `flex items-center justify-center w-10 h-10 transition-colors ${
-      active ? "text-brutal-yellow" : "text-brutal-dim"
+    `flex items-center justify-center w-12 h-12 tap-target transition-colors ${
+      active ? "text-brutal-yellow" : "text-brutal-dim hover:text-brutal-muted"
     }`;
 
   return (
@@ -91,7 +91,7 @@ export default function MobileBottomNav() {
           onClick={() => setBrowseOpen(false)}
         >
           <div
-            className="absolute bottom-0 left-0 right-0 bg-bg border-t-3 border-brutal-border animate-slide-up p-4 pb-20"
+            className="absolute bottom-0 left-0 right-0 bg-bg border-t-3 border-brutal-border panel-spring p-4 pb-20"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -166,7 +166,7 @@ export default function MobileBottomNav() {
           onClick={() => setListsOpen(false)}
         >
           <div
-            className="absolute bottom-0 left-0 right-0 bg-bg border-t-3 border-brutal-border animate-slide-up p-4 pb-20"
+            className="absolute bottom-0 left-0 right-0 bg-bg border-t-3 border-brutal-border panel-spring p-4 pb-20"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
