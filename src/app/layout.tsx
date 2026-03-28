@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { MovieListsProvider } from "@/hooks/useMovieLists";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import MobileBottomNav from "@/components/MobileBottomNav";
@@ -70,6 +71,7 @@ export default function RootLayout({
           <MovieListsProvider>
             {children}
             <MobileBottomNav />
+            <Analytics />
           </MovieListsProvider>
         </ConvexClientProvider>
       </body>
