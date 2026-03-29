@@ -186,7 +186,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         {/* Right side controls — desktop only (mobile uses bottom nav) */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
 
-          {/* BROWSE dropdown — Streaming, Box Office, Collections, News */}
+          {/* BROWSE dropdown — Streaming, Box Office, Franchise Vault, News */}
           <div ref={browseRef} className="relative hidden lg:block">
             <button
               onClick={() => setBrowseOpen((o) => !o)}
@@ -202,25 +202,40 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             </button>
 
             {browseOpen && (
-              <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-bg border-3 border-brutal-border shadow-brutal z-50 animate-pop-in">
-                {[
-                  ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", accent: "hover:border-l-brutal-yellow", color: "text-brutal-yellow" }] : []),
-                  { href: "/box-office", icon: Trophy,    label: "BOX OFFICE",  accent: "hover:border-l-brutal-lime",    color: "text-brutal-lime"    },
-                  { href: "/collections",icon: Box,       label: "COLLECTIONS", accent: "hover:border-l-brutal-violet",  color: "text-brutal-violet"  },
-                  { href: "/news",       icon: Newspaper, label: "NEWS",        accent: "hover:border-l-brutal-orange",  color: "text-brutal-orange"  },
-                ].map(({ href, icon: Icon, label, color }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setBrowseOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 border-b-2 border-brutal-border last:border-b-0 hover:bg-surface transition-colors group"
-                  >
-                    <Icon className={`w-4 h-4 ${color} shrink-0`} strokeWidth={2.5} />
-                    <span className={`text-xs font-mono font-black tracking-widest text-brutal-dim group-hover:${color} transition-colors`}>
-                      {label}
-                    </span>
-                  </Link>
-                ))}
+              <div className="absolute right-0 top-[calc(100%+6px)] w-[480px] bg-bg border-3 border-brutal-border shadow-brutal z-50 animate-pop-in p-4">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-brutal-border">
+                  <div className="w-1.5 h-1.5 bg-brutal-yellow"></div>
+                  <h4 className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore Cineblock</h4>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", desc: "Find platforms to watch your favorites", accent: "hover:border-brutal-yellow", color: "text-brutal-yellow" }] : []),
+                    { href: "/recommendations", icon: Sparkles,    label: "FOR YOU", desc: "Personalized movie picks", accent: "hover:border-brutal-pink", color: "text-brutal-pink" },
+                    { href: "/box-office", icon: Trophy,    label: "BOX OFFICE", desc: "Top grossing films worldwide", accent: "hover:border-brutal-lime", color: "text-brutal-lime" },
+                    { href: "/collections",icon: Box,       label: "FRANCHISE VAULT", desc: "Explore cinematic universes", accent: "hover:border-brutal-violet", color: "text-brutal-violet" },
+                    { href: "/news",       icon: Newspaper, label: "NEWS", desc: "Latest headlines & updates", accent: "hover:border-brutal-orange", color: "text-brutal-orange" },
+                  ].map(({ href, icon: Icon, label, desc, accent, color }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setBrowseOpen(false)}
+                      className={`flex items-start gap-3 p-3 bg-surface border-2 border-transparent ${accent} transition-all group`}
+                    >
+                      <div className={`p-2 bg-black border border-brutal-border group-hover:border-white transition-colors`}>
+                        <Icon className={`w-5 h-5 ${color} shrink-0`} strokeWidth={2.5} />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xs font-display font-black tracking-wider text-brutal-white group-hover:${color} transition-colors uppercase`}>
+                          {label}
+                        </span>
+                        <span className="text-[9px] font-mono text-brutal-dim leading-tight">
+                          {desc}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -359,8 +374,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         </div>
       )}
 
-      {/* Hard border line */}
-      <div className="h-[3px] bg-brutal-border" />
+
 
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
     </div>

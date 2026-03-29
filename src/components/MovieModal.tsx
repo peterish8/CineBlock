@@ -81,7 +81,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
     setSimilar([]);
     try {
       const detailAction = type === "tv" ? "tv-details" : "details";
-      const similarAction = type === "tv" ? "similar-tv" : "similar";
+      const similarAction = type === "tv" ? "recommendations-tv" : "recommendations";
       const [detailRes, wpRes, simRes] = await Promise.all([
         fetch(`/api/movies?action=${detailAction}&id=${id}`),
         fetch(`/api/movies?action=watch-providers&id=${id}`),
@@ -106,7 +106,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
       
       if (simRes.ok) {
         const simData = await simRes.json();
-        setSimilar(simData.results?.slice(0, 10).map((m: any) => ({
+        setSimilar(simData.results?.slice(0, 15).map((m: any) => ({
           ...m,
           media_type: type
         })) || []);
@@ -221,7 +221,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" />
 
       <div
-        className="relative w-full sm:max-w-3xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overscroll-contain bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up rounded-t-xl sm:rounded-none"
+        className="relative w-full sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overscroll-contain bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up rounded-t-xl sm:rounded-none"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -317,11 +317,11 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             <>
               {movie.backdrop_path ? (
                 <Image
-                  src={backdropUrl(movie.backdrop_path, "small")}
+                  src={backdropUrl(movie.backdrop_path, "large")}
                   alt={movie.title}
                   fill
                   className="object-cover opacity-80"
-                  sizes="(max-width: 768px) 100vw, 768px"
+                  sizes="(max-width: 1280px) 100vw, 1280px"
                   priority
                 />
               ) : (
@@ -544,14 +544,14 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
 
         {/* Content Section — Bento Grid */}
         <div
-          className={`px-6 pb-10 bg-bg transition-all duration-700 ease-out ${
+          className={`px-6 pb-6 bg-bg transition-all duration-700 ease-out ${
             cinemaRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
           }`}
           style={{ transitionDelay: cinemaRevealed ? "0.15s" : "0s" }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-[1fr_220px] gap-4 pt-6">
+          <div className="flex flex-col gap-6 pt-6">
             
-            {/* LEFT: Info + Synopsis + Cast */}
+            {/* TOP: Info + Synopsis + Cast */}
             <div className="flex flex-col gap-5 min-w-0">
               
               {/* Genres */}
@@ -604,25 +604,24 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 </div>
               )}
             </div>
-
-            {/* RIGHT: More Like This bento panel */}
+            {/* BOTTOM: More Like This Horizontal Scroll */}
             {similar.length > 0 && (
-              <div className="flex flex-col gap-2 border-l-2 border-brutal-border pl-4">
-                <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest pb-1">MORE LIKE THIS</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {similar.slice(0, 6).map((sim) => (
+              <div className="flex flex-col gap-3 pt-6 border-t-2 border-brutal-border">
+                <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">MORE LIKE THIS</h3>
+                <div className="flex gap-4 overflow-x-auto pb-4 snap-x overscroll-x-contain hide-scrollbar">
+                  {similar.map((sim) => (
                     <div
                       key={sim.id}
                       onClick={() => setHistory(prev => [...prev, sim])}
-                      className="group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"
+                      className="flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"
                     >
                       {sim.poster_path ? (
-                        <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="120px" />
+                        <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="140px" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] font-black uppercase">{sim.title ?? sim.name}</div>
                       )}
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
-                        <p className="text-[9px] font-black uppercase text-white line-clamp-2">{sim.title ?? sim.name}</p>
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <p className="text-[10px] font-black uppercase text-white line-clamp-2">{sim.title ?? sim.name}</p>
                       </div>
                     </div>
                   ))}

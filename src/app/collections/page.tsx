@@ -384,7 +384,7 @@ export default function CollectionsPage() {
       {/* Footer Branding */}
       <footer className="mt-auto px-6 py-12 border-t-4 border-brutal-border bg-black/40 flex flex-col items-center gap-4">
           <div className="flex items-center gap-2 font-display font-black italic text-2xl uppercase tracking-tighter">
-              CINEBLOCK <span className="text-brutal-violet">COLLECTIONS</span>
+              CINEBLOCK <span className="text-brutal-violet">FRANCHISE VAULT</span>
           </div>
           <div className="text-[10px] font-mono text-brutal-dim tracking-[0.5em] uppercase">Built for Completionists</div>
       </footer>

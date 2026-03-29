@@ -44,8 +44,9 @@ export async function GET(request: NextRequest) {
         if (!searchRes.ok) return NextResponse.json({ error: `TMDB API error: ${searchRes.status}` }, { status: searchRes.status });
         const searchData = await searchRes.json();
         if (lang) {
+          const langs = lang.split(',');
           searchData.results = (searchData.results || []).filter(
-            (m: { original_language: string }) => m.original_language === lang
+            (m: { original_language: string }) => langs.includes(m.original_language)
           );
         }
         return NextResponse.json(searchData);
@@ -263,7 +264,7 @@ export async function GET(request: NextRequest) {
 
         if (genre) params.set("with_genres", genre);
         if (year) params.set("first_air_date_year", year);
-        if (lang) params.set("with_original_language", lang);
+        if (lang) params.set("with_original_language", lang.replace(/,/g, "|"));
         if (rating) params.set("vote_average.gte", rating);
         if (runtime) params.set("with_runtime.lte", runtime);
         url = `${TMDB_BASE}/discover/tv?${params.toString()}`;
@@ -333,7 +334,7 @@ export async function GET(request: NextRequest) {
 
         if (genre) params.set("with_genres", genre);
         if (year) params.set("primary_release_year", year);
-        if (lang) params.set("with_original_language", lang);
+        if (lang) params.set("with_original_language", lang.replace(/,/g, "|"));
         
         url = `${TMDB_BASE}/discover/movie?${params.toString()}`;
         break;
@@ -361,7 +362,7 @@ export async function GET(request: NextRequest) {
 
         if (genre) params.set("with_genres", genre);
         if (year) params.set("primary_release_year", year);
-        if (lang) params.set("with_original_language", lang);
+        if (lang) params.set("with_original_language", lang.replace(/,/g, "|"));
         if (rating) params.set("vote_average.gte", rating);
         if (runtime) params.set("with_runtime.lte", runtime);
         url = `${TMDB_BASE}/discover/movie?${params.toString()}`;

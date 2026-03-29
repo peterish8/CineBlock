@@ -220,18 +220,12 @@ function HomeContent() {
         </button>
       </div>
 
-      {/* Recommendations preview (Top when NOT searching) — desktop only; mobile uses Browse > FOR YOU */}
-      {!isSearching && (
-        <div className="hidden lg:block">
-          <RecommendationsSection onMovieClick={handleMovieClick} />
-        </div>
-      )}
 
       {/* Media type tabs */}
-      <div className="max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-2">
-        <div className="flex items-center gap-3">
+      <div className="w-full">
+        <div className="flex items-center">
           <div className="h-[3px] flex-1 bg-brutal-border" />
-          <div className="flex items-center gap-0">
+          <div className="flex items-center gap-0 mx-3">
             <button
               onClick={() => setMediaTab("movies")}
               className={`brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
@@ -268,12 +262,6 @@ function HomeContent() {
         )}
       </div>
 
-      {/* Recommendations preview (Bottom when searching) — desktop only */}
-      {isSearching && (
-        <div className="hidden lg:block border-t-3 border-brutal-border bg-surface-2 mt-auto">
-          <RecommendationsSection onMovieClick={handleMovieClick} />
-        </div>
-      )}
 
       {/* Modals */}
       <MovieModal

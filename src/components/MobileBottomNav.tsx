@@ -124,7 +124,7 @@ export default function MobileBottomNav() {
                 className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-violet text-brutal-violet bg-brutal-violet/10"
               >
                 <Box className="w-5 h-5 shrink-0" strokeWidth={2.5} />
-                <span className="font-mono text-xs font-black tracking-widest">COLLECTIONS</span>
+                <span className="font-mono text-xs font-black tracking-widest">FRANCHISE VAULT</span>
               </Link>
               <Link
                 href="/news"

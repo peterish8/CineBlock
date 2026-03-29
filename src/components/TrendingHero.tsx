@@ -38,7 +38,8 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
     if (!preferredLanguage) {
       setMovies(allMovies.slice(0, 8));
     } else {
-      const filtered = allMovies.filter((m) => m.original_language === preferredLanguage);
+      const langs = preferredLanguage.split(',').filter(Boolean);
+      const filtered = allMovies.filter((m) => langs.includes(m.original_language));
       setMovies((filtered.length > 0 ? filtered : allMovies).slice(0, 8));
     }
     setCurrent(0);

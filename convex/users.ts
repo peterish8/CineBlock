@@ -54,6 +54,14 @@ export const setPreferredLanguage = mutation({
   handler: async (ctx, { language }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Not authenticated");
+    
+    if (language) {
+      const langs = language.split(",").filter(Boolean);
+      if (langs.length > 5) {
+        throw new ConvexError("You can select a maximum of 5 preferred languages.");
+      }
+    }
+    
     // "" means "no preference" (all languages)
     await ctx.db.patch(userId, { preferredLanguage: language || undefined });
   },
