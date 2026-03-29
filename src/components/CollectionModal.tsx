@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, CheckCircle, Star, Calendar, Box, Info } from "lucide-react";
+import { X, CheckCircle, Star, Calendar, Box, Info, Heart, Bookmark } from "lucide-react";
 import { TMDBCollectionDetail, TMDBMovie } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
@@ -17,7 +17,7 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
   const [collection, setCollection] = useState<TMDBCollectionDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isWatched } = useMovieLists();
+  const { isWatched, isLiked, isInWatchlist, toggleWatched, toggleLiked, toggleWatchlist } = useMovieLists();
 
   useEffect(() => {
     if (!collectionId) {
@@ -112,13 +112,16 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
             
             {totalCount > 0 && (
               <div className="flex flex-wrap items-center gap-4 mt-2">
-                <div className="flex flex-col gap-1.5 min-w-[150px]">
+                <div className="flex flex-col gap-1.5 min-w-[200px]">
                   <div className="flex justify-between text-[10px] font-mono font-black text-brutal-white">
                     <span>PROGRESS</span>
                     <span>{watchedCount}/{totalCount} MOVIES</span>
                   </div>
-                  <div className="w-full h-2 bg-surface border border-brutal-border">
-                    <div className="h-full bg-brutal-violet shadow-[0_0_10px_rgba(139,92,246,0.5)]" style={{ width: `${percentage}%` }} />
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-surface border border-brutal-border">
+                      <div className="h-full bg-brutal-violet shadow-[0_0_10px_rgba(139,92,246,0.5)]" style={{ width: `${percentage}%` }} />
+                    </div>
+                    <span className="text-[10px] font-mono font-black text-brutal-violet w-8 text-right shrink-0">{percentage}%</span>
                   </div>
                 </div>
                 {percentage === 100 && (
@@ -213,8 +216,33 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
                        ) : (
                          <div className="w-full h-full flex items-center justify-center text-xs font-mono font-black opacity-30">NO PREVIEW</div>
                        )}
-                       
-                       <div className="absolute top-2 left-2 z-10">
+
+                       {/* Vertical status buttons — left edge */}
+                       <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-center gap-1 z-20 p-1 bg-black/60 backdrop-blur-sm">
+                         <button
+                           onClick={(e) => { e.stopPropagation(); toggleWatched(movie); }}
+                           title="Mark as Watched"
+                           className={`p-1.5 border-2 transition-all ${watched ? "bg-[#22d3ee] border-[#22d3ee] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[#22d3ee] hover:text-[#22d3ee]"}`}
+                         >
+                           <CheckCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
+                         </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }}
+                           title="Like"
+                           className={`p-1.5 border-2 transition-all ${isLiked(movie.id) ? "bg-[var(--theme-primary)] border-[var(--theme-primary)] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)]"}`}
+                         >
+                           <Heart className="w-3.5 h-3.5" strokeWidth={2.5} />
+                         </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }}
+                           title="Add to Wishlist"
+                           className={`p-1.5 border-2 transition-all ${isInWatchlist(movie.id) ? "bg-[#a3e635] border-[#a3e635] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[#a3e635] hover:text-[#a3e635]"}`}
+                         >
+                           <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
+                         </button>
+                       </div>
+
+                       <div className="absolute top-2 left-12 z-10">
                          <div className="bg-black border border-inherit px-1.5 py-0.5 text-[9px] font-mono font-black text-white">
                            {idx + 1}
                          </div>
