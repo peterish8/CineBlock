@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         const params = new URLSearchParams({
           query,
           language: "en-US",
-          include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
+          include_adult: "false",
           page,
         });
         if (year) params.set("year", year);
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         const params = new URLSearchParams({
           query,
           language: "en-US",
-          include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
+          include_adult: "false",
           page,
         });
         url = `${TMDB_BASE}/search/tv?${params.toString()}`;
@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
       case "discover-tv": {
         const params = new URLSearchParams({
           language: "en-US",
-          include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
+          include_adult: "false",
           sort_by: searchParams.get("sort") || "popularity.desc",
           page,
         });
@@ -317,7 +317,7 @@ export async function GET(request: NextRequest) {
         // Highest grossing movies globally
         const params = new URLSearchParams({
           language: "en-US",
-          include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
+          include_adult: "false",
           include_video: "false",
           sort_by: "revenue.desc", // Force sorting by box office revenue
           "vote_count.gte": "100", // Eliminate bogus/empty entries
@@ -343,7 +343,7 @@ export async function GET(request: NextRequest) {
         // Discover movies
         const params = new URLSearchParams({
           language: "en-US",
-          include_adult: searchParams.get("include_adult") === "true" ? "true" : "false",
+          include_adult: "false",
           include_video: "false",
           sort_by: searchParams.get("sort") || "popularity.desc",
           page,
