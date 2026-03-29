@@ -125,6 +125,8 @@ const CURATED_COLLECTIONS: (Partial<TMDBCollection> & { id: number; name: string
   { id: 8917, name: "Hellraiser Collection", themeColor: "#1a0000" },
   { id: 98580, name: "Candyman Collection", themeColor: "#1a0500" },
   { id: 19285, name: "Leprechaun Collection", themeColor: "#0a1a00" },
+  { id: 630386, name: "Ready or Not Collection", themeColor: "#2d0a0a" },
+
 
   // ── Monsters, Dinos & Creatures ───────────────────────────────────────────────
   { id: 328, name: "Jurassic Park Collection", themeColor: "#0a2d0a" },
@@ -234,17 +236,16 @@ export default function CollectionsPage() {
     if (!searchQuery.trim()) return;
 
     setIsLoading(true);
-    try {
-      const res = await fetch(`/api/movies?action=search-collection&query=${encodeURIComponent(searchQuery)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data.results || []);
-      }
-    } catch (err) {
-      console.error("Search failed:", err);
-    } finally {
+    
+    // Simulate slight delay for effect
+    setTimeout(() => {
+      const query = searchQuery.toLowerCase().trim();
+      const filtered = CURATED_COLLECTIONS.filter((c) => 
+        c.name.toLowerCase().includes(query)
+      );
+      setSearchResults(filtered as unknown as TMDBCollection[]);
       setIsLoading(false);
-    }
+    }, 400);
   };
 
   // Curated collections with real progress
