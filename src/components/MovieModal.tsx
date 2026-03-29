@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, Star, Calendar, Clock, Users, Bookmark, Play, Tv, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical } from "lucide-react";
 import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider } from "@/lib/types";
+import { toMovieSlug } from "@/lib/slugify";
 import { backdropUrl, posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useRegion } from "@/hooks/useRegion";
@@ -67,7 +68,8 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
     e.stopPropagation();
     if (!movie) return;
     const type = movie.media_type === "tv" ? "tv" : "movie";
-    const url = `${window.location.origin}/?${type}=${movie.id}`;
+    const slug = toMovieSlug(movie.title || "", movie.id);
+    const url = `${window.location.origin}/${type}/${slug}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

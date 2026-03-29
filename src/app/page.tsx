@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Bookmark, Sparkles, Film, Tv } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +17,7 @@ import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
+import { toMovieSlug } from "@/lib/slugify";
 
 function HomeContent() {
   const [filters, setFilters] = useState({
@@ -30,6 +31,7 @@ function HomeContent() {
   });
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
+  const modalPushedState = useRef(false);
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
   const { liked, watchlist, watched } = useMovieLists();
@@ -93,6 +95,38 @@ function HomeContent() {
     }
   }, []);
 
+  // Push a URL-based slug when opening a movie modal so:
+  // 1. The URL is shareable (e.g. cineblock.in/movie/the-dark-knight-155)
+  // 2. Mobile back button closes the modal instead of leaving the site
+  const openMovie = useCallback((movie: TMDBMovie) => {
+    const type = movie.media_type === "tv" ? "tv" : "movie";
+    const slug = toMovieSlug(movie.title || "", movie.id);
+    window.history.pushState({ cineblockModal: true }, "", `/${type}/${slug}`);
+    modalPushedState.current = true;
+    setSelectedMovie(movie);
+    setWatchlistOpen(false);
+  }, []);
+
+  const closeMovie = useCallback(() => {
+    if (modalPushedState.current) {
+      modalPushedState.current = false;
+      window.history.replaceState({}, "", "/");
+    }
+    setSelectedMovie(null);
+  }, []);
+
+  // Close modal when user presses the browser/phone back button
+  useEffect(() => {
+    const handlePopState = () => {
+      if (modalPushedState.current) {
+        modalPushedState.current = false;
+        setSelectedMovie(null);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const handleFilterChange = useCallback(
     (newFilters: typeof filters) => {
       setFilters(newFilters);
@@ -101,9 +135,8 @@ function HomeContent() {
   );
 
   const handleMovieClick = useCallback((movie: TMDBMovie) => {
-    setSelectedMovie(movie);
-    setWatchlistOpen(false);
-  }, []);
+    openMovie(movie);
+  }, [openMovie]);
 
   const handleTVClick = useCallback((show: TMDBTVShow) => {
     // Convert TV show to movie-like object for the modal
@@ -123,9 +156,8 @@ function HomeContent() {
       adult: false,
       media_type: "tv",
     };
-    setSelectedMovie(asMovie);
-    setWatchlistOpen(false);
-  }, []);
+    openMovie(asMovie);
+  }, [openMovie]);
 
   const handleActorClick = useCallback((actorId: number) => {
     setSelectedActorId(actorId);
@@ -133,8 +165,8 @@ function HomeContent() {
 
   const handleActorMovieClick = useCallback((movie: TMDBMovie) => {
     setSelectedActorId(null);
-    setSelectedMovie(movie);
-  }, []);
+    openMovie(movie);
+  }, [openMovie]);
 
   const handleSurpriseMe = useCallback(async () => {
     try {
@@ -146,13 +178,13 @@ function HomeContent() {
         const movies = data.results;
         if (movies?.length > 0) {
           const randomMovie = movies[Math.floor(Math.random() * movies.length)];
-          setSelectedMovie(randomMovie);
+          openMovie(randomMovie);
         }
       }
     } catch (e) {
       console.error("Surprise me failed", e);
     }
-  }, []);
+  }, [openMovie]);
 
   return (
     <main className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
@@ -246,7 +278,7 @@ function HomeContent() {
       {/* Modals */}
       <MovieModal
         movie={selectedMovie}
-        onClose={() => setSelectedMovie(null)}
+        onClose={closeMovie}
         onActorClick={handleActorClick}
       />
       <ActorModal
