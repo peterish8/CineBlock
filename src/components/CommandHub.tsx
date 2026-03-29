@@ -20,7 +20,6 @@ interface CommandHubProps {
     sort: string;
     rating: string;
     runtime: string;
-    adult: boolean;
   }) => void;
   onSurpriseMe?: () => void;
 }
@@ -33,7 +32,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [sort, setSort] = useState("popularity.desc");
   const [rating, setRating] = useState("");
   const [runtime, setRuntime] = useState("");
-  const [adult, setAdult] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [isNetflixTheme, setIsNetflixTheme] = useState(false);
@@ -95,8 +93,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   }, []);
 
   const emitFilters = useCallback(
-    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string, a: boolean) => {
-      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run, adult: a });
+    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string) => {
+      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run });
     },
     [onFilterChange]
   );
@@ -105,23 +103,22 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      emitFilters(value, genre, year, language, sort, rating, runtime, adult);
+      emitFilters(value, genre, year, language, sort, rating, runtime);
     }, 350);
   };
 
   const handleFilterChange = (
-    key: "genre" | "year" | "language" | "sort" | "rating" | "runtime" | "adult",
-    value: string | boolean
+    key: "genre" | "year" | "language" | "sort" | "rating" | "runtime",
+    value: string
   ) => {
-    const newState = { query, genre, year, language, sort, rating, runtime, adult, [key]: value };
-    if (key === "genre") setGenre(value as string);
-    if (key === "year") setYear(value as string);
-    if (key === "language") setLanguage(value as string);
-    if (key === "sort") setSort(value as string);
-    if (key === "rating") setRating(value as string);
-    if (key === "runtime") setRuntime(value as string);
-    if (key === "adult") setAdult(value as boolean);
-    emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime, newState.adult);
+    const newState = { query, genre, year, language, sort, rating, runtime, [key]: value };
+    if (key === "genre") setGenre(value);
+    if (key === "year") setYear(value);
+    if (key === "language") setLanguage(value);
+    if (key === "sort") setSort(value);
+    if (key === "rating") setRating(value);
+    if (key === "runtime") setRuntime(value);
+    emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime);
   };
 
   const clearAll = () => {
@@ -132,11 +129,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setSort("popularity.desc");
     setRating("");
     setRuntime("");
-    setAdult(false);
-    emitFilters("", "", "", "", "popularity.desc", "", "", false);
+    emitFilters("", "", "", "", "popularity.desc", "", "");
   };
 
-  const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime || adult;
+  const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime;
 
   return (
     <div className="sticky top-0 z-50 w-full bg-bg">
@@ -322,15 +318,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 ]}
                 placeholder="Any"
               />
-              <FilterSelect
-                label="ADULT CONTENT"
-                value={adult ? "true" : ""}
-                onChange={(v) => handleFilterChange("adult", v === "true")}
-                options={[
-                  { value: "true", label: "Yes" }
-                ]}
-                placeholder="No"
-              />
             </div>
 
             {hasActiveFilters && (
@@ -358,9 +345,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   )}
                   {runtime && (
                     <ActiveChip label={`Runtime: <${runtime}m`} color="cyan" onRemove={() => handleFilterChange("runtime", "")} />
-                  )}
-                  {adult && (
-                    <ActiveChip label="Adult: Yes" color="pink" onRemove={() => handleFilterChange("adult", false)} />
                   )}
                 </div>
                 <button

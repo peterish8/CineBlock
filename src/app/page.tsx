@@ -27,7 +27,6 @@ function HomeContent() {
     sort: "popularity.desc",
     rating: "",
     runtime: "",
-    adult: false,
   });
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);

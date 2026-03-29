@@ -17,7 +17,6 @@ interface TVGridProps {
     sort: string;
     rating?: string;
     runtime?: string;
-    adult?: boolean;
   };
   onShowClick: (show: TMDBTVShow) => void;
 }
@@ -57,7 +56,6 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
           if (filters.sort) params.set("sort", filters.sort);
           if (filters.rating) params.set("rating", filters.rating);
           if (filters.runtime) params.set("runtime", filters.runtime);
-          if (filters.adult) params.set("include_adult", "true");
         }
 
         const res = await fetch(`/api/movies?${params.toString()}`, {

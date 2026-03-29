@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, ArrowLeft, Bookmark, Star, Loader2, Info, X, Tv2, ShieldX } from "lucide-react";
+import { Sparkles, ArrowLeft, Bookmark, Star, Loader2, Info, X, Tv2 } from "lucide-react";
 import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
@@ -19,7 +19,6 @@ function RecommendationsContent() {
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [showSources, setShowSources] = useState(false);
   const [includeCartoons, setIncludeCartoons] = useState(false);
-  const [includeAdult, setIncludeAdult] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const hasFetchedInitialRef = useRef(false);
@@ -62,7 +61,6 @@ function RecommendationsContent() {
         sort: "popularity.desc",
         rating: "6.5",
         page: String(p),
-        include_adult: includeAdult ? "true" : "false",
       });
       if (genreQuery) params.set("genre", genreQuery);
       // If NOT including cartoons, exclude animation genre
@@ -129,7 +127,7 @@ function RecommendationsContent() {
     } finally {
       isFetchingRef.current = false;
     }
-  }, [watchlist, watchlistAnalysis, includeCartoons, includeAdult]);
+  }, [watchlist, watchlistAnalysis, includeCartoons]);
 
   // Initial load
   useEffect(() => {
@@ -163,14 +161,9 @@ function RecommendationsContent() {
 
   // Re-fetch when filters change
   const prevCartoonsRef = useRef(includeCartoons);
-  const prevAdultRef = useRef(includeAdult);
   useEffect(() => {
-    if (
-      prevCartoonsRef.current !== includeCartoons ||
-      prevAdultRef.current !== includeAdult
-    ) {
+    if (prevCartoonsRef.current !== includeCartoons) {
       prevCartoonsRef.current = includeCartoons;
-      prevAdultRef.current = includeAdult;
       // Reset and re-fetch
       seenIdsRef.current = new Set();
       pageRef.current = 1;
@@ -179,7 +172,7 @@ function RecommendationsContent() {
       setLoading(true);
       fetchPage(1).finally(() => setLoading(false));
     }
-  }, [includeCartoons, includeAdult, fetchPage]);
+  }, [includeCartoons, fetchPage]);
 
   const handleToggleWatchlist = (movie: TMDBMovie, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -217,20 +210,6 @@ function RecommendationsContent() {
             >
               <Tv2 className="w-3.5 h-3.5" strokeWidth={2.5} />
               CARTOONS {includeCartoons ? "ON" : "OFF"}
-            </button>
-
-            {/* Adult toggle */}
-            <button
-              onClick={() => setIncludeAdult((v) => !v)}
-              className={`brutal-btn flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono font-bold uppercase transition-all ${
-                includeAdult
-                  ? "bg-brutal-pink !text-black !border-brutal-pink"
-                  : "text-brutal-white border-brutal-border"
-              }`}
-              title="Toggle Adult Content"
-            >
-              <ShieldX className="w-3.5 h-3.5" strokeWidth={2.5} />
-              ADULT {includeAdult ? "ON" : "OFF"}
             </button>
 
             <span className="brutal-chip text-brutal-lime border-brutal-lime text-[10px]">

@@ -15,7 +15,6 @@ interface PosterGridProps {
     sort: string;
     rating?: string;
     runtime?: string;
-    adult?: boolean;
   };
   onMovieClick: (movie: TMDBMovie) => void;
 }
@@ -56,7 +55,6 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
           if (filters.sort) params.set("sort", filters.sort);
           if (filters.rating) params.set("rating", filters.rating);
           if (filters.runtime) params.set("runtime", filters.runtime);
-          if (filters.adult) params.set("include_adult", "true");
         }
 
         const res = await fetch(`/api/movies?${params.toString()}`, {
