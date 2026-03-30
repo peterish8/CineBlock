@@ -23,7 +23,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
       "img-src 'self' data: blob: https://image.tmdb.org https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
       "media-src 'self'",
       "frame-src https://www.youtube.com https://youtube.com",
-      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://api.themoviedb.org https://fonts.googleapis.com",
+      "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site wss://*.convex.site https://api.themoviedb.org https://fonts.googleapis.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
