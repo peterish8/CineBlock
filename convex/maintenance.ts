@@ -2,6 +2,8 @@ import { internalMutation } from "./_generated/server";
 
 const NEWS_RETENTION_DAYS = 7;
 const THROTTLE_RETENTION_DAYS = 7;
+const BATCH_SIZE = 100;
+const USER_BATCH_SIZE = 50;
 
 export const purgeOldData = internalMutation({
   args: {},
@@ -10,18 +12,22 @@ export const purgeOldData = internalMutation({
     const newsCutoff = now - NEWS_RETENTION_DAYS * 24 * 60 * 60 * 1000;
     const throttleCutoff = now - THROTTLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
-    const newsRows = await ctx.db.query("news_feed").collect();
+    // Only fetch expired news rows using the by_createdAt index
+    const newsRows = await ctx.db
+      .query("news_feed")
+      .withIndex("by_createdAt", (q) => q.lt("createdAt", newsCutoff))
+      .take(BATCH_SIZE);
     for (const row of newsRows) {
-      if (row.createdAt < newsCutoff) {
-        await ctx.db.delete(row._id);
-      }
+      await ctx.db.delete(row._id);
     }
 
-    const throttles = await ctx.db.query("mutation_throttles").collect();
+    // Only fetch expired throttle rows using the by_lastAt index
+    const throttles = await ctx.db
+      .query("mutation_throttles")
+      .withIndex("by_lastAt", (q) => q.lt("lastAt", throttleCutoff))
+      .take(BATCH_SIZE);
     for (const row of throttles) {
-      if (row.lastAt < throttleCutoff) {
-        await ctx.db.delete(row._id);
-      }
+      await ctx.db.delete(row._id);
     }
   },
 });
@@ -29,7 +35,8 @@ export const purgeOldData = internalMutation({
 export const recomputeUserCounts = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const users = await ctx.db.query("users").collect();
+    // Process users in batches to avoid loading the entire table at once
+    const users = await ctx.db.query("users").take(USER_BATCH_SIZE);
     for (const user of users) {
       const [liked, watched, watchlist] = await Promise.all([
         ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),

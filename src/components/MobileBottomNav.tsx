@@ -48,6 +48,7 @@ export default function MobileBottomNav() {
         {showScrollTop && (
           <motion.button
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label="Scroll to top"
             className="fixed bottom-20 right-4 z-[59] w-10 h-10 bg-brutal-yellow border-3 border-brutal-border shadow-brutal text-black flex items-center justify-center"
             initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
             animate={{ clipPath: "inset(0% 0% 0% 0%)" }}

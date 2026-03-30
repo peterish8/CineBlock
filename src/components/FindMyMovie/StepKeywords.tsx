@@ -61,6 +61,8 @@ export default function StepKeywords({ value, onChange }: StepKeywordsProps) {
           return (
             <button
               key={`${chip.id}-${chip.label}`}
+              type="button"
+              aria-pressed={selected}
               onClick={() => onChange(selected ? null : chip.id)}
               className={`px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider border-2 transition-all duration-100 ${
                 selected
@@ -76,6 +78,7 @@ export default function StepKeywords({ value, onChange }: StepKeywordsProps) {
 
       {value && (
         <button
+          type="button"
           onClick={() => onChange(null)}
           className="self-start font-mono text-[10px] uppercase tracking-wider text-brutal-dim underline hover:text-brutal-white transition-colors"
         >

@@ -39,6 +39,7 @@ export default function MovieActionRail({
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
+              if (e.key === " ") e.preventDefault();
               e.stopPropagation();
               void toggleLiked(movie);
             }
@@ -64,6 +65,7 @@ export default function MovieActionRail({
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
+              if (e.key === " ") e.preventDefault();
               e.stopPropagation();
               void toggleWatchlist(movie);
             }
@@ -89,6 +91,7 @@ export default function MovieActionRail({
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
+              if (e.key === " ") e.preventDefault();
               e.stopPropagation();
               void toggleWatched(movie);
             }
@@ -118,6 +121,7 @@ export default function MovieActionRail({
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
+              if (e.key === " ") e.preventDefault();
               e.stopPropagation();
               openBlockModal({
                 id: movie.id,

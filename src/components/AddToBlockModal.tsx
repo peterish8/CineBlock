@@ -99,9 +99,11 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
 
     try {
       const newBlockId = await createBlock(newBlockName.trim());
-      if (newBlockId) {
-        await handleAdd(newBlockId);
+      if (!newBlockId) {
+        setError("Failed to create CineBlock.");
+        return;
       }
+      await handleAdd(newBlockId);
       setNewBlockName("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create CineBlock.");
@@ -114,7 +116,7 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in motion-reduce:animate-none" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in motion-reduce:animate-none" onClick={!busy ? onClose : undefined} />
 
       <div
         role="dialog"

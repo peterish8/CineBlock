@@ -145,10 +145,14 @@ export const deleteAccount = mutation({
       await ctx.db.delete(account._id);
     }
 
-    if (user?.email) {
+    // Delete rate-limit records for all known identifiers tied to this account
+    const identifiers: string[] = [];
+    if (user?.email) identifiers.push(user.email);
+    if (user?.phone) identifiers.push(user.phone);
+    for (const identifier of identifiers) {
       const rateLimits = await ctx.db
         .query("authRateLimits")
-        .withIndex("identifier", q => q.eq("identifier", user.email))
+        .withIndex("identifier", q => q.eq("identifier", identifier))
         .collect();
       for (const r of rateLimits) await ctx.db.delete(r._id);
     }

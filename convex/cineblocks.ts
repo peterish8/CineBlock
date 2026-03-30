@@ -118,13 +118,22 @@ export const deleteBlock = mutation({
       await ctx.db.delete(save._id);
     }
 
-    // Clean up stale throttle rows for this user to prevent unbounded table growth
+    // Clean up only stale throttle rows (older than the longest rate-limit window)
+    // to prevent unbounded table growth without enabling rate-limit bypass.
+    const MAX_RATE_LIMIT_MS = Math.max(
+      CREATE_BLOCK_MIN_INTERVAL_MS,
+      ADD_MOVIE_MIN_INTERVAL_MS,
+      TOGGLE_SAVE_MIN_INTERVAL_MS,
+    );
+    const staleCutoff = Date.now() - MAX_RATE_LIMIT_MS;
     const throttles = await ctx.db
       .query("mutation_throttles")
       .withIndex("by_userId_action", (q) => q.eq("userId", userId))
       .collect();
     for (const t of throttles) {
-      await ctx.db.delete(t._id);
+      if (t.lastAt < staleCutoff) {
+        await ctx.db.delete(t._id);
+      }
     }
 
     await ctx.db.delete(blockId);
@@ -426,15 +435,29 @@ export const searchUsersPublicBlocks = query({
 
     if (normalizedQuery.length < 2) return [];
 
-    const users = await ctx.db.query("users").collect();
+    // Search by username and name using server-side search indexes to avoid
+    // full table scans. Merge results and deduplicate by user ID.
+    const [byUsername, byName] = await Promise.all([
+      ctx.db
+        .query("users")
+        .withSearchIndex("search_by_username", (q) => q.search("username", normalizedQuery))
+        .take(12),
+      ctx.db
+        .query("users")
+        .withSearchIndex("search_by_name", (q) => q.search("name", normalizedQuery))
+        .take(12),
+    ]);
 
-    const matchedUsers = users
-      .filter((user) => {
-        if (viewerId && user._id === viewerId) return false;
-        const username = (user.username ?? "").toLowerCase();
-        const name = (user.name ?? "").toLowerCase();
-        return username.includes(normalizedQuery) || name.includes(normalizedQuery);
-      })
+    const seen = new Set<string>();
+    const merged: typeof byUsername = [];
+    for (const user of [...byUsername, ...byName]) {
+      if (seen.has(user._id)) continue;
+      seen.add(user._id);
+      merged.push(user);
+    }
+
+    const matchedUsers = merged
+      .filter((user) => !(viewerId && user._id === viewerId))
       .slice(0, 12);
 
     const results = await Promise.all(

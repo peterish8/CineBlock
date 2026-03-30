@@ -78,7 +78,6 @@ export default function StepTime({ value, onChange }: StepTimeProps) {
 
   // Handle size
   const HANDLE_SIZE = 20;
-  const HALF = HANDLE_SIZE / 2;
 
   return (
     <div>
@@ -127,9 +126,24 @@ export default function StepTime({ value, onChange }: StepTimeProps) {
             >
               {/* Dot */}
               <div
+                role="slider"
+                aria-label="From year"
+                aria-valuemin={MIN_YEAR}
+                aria-valuemax={MAX_YEAR}
+                aria-valuenow={from}
+                tabIndex={0}
                 onPointerDown={(e) => {
                   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                   dragging.current = "from";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                    onChange({ from: clampYear(Math.min(from - 1, to)), to });
+                  } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    onChange({ from: clampYear(Math.min(from + 1, to)), to });
+                  }
                 }}
                 className="cursor-grab active:cursor-grabbing"
                 style={{
@@ -156,9 +170,24 @@ export default function StepTime({ value, onChange }: StepTimeProps) {
             >
               {/* Dot */}
               <div
+                role="slider"
+                aria-label="To year"
+                aria-valuemin={MIN_YEAR}
+                aria-valuemax={MAX_YEAR}
+                aria-valuenow={to}
+                tabIndex={0}
                 onPointerDown={(e) => {
                   (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                   dragging.current = "to";
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+                    e.preventDefault();
+                    onChange({ from, to: clampYear(Math.max(to - 1, from)) });
+                  } else if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    onChange({ from, to: clampYear(Math.max(to + 1, from)) });
+                  }
                 }}
                 className="cursor-grab active:cursor-grabbing"
                 style={{
@@ -185,6 +214,7 @@ export default function StepTime({ value, onChange }: StepTimeProps) {
           {marks.map((year) => (
             <button
               key={year}
+              type="button"
               onClick={() => {
                 if (Math.abs(year - from) <= Math.abs(year - to)) {
                   onChange({ from: clampYear(Math.min(year, to)), to });

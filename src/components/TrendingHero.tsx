@@ -17,7 +17,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
-const { isInWatchlist, toggleWatchlist } = useWatchlist();
+  const { isInWatchlist, toggleWatchlist } = useWatchlist();
 
   useEffect(() => {
     (async () => {

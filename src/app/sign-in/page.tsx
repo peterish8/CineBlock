@@ -31,8 +31,9 @@ export default function SignInPage() {
     setLoading(true);
     try {
       await signIn("google");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(extractAuthErrorMessage(err));
+    } finally {
       setLoading(false);
     }
   };

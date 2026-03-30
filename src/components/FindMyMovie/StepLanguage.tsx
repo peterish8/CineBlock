@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, X, Plus } from "lucide-react";
+import { Search, X, Plus, Check } from "lucide-react";
 
 interface StepLanguageProps {
   value: string[];
@@ -16,26 +16,26 @@ type Language = {
 };
 
 const ALL_LANGUAGES: Language[] = [
-  { code: "any", native: "Any Language", english: "", flag: "??" },
-  { code: "en", native: "English", english: "English", flag: "????" },
-  { code: "hi", native: "Hindi", english: "Hindi", flag: "????" },
-  { code: "ta", native: "Tamil", english: "Tamil", flag: "????" },
-  { code: "te", native: "Telugu", english: "Telugu", flag: "????" },
-  { code: "ml", native: "Malayalam", english: "Malayalam", flag: "????" },
-  { code: "kn", native: "Kannada", english: "Kannada", flag: "????" },
-  { code: "es", native: "Espanol", english: "Spanish", flag: "????" },
-  { code: "fr", native: "Francais", english: "French", flag: "????" },
-  { code: "de", native: "Deutsch", english: "German", flag: "????" },
-  { code: "it", native: "Italiano", english: "Italian", flag: "????" },
-  { code: "ja", native: "Nihongo", english: "Japanese", flag: "????" },
-  { code: "ko", native: "Hanguk-eo", english: "Korean", flag: "????" },
-  { code: "zh", native: "Zhongwen", english: "Chinese", flag: "????" },
-  { code: "pt", native: "Portugues", english: "Portuguese", flag: "????" },
-  { code: "ru", native: "Russkiy", english: "Russian", flag: "????" },
-  { code: "ar", native: "Arabiyyah", english: "Arabic", flag: "????" },
-  { code: "tr", native: "Turkce", english: "Turkish", flag: "????" },
-  { code: "id", native: "Bahasa Indonesia", english: "Indonesian", flag: "????" },
-  { code: "th", native: "Phasa Thai", english: "Thai", flag: "????" },
+  { code: "any", native: "Any Language", english: "", flag: "🌐" },
+  { code: "en", native: "English", english: "English", flag: "🇬🇧" },
+  { code: "hi", native: "Hindi", english: "Hindi", flag: "🇮🇳" },
+  { code: "ta", native: "Tamil", english: "Tamil", flag: "🇮🇳" },
+  { code: "te", native: "Telugu", english: "Telugu", flag: "🇮🇳" },
+  { code: "ml", native: "Malayalam", english: "Malayalam", flag: "🇮🇳" },
+  { code: "kn", native: "Kannada", english: "Kannada", flag: "🇮🇳" },
+  { code: "es", native: "Espanol", english: "Spanish", flag: "🇪🇸" },
+  { code: "fr", native: "Francais", english: "French", flag: "🇫🇷" },
+  { code: "de", native: "Deutsch", english: "German", flag: "🇩🇪" },
+  { code: "it", native: "Italiano", english: "Italian", flag: "🇮🇹" },
+  { code: "ja", native: "Nihongo", english: "Japanese", flag: "🇯🇵" },
+  { code: "ko", native: "Hanguk-eo", english: "Korean", flag: "🇰🇷" },
+  { code: "zh", native: "Zhongwen", english: "Chinese", flag: "🇨🇳" },
+  { code: "pt", native: "Portugues", english: "Portuguese", flag: "🇵🇹" },
+  { code: "ru", native: "Russkiy", english: "Russian", flag: "🇷🇺" },
+  { code: "ar", native: "Arabiyyah", english: "Arabic", flag: "🇸🇦" },
+  { code: "tr", native: "Turkce", english: "Turkish", flag: "🇹🇷" },
+  { code: "id", native: "Bahasa Indonesia", english: "Indonesian", flag: "🇮🇩" },
+  { code: "th", native: "Phasa Thai", english: "Thai", flag: "🇹🇭" },
 ];
 
 const TOP_LANGUAGE_CODES = ["any", "en", "hi", "ta", "te", "es", "fr", "ja", "ko"];
@@ -188,7 +188,7 @@ export default function StepLanguage({ value, onChange }: StepLanguageProps) {
                       <span className="text-base shrink-0">{lang.flag}</span>
                       <span className="font-mono text-xs font-bold uppercase leading-tight">{getLabel(lang)}</span>
                       {selected && (
-                        <span className="ml-auto text-brutal-violet text-[10px] font-mono font-black shrink-0">?</span>
+                        <Check className="ml-auto w-3 h-3 text-brutal-violet shrink-0" strokeWidth={3} />
                       )}
                     </button>
                   );

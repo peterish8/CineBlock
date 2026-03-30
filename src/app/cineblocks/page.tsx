@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useBlocks } from "@/hooks/useBlocks";
@@ -89,6 +89,13 @@ function BlockCard({ block, isOwned }: { block: any; isOwned: boolean }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
 
   const blockData = isOwned ? block : block.block;
   const id = isOwned ? block._id : block.blockId;
@@ -118,8 +125,12 @@ function BlockCard({ block, isOwned }: { block: any; isOwned: boolean }) {
       return;
     }
 
+    if (confirmTimerRef.current !== null) clearTimeout(confirmTimerRef.current);
     setConfirmDelete(true);
-    setTimeout(() => setConfirmDelete(false), 3000);
+    confirmTimerRef.current = setTimeout(() => {
+      setConfirmDelete(false);
+      confirmTimerRef.current = null;
+    }, 3000);
   };
 
   return (

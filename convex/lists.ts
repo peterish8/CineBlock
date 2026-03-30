@@ -50,6 +50,7 @@ export const addToWatchlist = mutation({
       )
       .first();
     if (existing) return;
+    const counts = await ensureUserCounts(ctx, userId);
     await ctx.db.insert("watchlist", {
       userId,
       movieId: args.movieId,
@@ -57,7 +58,6 @@ export const addToWatchlist = mutation({
       posterPath: args.posterPath,
       addedAt: Date.now(),
     });
-    const counts = await ensureUserCounts(ctx, userId);
     await ctx.db.patch(userId, {
       watchlistCount: counts.watchlistCount + 1,
     });
@@ -76,8 +76,8 @@ export const removeFromWatchlist = mutation({
       )
       .first();
     if (existing) {
-      await ctx.db.delete(existing._id);
       const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.delete(existing._id);
       await ctx.db.patch(userId, {
         watchlistCount: Math.max(0, counts.watchlistCount - 1),
       });
@@ -130,6 +130,7 @@ export const addToWatched = mutation({
       )
       .first();
     if (existing) return;
+    const counts = await ensureUserCounts(ctx, userId);
     await ctx.db.insert("watched", {
       userId,
       movieId: args.movieId,
@@ -137,7 +138,6 @@ export const addToWatched = mutation({
       posterPath: args.posterPath,
       watchedAt: Date.now(),
     });
-    const counts = await ensureUserCounts(ctx, userId);
     await ctx.db.patch(userId, {
       watchedCount: counts.watchedCount + 1,
     });
@@ -156,8 +156,8 @@ export const removeFromWatched = mutation({
       )
       .first();
     if (existing) {
-      await ctx.db.delete(existing._id);
       const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.delete(existing._id);
       await ctx.db.patch(userId, {
         watchedCount: Math.max(0, counts.watchedCount - 1),
       });
@@ -210,6 +210,7 @@ export const addToLiked = mutation({
       )
       .first();
     if (existing) return;
+    const counts = await ensureUserCounts(ctx, userId);
     await ctx.db.insert("liked", {
       userId,
       movieId: args.movieId,
@@ -217,7 +218,6 @@ export const addToLiked = mutation({
       posterPath: args.posterPath,
       likedAt: Date.now(),
     });
-    const counts = await ensureUserCounts(ctx, userId);
     let watchedCount = counts.watchedCount;
     // Auto-add to watched when liking
     const alreadyWatched = await ctx.db
@@ -255,8 +255,8 @@ export const removeFromLiked = mutation({
       )
       .first();
     if (existing) {
-      await ctx.db.delete(existing._id);
       const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.delete(existing._id);
       await ctx.db.patch(userId, {
         likedCount: Math.max(0, counts.likedCount - 1),
       });

@@ -25,7 +25,9 @@ const schema = defineSchema({
     watchlistCount: v.optional(v.number()),
   })
     .index("email", ["email"])
-    .index("by_username", ["username"]),
+    .index("by_username", ["username"])
+    .searchIndex("search_by_username", { searchField: "username" })
+    .searchIndex("search_by_name", { searchField: "name" }),
 
   watchlist: defineTable({
     userId: v.id("users"),
@@ -90,7 +92,9 @@ const schema = defineSchema({
     userId: v.id("users"),
     action: v.string(),
     lastAt: v.number(),
-  }).index("by_userId_action", ["userId", "action"]),
+  })
+    .index("by_userId_action", ["userId", "action"])
+    .index("by_lastAt", ["lastAt"]),
 
   news_feed: defineTable({
     fetchedDate: v.string(),
@@ -107,7 +111,9 @@ const schema = defineSchema({
       })
     ),
     createdAt: v.number(),
-  }).index("by_fetchedDate", ["fetchedDate"]),
+  })
+    .index("by_fetchedDate", ["fetchedDate"])
+    .index("by_createdAt", ["createdAt"]),
 
   rooms: defineTable({
     name: v.string(),

@@ -198,7 +198,8 @@ export default function MovieModal({
   // All provider links go to JustWatch search — reliable, works for every platform
   const getProviderUrl = (_provider: TMDBWatchProvider, title: string, _year?: string): string => {
     const q = encodeURIComponent(title);
-    return `https://www.justwatch.com/us/search?q=${q}`;
+    const regionCode = region?.toLowerCase() || "us";
+    return `https://www.justwatch.com/${regionCode}/search?q=${q}`;
   };
 
   const REGIONS = [
@@ -716,7 +717,7 @@ export default function MovieModal({
             <div>
               {/* Bio */}
               <div className="flex gap-4 p-4 border-b-3 border-brutal-border bg-surface-2">
-                <div className="flex-shrink-0 w-16 h-22 border-3 border-brutal-border overflow-hidden">
+                <div className="flex-shrink-0 w-16 h-24 border-3 border-brutal-border overflow-hidden">
                   {actorPerson.profile_path ? (
                     <Image src={`https://image.tmdb.org/t/p/w185${actorPerson.profile_path}`} alt={actorPerson.name} width={64} height={88} className="object-cover w-full h-full" />
                   ) : (
@@ -756,7 +757,7 @@ export default function MovieModal({
                           <p className="text-[8px] font-black uppercase text-white truncate">{m.title}</p>
                           <div className="flex items-center gap-1 mt-0.5">
                             <Star className="w-2 h-2 text-brutal-yellow fill-current" />
-                            <span className="text-[8px] font-mono text-brutal-yellow font-bold">{m.vote_average.toFixed(1)}</span>
+                            <span className="text-[8px] font-mono text-brutal-yellow font-bold">{(m.vote_average ?? 0).toFixed(1)}</span>
                           </div>
                         </div>
                       </div>

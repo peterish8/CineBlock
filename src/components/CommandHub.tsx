@@ -42,6 +42,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const browseRef = useRef<HTMLDivElement>(null);
+  const browseButtonRef = useRef<HTMLButtonElement>(null);
+  const browsePanelRef = useRef<HTMLDivElement>(null);
   const years = generateYearRange();
 
   // Clean up pending debounce on unmount to prevent memory leaks
@@ -132,6 +134,51 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
 
   const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime || keyword;
 
+  // Focus management for the browse side panel
+  useEffect(() => {
+    if (!browseOpen) return;
+    // Move initial focus into panel
+    const panel = browsePanelRef.current;
+    if (panel) {
+      const first = panel.querySelector<HTMLElement>(
+        "button, a[href], [tabindex]:not([tabindex='-1'])"
+      );
+      first?.focus();
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setBrowseOpen(false);
+        browseButtonRef.current?.focus();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const panel = browsePanelRef.current;
+      if (!panel) return;
+      const focusables = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), a[href], [tabindex]:not([tabindex='-1'])"
+        )
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (!active || active === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (!active || active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [browseOpen]);
+
   return (
     <div className="sticky top-0 z-50 w-full bg-bg">
       {/* Single compact bar: logo | search | controls */}
@@ -187,7 +234,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           {/* BROWSE dropdown — Streaming, Box Office, Franchise Vault, News */}
           <div ref={browseRef} className="relative hidden lg:block">
             <button
+              ref={browseButtonRef}
               onClick={() => setBrowseOpen((o) => !o)}
+              aria-expanded={browseOpen}
+              aria-controls="browse-panel"
               className={`brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest flex items-center gap-2 ${
                 browseOpen
                   ? "!border-brutal-yellow !text-brutal-yellow"
@@ -202,14 +252,30 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             {/* Side panel overlay */}
             {browseOpen && (
               <div
+                role="button"
+                aria-label="Close side panel"
+                tabIndex={0}
                 className="fixed inset-0 z-40"
-                onClick={() => setBrowseOpen(false)}
+                onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+                    setBrowseOpen(false);
+                    browseButtonRef.current?.focus();
+                  }
+                }}
               />
             )}
-            <div className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}>
+            <div
+              ref={browsePanelRef}
+              id="browse-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Browse navigation"
+              className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
+            >
               <div className="flex items-center justify-between px-4 py-4 border-b-3 border-brutal-border">
                 <span className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore</span>
-                <button onClick={() => setBrowseOpen(false)} className="text-brutal-dim hover:text-brutal-white transition-colors">
+                <button onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }} className="text-brutal-dim hover:text-brutal-white transition-colors">
                   <X className="w-4 h-4" strokeWidth={2.5} />
                 </button>
               </div>

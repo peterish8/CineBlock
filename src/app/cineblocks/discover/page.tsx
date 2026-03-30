@@ -32,7 +32,7 @@ export default function DiscoverCineBlocksPage() {
   );
 
   const usedBlocks = myBlocks?.length ?? 0;
-  const limitReached = usedBlocks >= 20;
+  const limitReached = myBlocks !== undefined && myBlocks.length >= 20;
 
   const totalFoundBlocks = useMemo(() => {
     if (!searchResults) return 0;
@@ -198,7 +198,7 @@ export default function DiscoverCineBlocksPage() {
                             </Link>
                             <button
                               onClick={() => void handleImport(block._id)}
-                              disabled={limitReached || isImporting || importingBlockId !== null}
+                              disabled={myBlocks === undefined || limitReached || isImporting || importingBlockId !== null}
                               className="brutal-btn flex-1 flex items-center justify-center gap-1.5 py-2 text-[10px] font-mono uppercase !bg-brutal-violet !text-black !border-brutal-violet disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {isImporting ? "IMPORTING..." : (

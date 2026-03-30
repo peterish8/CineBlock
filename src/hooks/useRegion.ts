@@ -54,16 +54,17 @@ function detectRegionFallback(): string {
   return LANG_TO_REGION[country] ?? "US";
 }
 
-function getInitialRegion(): string {
-  if (typeof window === "undefined") return "US";
-  return localStorage.getItem("cineblock_region") || detectRegionFallback();
-}
-
 export function useRegion() {
-  const [region, setRegionState] = useState<string>(getInitialRegion);
+  // Always initialize with a consistent server-safe default to avoid hydration mismatches.
+  // The stored/detected region is applied client-side in the effect below.
+  const [region, setRegionState] = useState<string>("US");
 
   useEffect(() => {
-    if (localStorage.getItem("cineblock_region")) return;
+    const stored = localStorage.getItem("cineblock_region");
+    if (stored) {
+      setRegionState(stored);
+      return;
+    }
 
     // No cached region — detect via server-side API (avoids CSP/CORS issues)
     fetch("/api/region")
@@ -77,6 +78,7 @@ export function useRegion() {
       })
       .catch(() => {
         const fallback = detectRegionFallback();
+        setRegionState(fallback);
         localStorage.setItem("cineblock_region", fallback);
       });
   }, []);

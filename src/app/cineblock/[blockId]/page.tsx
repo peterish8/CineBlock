@@ -554,6 +554,8 @@ export default function CineBlockViewPage() {
     setRemovingMovieId(movieId);
     try {
       await removeMovieFromBlock(blockId as Id<"blocks">, movieId);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to remove movie.");
     } finally {
       setRemovingMovieId(null);
     }
@@ -564,6 +566,8 @@ export default function CineBlockViewPage() {
     setAddingMovieId(result.id);
     try {
       await addMovieToBlock(blockId as Id<"blocks">, result.id, result.title, result.poster_path || "");
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to add movie.");
     } finally {
       setAddingMovieId(null);
     }

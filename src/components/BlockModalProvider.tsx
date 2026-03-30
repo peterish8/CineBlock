@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import AddToBlockModal from "./AddToBlockModal";
 
 type MovieToBlock = {
@@ -27,7 +27,8 @@ export function BlockModalProvider({ children }: { children: ReactNode }) {
 
   const closeBlockModal = () => {
     setIsOpen(false);
-    setMovie(null);
+    // Delay clearing movie so the modal stays mounted during its exit animation
+    setTimeout(() => setMovie(null), 300);
   };
 
   return (
