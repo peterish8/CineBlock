@@ -13,6 +13,7 @@ export default function ConvexClientProvider({
   if (!clientRef.current) {
     const url = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!url) {
+      console.error("NEXT_PUBLIC_CONVEX_URL is missing! Auth will stay in Loading state.");
       return <>{children}</>;
     }
     clientRef.current = new ConvexReactClient(url);
