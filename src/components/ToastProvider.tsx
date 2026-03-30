@@ -19,7 +19,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const timeoutsRef = useRef<Map<number, number>>(new Map());
 
   // Clear all pending timeouts on unmount to prevent setState on unmounted component
   useEffect(() => {
