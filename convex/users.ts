@@ -86,6 +86,8 @@ export const deleteAccount = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Not authenticated");
 
+    const user = await ctx.db.get(userId);
+
     // Delete all list entries
     for (const table of ["watchlist", "watched", "liked"] as const) {
       const entries = await ctx.db.query(table).withIndex("by_userId", q => q.eq("userId", userId)).collect();
@@ -117,6 +119,38 @@ export const deleteAccount = mutation({
       const invites = await ctx.db.query("block_invitations").withIndex("by_roomId", q => q.eq("roomId", room._id)).collect();
       for (const inv of invites) await ctx.db.delete(inv._id);
       await ctx.db.delete(room._id);
+    }
+
+    // Clean up auth tables to avoid orphaned accounts/sessions
+    const sessions = await ctx.db.query("authSessions").withIndex("userId", q => q.eq("userId", userId)).collect();
+    for (const session of sessions) {
+      const refreshTokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", q => q.eq("sessionId", session._id))
+        .collect();
+      for (const token of refreshTokens) await ctx.db.delete(token._id);
+      await ctx.db.delete(session._id);
+    }
+
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", q => q.eq("userId", userId))
+      .collect();
+    for (const account of accounts) {
+      const codes = await ctx.db
+        .query("authVerificationCodes")
+        .withIndex("accountId", q => q.eq("accountId", account._id))
+        .collect();
+      for (const code of codes) await ctx.db.delete(code._id);
+      await ctx.db.delete(account._id);
+    }
+
+    if (user?.email) {
+      const rateLimits = await ctx.db
+        .query("authRateLimits")
+        .withIndex("identifier", q => q.eq("identifier", user.email))
+        .collect();
+      for (const r of rateLimits) await ctx.db.delete(r._id);
     }
 
     // Delete the user record

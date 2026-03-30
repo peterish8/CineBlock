@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
-import { Loader2, Tv, Star, Bookmark } from "lucide-react";
+import { Loader2, Tv, Star } from "lucide-react";
 import { TMDBTVShow, TMDBTVDiscoverResponse } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
-import { useWatchlist } from "@/hooks/useWatchlist";
+import MovieActionRail from "./MovieActionRail";
 import SkeletonCard from "./SkeletonCard";
 
 interface TVGridProps {
@@ -30,7 +30,6 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const { isInWatchlist, toggleWatchlist } = useWatchlist();
 
   const fetchShows = useCallback(
     async (pageNum: number, append: boolean = false) => {
@@ -160,7 +159,6 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
             adult: false,
             media_type: "tv" as const,
           };
-          const saved = isInWatchlist(show.id);
 
           return (
             <button
@@ -208,20 +206,7 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
                 <span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
               </div>
 
-              {/* Watchlist bookmark */}
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleWatchlist(asMovie);
-                }}
-                className={`absolute top-0 left-0 border-b-3 border-r-3 border-brutal-border px-2 py-1.5 cursor-pointer transition-colors duration-100 z-10 ${
-                  saved
-                    ? "bg-brutal-lime text-black"
-                    : "bg-black/80 text-brutal-dim hover:text-brutal-lime"
-                }`}
-              >
-                <Bookmark className={`w-3.5 h-3.5 ${saved ? "fill-current" : ""}`} strokeWidth={2.5} />
-              </div>
+              <MovieActionRail movie={asMovie} actions={["watchlist", "add"]} />
 
               {/* TV badge — bottom left */}
               <div className="absolute bottom-0 left-0 bg-brutal-cyan text-black border-t-3 border-r-3 border-brutal-border px-1.5 py-1">

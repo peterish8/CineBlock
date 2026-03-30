@@ -8,6 +8,34 @@ const headers: HeadersInit = {
   "Content-Type": "application/json;charset=utf-8",
 };
 
+// Batch-fetch clearlogos for an array of movies and attach logo_path to each
+async function attachLogos<T extends { id: number }>(movies: T[]): Promise<(T & { logo_path: string | null })[]> {
+  if (!movies.length) return movies.map((m) => ({ ...m, logo_path: null }));
+  const results = await Promise.allSettled(
+    movies.map((m) =>
+      fetch(`${TMDB_BASE}/movie/${m.id}/images?include_image_language=en,null`, { headers })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)
+    )
+  );
+  return movies.map((m, i) => {
+    const settled = results[i];
+    const logos: { file_path: string; iso_639_1: string | null }[] =
+      settled.status === "fulfilled" && settled.value?.logos ? settled.value.logos : [];
+    const best = logos.find((l) => l.iso_639_1 === "en") ?? logos[0] ?? null;
+    return { ...m, logo_path: best?.file_path ?? null };
+  });
+}
+
+// Actions whose response has a `results` array of movies (not TV)
+const MOVIE_LIST_ACTIONS = new Set([
+  "recommendations",
+  "similar",
+  "stream-discover",
+  "box-office",
+  "discover", // default action
+]);
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "discover";
@@ -49,7 +77,52 @@ export async function GET(request: NextRequest) {
             (m: { original_language: string }) => langs.includes(m.original_language)
           );
         }
+        searchData.results = await attachLogos(searchData.results || []);
         return NextResponse.json(searchData);
+      }
+
+      case "search-person": {
+        // Search for a person (director/actor) by name, return top matches
+        const query = (searchParams.get("query") || "").slice(0, 150);
+        if (!query.trim()) return NextResponse.json({ results: [] });
+        const params = new URLSearchParams({ query, language: "en-US", include_adult: "false", page });
+        const res = await fetch(`${TMDB_BASE}/search/person?${params.toString()}`, { headers });
+        if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
+        const data = await res.json();
+        // Return only relevant fields, top 8
+        const results = (data.results || []).slice(0, 8).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          profile_path: p.profile_path,
+          known_for_department: p.known_for_department,
+          known_for: (p.known_for || []).slice(0, 2).map((k: any) => k.title || k.name),
+        }));
+        return NextResponse.json({ results });
+      }
+
+      case "discover-by-person": {
+        // Discover movies by a specific person ID (director or cast)
+        const personId = validateId(searchParams.get("person_id"));
+        if (!personId) return NextResponse.json({ error: "person_id required" }, { status: 400 });
+        const role = searchParams.get("role") || "cast"; // "cast" | "crew"
+        const params = new URLSearchParams({
+          language: "en-US",
+          include_adult: "false",
+          include_video: "false",
+          sort_by: "popularity.desc",
+          "vote_count.gte": "10",
+          page,
+        });
+        if (role === "crew") {
+          params.set("with_crew", personId);
+        } else {
+          params.set("with_cast", personId);
+        }
+        const res = await fetch(`${TMDB_BASE}/discover/movie?${params.toString()}`, { headers });
+        if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
+        const data = await res.json();
+        data.results = await attachLogos((data.results || []).slice(0, 20));
+        return NextResponse.json(data);
       }
 
       case "search-tv": {
@@ -116,7 +189,11 @@ export async function GET(request: NextRequest) {
       case "trending": {
         const window = searchParams.get("window") || "week";
         url = `${TMDB_BASE}/trending/movie/${window}?language=en-US`;
-        break;
+        const trendingRes = await fetch(url, { headers });
+        if (!trendingRes.ok) return NextResponse.json({ error: `TMDB API error: ${trendingRes.status}` }, { status: trendingRes.status });
+        const trendingData = await trendingRes.json();
+        trendingData.results = await attachLogos(trendingData.results?.slice(0, 20) || []);
+        return NextResponse.json(trendingData);
       }
 
       case "trending-tv": {
@@ -173,7 +250,7 @@ export async function GET(request: NextRequest) {
             447365,   // Guardians of the Galaxy Vol. 3
             609681,   // The Marvels
             533535,   // Deadpool & Wolverine
-            828168    // Captain America: Brave New World
+            822119    // Captain America: Brave New World
           ];
           
           const moviePromises = mcuMovieIds.map(id => 
@@ -354,6 +431,7 @@ export async function GET(request: NextRequest) {
         let lang = searchParams.get("lang");
         const rating = searchParams.get("rating");
         const runtime = searchParams.get("runtime");
+        const keyword = validateId(searchParams.get("keyword"));
 
         // Handle virtual genres
         if (genre === "9901") { genre = "18"; lang = "ko"; } // K-Drama (Drama + Korean)
@@ -365,6 +443,7 @@ export async function GET(request: NextRequest) {
         if (lang) params.set("with_original_language", lang.replace(/,/g, "|"));
         if (rating) params.set("vote_average.gte", rating);
         if (runtime) params.set("with_runtime.lte", runtime);
+        if (keyword) params.set("with_keywords", keyword);
         url = `${TMDB_BASE}/discover/movie?${params.toString()}`;
         break;
       }
@@ -375,6 +454,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
     }
     const data = await res.json();
+
+    // Attach clearlogos for all movie-list actions
+    const resolvedAction = action === "discover" || !action ? "discover" : action;
+    if (MOVIE_LIST_ACTIONS.has(resolvedAction) && Array.isArray(data.results)) {
+      data.results = await attachLogos(data.results);
+    }
+
     // Cache TMDB responses at CDN for 5 min, serve stale for up to 10 min
     const cacheResponse = NextResponse.json(data);
     cacheResponse.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");

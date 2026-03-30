@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import { Star, Bookmark, Play, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { TMDBMovie } from "@/lib/types";
-import { backdropUrl } from "@/lib/constants";
+import { backdropUrl, logoUrl } from "@/lib/constants";
 import { useWatchlist } from "@/hooks/useWatchlist";
 
 interface TrendingHeroProps {
@@ -17,7 +17,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [current, setCurrent] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+const { isInWatchlist, toggleWatchlist } = useWatchlist();
 
   useEffect(() => {
     (async () => {
@@ -102,18 +102,24 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
         {/* Content */}
         <div className="absolute inset-0 flex items-end">
           <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8">
-            {/* Badge */}
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-brutal-yellow" strokeWidth={3} />
-              <span className="brutal-chip text-brutal-yellow border-brutal-yellow text-[10px]">
-                TRENDING TODAY
-              </span>
-            </div>
 
-            {/* Title — animate on each slide change */}
-            <h2 key={`title-${movie.id}`} className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-brutal-white uppercase leading-none tracking-tight max-w-xl animate-fade-in-up">
-              {movie.title}
-            </h2>
+            {/* Title — clearlogo if available, else plain text */}
+            {movie.logo_path ? (
+              <div key={`logo-${movie.id}`} className="animate-fade-in-up max-w-xs sm:max-w-sm md:max-w-md mb-1">
+                <Image
+                  src={logoUrl(movie.logo_path, "large")}
+                  alt={movie.title}
+                  width={500}
+                  height={200}
+                  className="object-contain object-left w-full h-auto max-h-24 sm:max-h-32 md:max-h-40 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+                  priority
+                />
+              </div>
+            ) : (
+              <h2 key={`title-${movie.id}`} className="font-display font-bold text-2xl sm:text-4xl md:text-5xl text-brutal-white uppercase leading-none tracking-tight max-w-xl animate-fade-in-up">
+                {movie.title}
+              </h2>
+            )}
 
             {/* Meta */}
             <div className="flex items-center gap-4 mt-3">
@@ -125,7 +131,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
             </div>
 
             {/* Overview */}
-            <p className="text-brutal-muted text-xs sm:text-sm font-body leading-relaxed mt-2 max-w-lg line-clamp-2 hidden sm:block">
+            <p className="text-brutal-muted text-xs sm:text-sm font-body leading-relaxed mt-2 max-w-lg hidden sm:line-clamp-2">
               {movie.overview}
             </p>
 
@@ -143,8 +149,12 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
                 className={`brutal-btn px-4 py-2.5 flex items-center gap-2 ${saved ? "!bg-brutal-lime !border-brutal-lime !text-black !shadow-none" : ""}`}
               >
                 <Bookmark className={`w-4 h-4 ${saved ? "fill-current" : ""}`} strokeWidth={2.5} />
-                <span className="hidden sm:inline font-mono font-bold text-xs">{saved ? "SAVED" : "WATCHLIST"}</span>
               </button>
+              {/* Trending badge — right of watchlist */}
+              <div className="brutal-btn px-3 py-2.5 flex items-center gap-2 !border-brutal-yellow pointer-events-none">
+                <TrendingUp className="w-4 h-4 text-brutal-yellow" strokeWidth={3} />
+                <span className="font-mono font-bold text-xs text-brutal-yellow">TRENDING</span>
+              </div>
             </div>
           </div>
         </div>

@@ -31,6 +31,7 @@ const config: Config = {
         display: ["'Space Grotesk'", "system-ui", "sans-serif"],
         body: ["'Inter'", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "'Space Mono'", "monospace"],
+        google: ["'Poppins'", "'Inter'", "system-ui", "sans-serif"],
       },
       boxShadow: {
         brutal: "4px 4px 0px 0px #3A3A3A",

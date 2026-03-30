@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
+import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 
@@ -20,6 +21,7 @@ interface CommandHubProps {
     sort: string;
     rating: string;
     runtime: string;
+    keyword: string;
   }) => void;
   onSurpriseMe?: () => void;
 }
@@ -32,6 +34,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [sort, setSort] = useState("popularity.desc");
   const [rating, setRating] = useState("");
   const [runtime, setRuntime] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [isNetflixTheme, setIsNetflixTheme] = useState(false);
@@ -79,22 +82,15 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         setBrowseOpen(false);
       }
     };
-    const handleClickOutside = (e: MouseEvent) => {
-      if (browseRef.current && !browseRef.current.contains(e.target as Node)) {
-        setBrowseOpen(false);
-      }
-    };
     window.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
   const emitFilters = useCallback(
-    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string) => {
-      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run });
+    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string, kw: string) => {
+      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run, keyword: kw });
     },
     [onFilterChange]
   );
@@ -103,22 +99,23 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      emitFilters(value, genre, year, language, sort, rating, runtime);
+      emitFilters(value, genre, year, language, sort, rating, runtime, keyword);
     }, 350);
   };
 
   const handleFilterChange = (
-    key: "genre" | "year" | "language" | "sort" | "rating" | "runtime",
+    key: "genre" | "year" | "language" | "sort" | "rating" | "runtime" | "keyword",
     value: string
   ) => {
-    const newState = { query, genre, year, language, sort, rating, runtime, [key]: value };
+    const newState = { query, genre, year, language, sort, rating, runtime, keyword, [key]: value };
     if (key === "genre") setGenre(value);
     if (key === "year") setYear(value);
     if (key === "language") setLanguage(value);
     if (key === "sort") setSort(value);
     if (key === "rating") setRating(value);
     if (key === "runtime") setRuntime(value);
-    emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime);
+    if (key === "keyword") setKeyword(value);
+    emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime, newState.keyword);
   };
 
   const clearAll = () => {
@@ -129,10 +126,11 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setSort("popularity.desc");
     setRating("");
     setRuntime("");
-    emitFilters("", "", "", "", "popularity.desc", "", "");
+    setKeyword("");
+    emitFilters("", "", "", "", "popularity.desc", "", "", "");
   };
 
-  const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime;
+  const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime || keyword;
 
   return (
     <div className="sticky top-0 z-50 w-full bg-bg">
@@ -198,57 +196,47 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             >
               <Box className="w-4 h-4" strokeWidth={2.5} />
               BROWSE
-              <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${browseOpen ? "rotate-180" : ""}`} strokeWidth={3} />
+              <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${browseOpen ? "rotate-90" : "-rotate-90"}`} strokeWidth={3} />
             </button>
 
+            {/* Side panel overlay */}
             {browseOpen && (
-              <div className="absolute right-0 top-[calc(100%+6px)] w-[480px] bg-bg border-3 border-brutal-border shadow-brutal z-50 animate-pop-in p-4">
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-brutal-border">
-                  <div className="w-1.5 h-1.5 bg-brutal-yellow"></div>
-                  <h4 className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore Cineblock</h4>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", desc: "Find platforms to watch your favorites", accent: "hover:border-brutal-yellow", color: "text-brutal-yellow" }] : []),
-                    { href: "/recommendations", icon: Sparkles,    label: "FOR YOU", desc: "Personalized movie picks", accent: "hover:border-brutal-pink", color: "text-brutal-pink" },
-                    { href: "/box-office", icon: Trophy,    label: "BOX OFFICE", desc: "Top grossing films worldwide", accent: "hover:border-brutal-lime", color: "text-brutal-lime" },
-                    { href: "/collections",icon: Box,       label: "FRANCHISE VAULT", desc: "Explore cinematic universes", accent: "hover:border-brutal-violet", color: "text-brutal-violet" },
-                    { href: "/news",       icon: Newspaper, label: "NEWS", desc: "Latest headlines & updates", accent: "hover:border-brutal-orange", color: "text-brutal-orange" },
-                  ].map(({ href, icon: Icon, label, desc, accent, color }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setBrowseOpen(false)}
-                      className={`flex items-start gap-3 p-3 bg-surface border-2 border-transparent ${accent} transition-all group`}
-                    >
-                      <div className={`p-2 bg-black border border-brutal-border group-hover:border-white transition-colors`}>
-                        <Icon className={`w-5 h-5 ${color} shrink-0`} strokeWidth={2.5} />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className={`text-xs font-display font-black tracking-wider text-brutal-white group-hover:${color} transition-colors uppercase`}>
-                          {label}
-                        </span>
-                        <span className="text-[9px] font-mono text-brutal-dim leading-tight">
-                          {desc}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setBrowseOpen(false)}
+              />
             )}
+            <div className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}>
+              <div className="flex items-center justify-between px-4 py-4 border-b-3 border-brutal-border">
+                <span className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore</span>
+                <button onClick={() => setBrowseOpen(false)} className="text-brutal-dim hover:text-brutal-white transition-colors">
+                  <X className="w-4 h-4" strokeWidth={2.5} />
+                </button>
+              </div>
+              <div className="flex flex-col flex-1 overflow-y-auto">
+                {[
+                  ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
+                  { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
+                  { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
+                  { href: "/collections",     icon: Box,        label: "FRANCHISE VAULT", color: "hover:text-brutal-violet hover:bg-brutal-violet/10" },
+                  { href: "/cineblocks",      icon: LayoutGrid, label: "CINEBLOCKS",      color: "hover:text-brutal-cyan hover:bg-brutal-cyan/10" },
+                  { href: "/cineblocks/discover", icon: Users,  label: "DISCOVER BLOCKS", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" },
+                  { href: "/blocks",          icon: Users,      label: "WATCH BLOCKS",    color: "hover:text-brutal-red hover:bg-brutal-red/10" },
+                  { href: "/news",            icon: Newspaper,  label: "NEWS",            color: "hover:text-brutal-orange hover:bg-brutal-orange/10" },
+                ].map(({ href, icon: Icon, label, color }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setBrowseOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 last:border-0 ${color} transition-colors`}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
-
-          {/* ROOMS — standalone, social feature */}
-          <Link
-            href="/blocks"
-            className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest items-center gap-2 bg-surface border-brutal-border hover:bg-brutal-violet hover:text-black hover:border-brutal-violet hidden lg:flex"
-            title="Watch Blocks"
-          >
-            <Users className="w-4 h-4" strokeWidth={2.5} />
-            BLOCKS
-          </Link>
 
           {/* FIND MOVIE — primary CTA */}
           <button
@@ -263,9 +251,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           {/* THEME toggle — desktop only; mobile toggle lives in Profile page */}
           <button
             onClick={toggleTheme}
-            className={`hidden lg:flex brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest items-center gap-1.5 ${
+            className={`hidden lg:flex brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest items-center gap-1.5 transition-all ${
               isNetflixTheme
-                ? "bg-[#E50914] text-white border-[#E50914]"
+                ? "bg-[#E50914] text-white border-[#E50914] hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
                 : "bg-surface border-brutal-border hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
             }`}
             title="Toggle Theme"
@@ -284,7 +272,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       {showFilters && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-4">
           <div className="bg-surface border-3 border-brutal-border p-4 shadow-brutal animate-pop-in">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 xl:grid-cols-8 gap-4">
               <FilterSelect
                 label="GENRE"
                 value={genre}
@@ -333,6 +321,13 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 ]}
                 placeholder="Any"
               />
+              <FilterSelect
+                label="KEYWORD"
+                value={keyword}
+                onChange={(v) => handleFilterChange("keyword", v)}
+                options={KEYWORD_CHIPS.map((k) => ({ value: k.id.toString(), label: k.label }))}
+                placeholder="Any"
+              />
             </div>
 
             {hasActiveFilters && (
@@ -360,6 +355,13 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   )}
                   {runtime && (
                     <ActiveChip label={`Runtime: <${runtime}m`} color="cyan" onRemove={() => handleFilterChange("runtime", "")} />
+                  )}
+                  {keyword && (
+                    <ActiveChip
+                      label={KEYWORD_CHIPS.find((k) => k.id.toString() === keyword)?.label || keyword}
+                      color="pink"
+                      onRemove={() => handleFilterChange("keyword", "")}
+                    />
                   )}
                 </div>
                 <button

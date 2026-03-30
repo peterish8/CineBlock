@@ -2,7 +2,37 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
-// ─── WATCHLIST ───
+async function ensureUserCounts(ctx: any, userId: any) {
+  const user = await ctx.db.get(userId);
+  const likedCount = user?.likedCount;
+  const watchedCount = user?.watchedCount;
+  const watchlistCount = user?.watchlistCount;
+
+  if (
+    likedCount !== undefined &&
+    watchedCount !== undefined &&
+    watchlistCount !== undefined
+  ) {
+    return { likedCount, watchedCount, watchlistCount };
+  }
+
+  const [liked, watched, watchlist] = await Promise.all([
+    ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+    ctx.db.query("watched").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+    ctx.db.query("watchlist").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+  ]);
+
+  const counts = {
+    likedCount: liked.length,
+    watchedCount: watched.length,
+    watchlistCount: watchlist.length,
+  };
+
+  await ctx.db.patch(userId, counts);
+  return counts;
+}
+
+// WATCHLIST
 
 export const addToWatchlist = mutation({
   args: {
@@ -27,6 +57,10 @@ export const addToWatchlist = mutation({
       posterPath: args.posterPath,
       addedAt: Date.now(),
     });
+    const counts = await ensureUserCounts(ctx, userId);
+    await ctx.db.patch(userId, {
+      watchlistCount: counts.watchlistCount + 1,
+    });
   },
 });
 
@@ -41,7 +75,13 @@ export const removeFromWatchlist = mutation({
         q.eq("userId", userId).eq("movieId", args.movieId)
       )
       .first();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.patch(userId, {
+        watchlistCount: Math.max(0, counts.watchlistCount - 1),
+      });
+    }
   },
 });
 
@@ -72,7 +112,7 @@ export const isInWatchlist = query({
   },
 });
 
-// ─── WATCHED ───
+// WATCHED
 
 export const addToWatched = mutation({
   args: {
@@ -97,6 +137,10 @@ export const addToWatched = mutation({
       posterPath: args.posterPath,
       watchedAt: Date.now(),
     });
+    const counts = await ensureUserCounts(ctx, userId);
+    await ctx.db.patch(userId, {
+      watchedCount: counts.watchedCount + 1,
+    });
   },
 });
 
@@ -111,7 +155,13 @@ export const removeFromWatched = mutation({
         q.eq("userId", userId).eq("movieId", args.movieId)
       )
       .first();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.patch(userId, {
+        watchedCount: Math.max(0, counts.watchedCount - 1),
+      });
+    }
   },
 });
 
@@ -142,7 +192,7 @@ export const isWatched = query({
   },
 });
 
-// ─── LIKED ───
+// LIKED
 
 export const addToLiked = mutation({
   args: {
@@ -167,6 +217,8 @@ export const addToLiked = mutation({
       posterPath: args.posterPath,
       likedAt: Date.now(),
     });
+    const counts = await ensureUserCounts(ctx, userId);
+    let watchedCount = counts.watchedCount;
     // Auto-add to watched when liking
     const alreadyWatched = await ctx.db
       .query("watched")
@@ -182,7 +234,12 @@ export const addToLiked = mutation({
         posterPath: args.posterPath,
         watchedAt: Date.now(),
       });
+      watchedCount += 1;
     }
+    await ctx.db.patch(userId, {
+      likedCount: counts.likedCount + 1,
+      watchedCount,
+    });
   },
 });
 
@@ -197,7 +254,13 @@ export const removeFromLiked = mutation({
         q.eq("userId", userId).eq("movieId", args.movieId)
       )
       .first();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      const counts = await ensureUserCounts(ctx, userId);
+      await ctx.db.patch(userId, {
+        likedCount: Math.max(0, counts.likedCount - 1),
+      });
+    }
   },
 });
 

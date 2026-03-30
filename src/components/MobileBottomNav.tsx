@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useConvexAuth } from "convex/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Home, Box, Users, Sparkles, Bookmark,
   Trophy, Newspaper, X, Tv2, User, LogIn,
-  Heart, Eye,
+  Heart, Eye, LayoutGrid, ArrowUp,
 } from "lucide-react";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 import { useMovieLists } from "@/hooks/useMovieLists";
@@ -22,6 +23,13 @@ export default function MobileBottomNav() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [listsOpen, setListsOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 200);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const totalCount = liked.length + watchlist.length + watched.length;
 
@@ -35,6 +43,22 @@ export default function MobileBottomNav() {
 
   return (
     <>
+      {/* ── Scroll to top ── */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="fixed bottom-20 right-4 z-[59] w-10 h-10 bg-brutal-yellow border-3 border-brutal-border shadow-brutal text-black flex items-center justify-center"
+            initial={{ clipPath: "inset(100% 0% 0% 0%)" }}
+            animate={{ clipPath: "inset(0% 0% 0% 0%)" }}
+            exit={{ clipPath: "inset(100% 0% 0% 0%)" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <ArrowUp className="w-4 h-4" strokeWidth={3} />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* ── Fixed bottom bar ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-[60] lg:hidden bg-bg border-t-3 border-brutal-border">
         <div className="flex items-center justify-around px-2 py-2 pb-safe">
@@ -66,7 +90,7 @@ export default function MobileBottomNav() {
           </button>
 
           {/* BLOCKS */}
-          <Link href="/blocks" className={navItem(isActive("/blocks"))}>
+          <Link href="/blocks" className={navItem(isActive("/blocks"))} title="Watch Blocks (Friends)">
             <Users className="w-6 h-6" strokeWidth={2.5} />
           </Link>
 
@@ -134,11 +158,27 @@ export default function MobileBottomNav() {
                 <Newspaper className="w-5 h-5 shrink-0" strokeWidth={2.5} />
                 <span className="font-mono text-xs font-black tracking-widest">NEWS</span>
               </Link>
-              {/* Row 3 — For You full-width */}
+              {/* Row 3 — CineBlocks + For You */}
+              <Link
+                href="/cineblocks"
+                onClick={() => setBrowseOpen(false)}
+                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-cyan text-brutal-cyan bg-brutal-cyan/10"
+              >
+                <LayoutGrid className="w-5 h-5 shrink-0" strokeWidth={2.5} />
+                <span className="font-mono text-xs font-black tracking-widest">CINEBLOCKS (CURATED)</span>
+              </Link>
+              <Link
+                href="/cineblocks/discover"
+                onClick={() => setBrowseOpen(false)}
+                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"
+              >
+                <Users className="w-5 h-5 shrink-0" strokeWidth={2.5} />
+                <span className="font-mono text-xs font-black tracking-widest">DISCOVER BLOCKS</span>
+              </Link>
               <Link
                 href="/recommendations"
                 onClick={() => setBrowseOpen(false)}
-                className="brutal-btn col-span-2 flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"
+                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"
               >
                 <Sparkles className="w-5 h-5 shrink-0" strokeWidth={2.5} />
                 <span className="font-mono text-xs font-black tracking-widest">FOR YOU</span>

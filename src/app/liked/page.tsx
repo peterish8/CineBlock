@@ -4,13 +4,14 @@ import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
-import { Heart, ArrowLeft, Star, Bookmark, CheckCircle, Sparkles } from "lucide-react";
+import { Heart, ArrowLeft, Star, Sparkles } from "lucide-react";
 import { useState } from "react";
 import MovieModal from "@/components/MovieModal";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import MovieActionRail from "@/components/MovieActionRail";
 
 function LikedContent() {
-  const { liked, isLiked, toggleLiked, toggleWatchlist, isInWatchlist } = useMovieLists();
+  const { liked } = useMovieLists();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
   return (
@@ -64,8 +65,6 @@ function LikedContent() {
                 const title = movie.title || movie.name || "";
                 const year = (movie.release_date || movie.first_air_date || "").split("-")[0] || "—";
                 const rating = movie.vote_average?.toFixed(1) || "0";
-                const inWl = isInWatchlist(movie.id);
-                const liked_ = isLiked(movie.id);
                 return (
                   <div
                     key={movie.id}
@@ -92,15 +91,7 @@ function LikedContent() {
                     <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
                       <Star className="w-3 h-3 text-brutal-yellow fill-current" /><span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
                     </div>
-                    {/* Action buttons */}
-                    <div className="absolute top-0 left-0 flex flex-col z-10">
-                      <div onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }} className={`border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${liked_ ? "bg-[var(--theme-primary)] text-black" : "bg-black/80 text-brutal-dim hover:text-[var(--theme-primary)]"}`} role="button" title="Unlike">
-                        <Heart className={`w-3.5 h-3.5 ${liked_ ? "fill-current" : ""}`} strokeWidth={2.5} />
-                      </div>
-                      <div onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }} className={`border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${inWl ? "bg-brutal-lime text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-lime"}`} role="button" title="Watchlist">
-                        <Bookmark className={`w-3.5 h-3.5 ${inWl ? "fill-current" : ""}`} strokeWidth={2.5} />
-                      </div>
-                    </div>
+                    <MovieActionRail movie={movie} actions={["like", "watchlist", "watched", "add"]} />
                   </div>
                 );
               })}

@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { MovieListsProvider } from "@/hooks/useMovieLists";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -59,22 +60,31 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+import { BlockModalProvider } from "@/components/BlockModalProvider";
+import { ToastProvider } from "@/components/ToastProvider";
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
-        <ConvexClientProvider>
-          <MovieListsProvider>
-            {children}
-            <MobileBottomNav />
-            <Analytics />
-          </MovieListsProvider>
-        </ConvexClientProvider>
-      </body>
-    </html>
+    <ConvexAuthNextjsServerProvider>
+      <html lang="en" suppressHydrationWarning>
+        <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
+          <ConvexClientProvider>
+            <ToastProvider>
+              <BlockModalProvider>
+                <MovieListsProvider>
+                  {children}
+                  <MobileBottomNav />
+                  <Analytics />
+                </MovieListsProvider>
+              </BlockModalProvider>
+            </ToastProvider>
+          </ConvexClientProvider>
+        </body>
+      </html>
+    </ConvexAuthNextjsServerProvider>
   );
 }

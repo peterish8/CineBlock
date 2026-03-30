@@ -20,6 +20,9 @@ const schema = defineSchema({
     // Custom fields:
     username: v.optional(v.string()),
     preferredLanguage: v.optional(v.string()),
+    likedCount: v.optional(v.number()),
+    watchedCount: v.optional(v.number()),
+    watchlistCount: v.optional(v.number()),
   })
     .index("email", ["email"])
     .index("by_username", ["username"]),
@@ -53,6 +56,41 @@ const schema = defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_movieId", ["userId", "movieId"]),
+
+  blocks: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    isPublic: v.boolean(),
+    movieCount: v.optional(v.number()),
+    movies: v.optional(
+      v.array(
+        v.object({
+          movieId: v.number(),
+          movieTitle: v.string(),
+          posterPath: v.string(),
+          addedAt: v.number(),
+        })
+      )
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  saved_blocks: defineTable({
+    userId: v.id("users"),
+    blockId: v.id("blocks"),
+    savedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_blockId", ["blockId"])
+    .index("by_userId_blockId", ["userId", "blockId"]),
+
+  mutation_throttles: defineTable({
+    userId: v.id("users"),
+    action: v.string(),
+    lastAt: v.number(),
+  }).index("by_userId_action", ["userId", "action"]),
 
   news_feed: defineTable({
     fetchedDate: v.string(),

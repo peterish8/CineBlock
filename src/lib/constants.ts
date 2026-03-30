@@ -26,6 +26,18 @@ export function backdropUrl(path: string | null, size: keyof typeof BACKDROP_SIZ
   return `${TMDB_IMAGE_BASE}/${BACKDROP_SIZES[size]}${path}`;
 }
 
+export const LOGO_SIZES = {
+  small: "w300",
+  medium: "w500",
+  large: "w780",
+  original: "original",
+} as const;
+
+export function logoUrl(path: string | null, size: keyof typeof LOGO_SIZES = "medium"): string {
+  if (!path) return "";
+  return `${TMDB_IMAGE_BASE}/${LOGO_SIZES[size]}${path}`;
+}
+
 export const GENRES: TMDBGenre[] = [
   { id: 28, name: "Action" },
   { id: 12, name: "Adventure" },

@@ -5,12 +5,13 @@ import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, ArrowLeft, Star, CheckCircle, Trash2 } from "lucide-react";
+import { Bookmark, ArrowLeft, Star, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import MovieModal from "@/components/MovieModal";
+import MovieActionRail from "@/components/MovieActionRail";
 
 function WatchlistContent() {
-  const { watchlist, toggleWatchlist, moveToWatched, isWatched } = useMovieLists();
+  const { watchlist, isWatched } = useMovieLists();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
   return (
@@ -68,17 +69,7 @@ function WatchlistContent() {
                     <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
                       <Star className="w-3 h-3 text-brutal-yellow fill-current" /><span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
                     </div>
-                    {/* Action buttons */}
-                    <div className="absolute top-0 left-0 flex flex-col z-10">
-                      {/* Move to watched */}
-                      <div onClick={(e) => { e.stopPropagation(); moveToWatched(movie); }} className={`border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${alreadyWatched ? "bg-brutal-cyan text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-cyan"}`} role="button" title="Mark as Watched" aria-label="Mark as watched">
-                        <CheckCircle className={`w-3.5 h-3.5 ${alreadyWatched ? "fill-current" : ""}`} strokeWidth={2.5} />
-                      </div>
-                      {/* Remove */}
-                      <div onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }} className="border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer bg-black/80 text-brutal-dim hover:text-brutal-red transition-colors" role="button" title="Remove from Watchlist">
-                        <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-                      </div>
-                    </div>
+                    <MovieActionRail movie={movie} actions={["like", "watchlist", "watched", "add"]} />
                     {alreadyWatched && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                         <CheckCircle className="w-10 h-10 text-brutal-cyan" strokeWidth={2} />

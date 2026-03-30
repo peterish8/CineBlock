@@ -5,12 +5,13 @@ import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCheck, ArrowLeft, Star, Trash2 } from "lucide-react";
+import { CheckCheck, ArrowLeft, Star } from "lucide-react";
 import { useState } from "react";
 import MovieModal from "@/components/MovieModal";
+import MovieActionRail from "@/components/MovieActionRail";
 
 function WatchedContent() {
-  const { watched, toggleWatched } = useMovieLists();
+  const { watched } = useMovieLists();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
   return (
@@ -71,10 +72,7 @@ function WatchedContent() {
                     <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
                       <Star className="w-3 h-3 text-brutal-yellow fill-current" /><span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
                     </div>
-                    {/* Remove from watched */}
-                    <div onClick={(e) => { e.stopPropagation(); toggleWatched(movie); }} className="absolute top-0 left-0 border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer bg-black/80 text-brutal-dim hover:text-brutal-red transition-colors z-10" role="button" title="Remove from Watched">
-                      <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-                    </div>
+                    <MovieActionRail movie={movie} actions={["like", "watchlist", "watched", "add"]} />
                   </div>
                 );
               })}

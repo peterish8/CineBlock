@@ -11,7 +11,6 @@ import TrendingHero from "@/components/TrendingHero";
 import RecommendationsSection from "@/components/RecommendationsSection";
 // Lazy-load modals — not needed on initial paint, improves FCP
 const MovieModal = dynamic(() => import("@/components/MovieModal"), { ssr: false });
-const ActorModal = dynamic(() => import("@/components/ActorModal"), { ssr: false });
 const WatchlistPanel = dynamic(() => import("@/components/WatchlistPanel"), { ssr: false });
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
@@ -28,9 +27,9 @@ function HomeContent() {
     sort: "popularity.desc",
     rating: "",
     runtime: "",
+    keyword: "",
   });
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
-  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const modalPushedState = useRef(false);
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
@@ -159,14 +158,6 @@ function HomeContent() {
     openMovie(asMovie);
   }, [openMovie]);
 
-  const handleActorClick = useCallback((actorId: number) => {
-    setSelectedActorId(actorId);
-  }, []);
-
-  const handleActorMovieClick = useCallback((movie: TMDBMovie) => {
-    setSelectedActorId(null);
-    openMovie(movie);
-  }, [openMovie]);
 
   const handleSurpriseMe = useCallback(async () => {
     try {
@@ -267,12 +258,6 @@ function HomeContent() {
       <MovieModal
         movie={selectedMovie}
         onClose={closeMovie}
-        onActorClick={handleActorClick}
-      />
-      <ActorModal
-        actorId={selectedActorId}
-        onClose={() => setSelectedActorId(null)}
-        onMovieClick={handleActorMovieClick}
       />
       <WatchlistPanel
         isOpen={watchlistOpen}

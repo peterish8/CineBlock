@@ -15,6 +15,7 @@ interface PosterGridProps {
     sort: string;
     rating?: string;
     runtime?: string;
+    keyword?: string;
   };
   onMovieClick: (movie: TMDBMovie) => void;
 }
@@ -55,6 +56,7 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
           if (filters.sort) params.set("sort", filters.sort);
           if (filters.rating) params.set("rating", filters.rating);
           if (filters.runtime) params.set("runtime", filters.runtime);
+          if (filters.keyword) params.set("keyword", filters.keyword);
         }
 
         const res = await fetch(`/api/movies?${params.toString()}`, {
@@ -64,7 +66,11 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
         if (!res.ok) throw new Error(`API error: ${res.status}`);
 
         const data: TMDBDiscoverResponse = await res.json();
-        setMovies((prev) => (append ? [...prev, ...data.results] : data.results));
+        setMovies((prev) => {
+          const merged = append ? [...prev, ...data.results] : data.results;
+          const seen = new Set<number>();
+          return merged.filter((m) => seen.has(m.id) ? false : (seen.add(m.id), true));
+        });
         setTotalPages(data.total_pages);
         setPage(pageNum);
       } catch (err: unknown) {

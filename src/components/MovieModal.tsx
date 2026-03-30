@@ -2,24 +2,37 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { X, Star, Calendar, Clock, Users, Bookmark, Play, Tv, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical } from "lucide-react";
-import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider } from "@/lib/types";
+import { X, Star, Users, Bookmark, Play, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical, Plus } from "lucide-react";
+import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider, TMDBPerson } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
-import { backdropUrl, posterUrl } from "@/lib/constants";
+import { backdropUrl, posterUrl, logoUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useRegion } from "@/hooks/useRegion";
+import { useBlockModal } from "@/components/BlockModalProvider";
+import { useConvexAuth } from "convex/react";
 
 interface MovieModalProps {
   movie: TMDBMovie | null;
   onClose: () => void;
   onBack?: () => void;
-  onActorClick?: (actorId: number) => void;
+  requireAuthForActions?: boolean;
+  onRequireAuth?: () => void;
 }
 
-export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorClick }: MovieModalProps) {
+export default function MovieModal({
+  movie: rootMovie,
+  onClose,
+  onBack,
+  requireAuthForActions = false,
+  onRequireAuth,
+}: MovieModalProps) {
+  const { isAuthenticated } = useConvexAuth();
   const [history, setHistory] = useState<TMDBMovie[]>([]);
   const [showActions, setShowActions] = useState(false);
   const [cinemaRevealed, setCinemaRevealed] = useState(false);
+  const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
+  const [actorPerson, setActorPerson] = useState<TMDBPerson | null>(null);
+  const [actorLoading, setActorLoading] = useState(false);
   const [dragY, setDragY] = useState(0);
   const touchStartY = useRef(0);
 
@@ -55,14 +68,35 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
     }
   }, [movie?.id]);
 
+  // Reset actor panel when movie changes
+  useEffect(() => { setSelectedActorId(null); setActorPerson(null); }, [movie?.id]);
+
+  useEffect(() => {
+    if (!selectedActorId) { setActorPerson(null); return; }
+    setActorLoading(true);
+    fetch(`/api/movies?action=person&id=${selectedActorId}`)
+      .then((r) => r.json())
+      .then(setActorPerson)
+      .catch(console.error)
+      .finally(() => setActorLoading(false));
+  }, [selectedActorId]);
+
   const [details, setDetails] = useState<TMDBMovieDetail | null>(null);
   const [watchProviders, setWatchProviders] = useState<{ [countryCode: string]: any } | null>(null);
   const { region, setRegion } = useRegion();
-  const [loading, setLoading] = useState(false);
   const [playingTrailer, setPlayingTrailer] = useState(false);
   const [copied, setCopied] = useState(false);
   const [similar, setSimilar] = useState<TMDBMovie[]>([]);
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
+  const { openBlockModal } = useBlockModal();
+
+  const allowAction = useCallback(() => {
+    if (requireAuthForActions && !isAuthenticated) {
+      onRequireAuth?.();
+      return false;
+    }
+    return true;
+  }, [requireAuthForActions, isAuthenticated, onRequireAuth]);
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,7 +110,6 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   };
 
   const fetchDetails = useCallback(async (id: number, type: "movie" | "tv") => {
-    setLoading(true);
     setPlayingTrailer(false);
     setSimilar([]);
     try {
@@ -113,8 +146,6 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -150,7 +181,6 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   const year = movie.release_date?.split("-")[0] || "—";
   const rating = movie.vote_average?.toFixed(1) || "N/A";
   const cast = details?.credits?.cast?.slice(0, 10) || [];
-  const seasons = details?.seasons || [];
   const runtime = details?.runtime;
   const genres = details?.genres || [];
   const liked = isLiked(movie.id);
@@ -163,37 +193,12 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
   ) || details?.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
 
   const currentProviders = watchProviders?.[region] || null;
-  const jwLink = currentProviders?.link || null;
+  const releaseYear = movie.release_date?.split("-")[0] || movie.first_air_date?.split("-")[0] || "";
 
-  // Search-based OTT deep links — takes user directly to movie search on each platform
-  const getProviderUrl = (providerId: number, title: string): string => {
+  // All provider links go to JustWatch search — reliable, works for every platform
+  const getProviderUrl = (_provider: TMDBWatchProvider, title: string, _year?: string): string => {
     const q = encodeURIComponent(title);
-    const urls: Record<number, string> = {
-      8:   `https://www.netflix.com/search?q=${q}`,
-      9:   `https://www.primevideo.com/search/ref=atv_sr_sug_1?phrase=${q}&ie=UTF8`,
-      15:  `https://www.hulu.com/search?q=${q}`,
-      337: `https://www.disneyplus.com/search/${q}`,
-      350: `https://tv.apple.com/search?term=${q}`,
-      384: `https://www.max.com/search?q=${q}`,
-      386: `https://www.peacocktv.com/search?query=${q}`,
-      531: `https://www.paramountplus.com/search/${q}/`,
-      283: `https://www.crunchyroll.com/search?q=${q}`,
-      11:  `https://mubi.com/search?q=${q}`,
-      122: `https://www.hotstar.com/in/search?q=${q}`,
-      220: `https://www.jiocinema.com/search/${q}`,
-      232: `https://www.zee5.com/search?q=${q}`,
-      237: `https://www.sonyliv.com/search?q=${q}`,
-      315: `https://www.sonyliv.com/search?q=${q}`,
-      190: `https://erosnow.com/search?query=${q}`,
-      218: `https://www.altbalaji.com/search?q=${q}`,
-      121: `https://www.mxplayer.in/search?q=${q}`,
-      191: `https://www.sunnxt.com/search?query=${q}`,
-      633: `https://www.aha.video/search?q=${q}`,
-      226: `https://www.discoveryplus.com/search/${q}`,
-      257: `https://www.fubo.tv/search/${q}`,
-      43:  `https://www.starz.com/us/en/search?q=${q}`,
-    };
-    return urls[providerId] ?? jwLink ?? "#";
+    return `https://www.justwatch.com/us/search?q=${q}`;
   };
 
   const REGIONS = [
@@ -221,7 +226,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" />
 
       <div
-        className="relative w-full sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overscroll-contain bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up rounded-t-xl sm:rounded-none"
+        className="relative w-full sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up rounded-t-xl sm:rounded-none"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -258,21 +263,33 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             {showActions && (
               <div className="flex flex-row-reverse gap-0.5 animate-slide-up-faint">
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!allowAction()) return;
+                    toggleLiked(movie);
+                  }}
                   className={`brutal-btn border-none p-2.5 transition-all ${liked ? "text-brutal-pink" : "text-white"}`}
                   title="Like"
                 >
                   <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} strokeWidth={2.5} />
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!allowAction()) return;
+                    toggleWatchlist(movie);
+                  }}
                   className={`brutal-btn border-none p-2.5 transition-all ${inWl ? "text-brutal-lime" : "text-white"}`}
                   title="Watchlist"
                 >
                   <Bookmark className={`w-4 h-4 ${inWl ? "fill-current" : ""}`} strokeWidth={2.5} />
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); toggleWatched(movie); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!allowAction()) return;
+                    toggleWatched(movie);
+                  }}
                   className={`brutal-btn border-none p-2.5 transition-all ${watched ? "text-brutal-cyan" : "text-white"}`}
                   title="Watched"
                 >
@@ -333,7 +350,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
               {trailer && (
                 <button
                   onClick={() => setPlayingTrailer(true)}
-                  className="absolute bottom-5 right-5 z-40 group brutal-btn p-3 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all"
+                  className="absolute bottom-[5.5rem] right-6 z-40 group brutal-btn p-5 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all"
                 >
                   {/* Tooltip */}
                   <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-mono font-black uppercase px-2 py-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-brutal-border">
@@ -345,14 +362,44 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             </>
           )}
 
-          {/* Title on Backdrop Overlay */}
-          <div className="absolute bottom-4 left-6 z-10 pr-24">
-            <h2 className="text-2xl sm:text-4xl font-display font-black text-brutal-white uppercase tracking-tight leading-none drop-shadow-lg">
-              {movie.title}
-            </h2>
+          {/* Title/logo hides while trailer plays and reappears only when hovering this area */}
+          <div
+            className={`group/title absolute bottom-4 left-6 z-10 ${playingTrailer ? "pointer-events-auto" : ""}`}
+            style={{ maxWidth: "60%" }}
+          >
+            <div className={`transition-opacity duration-700 ease-in-out ${playingTrailer ? "opacity-0 group-hover/title:opacity-100" : "opacity-100"}`}>
+            {movie.logo_path ? (
+              <Image
+                src={logoUrl(movie.logo_path, "original")}
+                alt={movie.title}
+                width={800}
+                height={320}
+                className="object-contain object-left drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+                style={{ width: "100%", height: "auto", maxHeight: "120px" }}
+              />
+            ) : (
+              <h2 className="text-2xl sm:text-4xl font-display font-black text-brutal-white uppercase tracking-tight leading-none drop-shadow-lg">
+                {movie.title}
+              </h2>
+            )}
             {details?.tagline && (
               <p className="text-brutal-yellow text-[10px] font-mono font-bold uppercase mt-1 tracking-widest">{details.tagline}</p>
             )}
+            </div>
+          </div>
+
+          {/* Meta — bottom right of backdrop */}
+          <div className="absolute bottom-4 right-6 z-10 flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-1.5 bg-black/60 border border-brutal-border px-2.5 py-1 backdrop-blur-sm">
+              <Star className="w-3.5 h-3.5 text-brutal-yellow fill-current" />
+              <span className="text-sm font-mono font-black text-brutal-yellow">{rating}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/60 border border-brutal-border px-2.5 py-1 backdrop-blur-sm">
+              <span className="text-xs font-mono font-bold text-brutal-white">{year}</span>
+              {runtime && (
+                <span className="text-xs font-mono font-bold text-brutal-muted">{Math.floor(runtime / 60)}H {runtime % 60}M</span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -376,21 +423,11 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
               }}
             >
           {/* Info Grid / Meta Bar */}
-          <div className="flex flex-wrap items-center gap-4 px-6 py-4 border-b-3 border-brutal-border bg-surface-2">
-          <div className="flex items-center gap-1.5 px-2 py-1 bg-black border border-brutal-border">
-            <Star className="w-3.5 h-3.5 text-brutal-yellow fill-current" />
-            <span className="text-xs font-mono font-black text-brutal-yellow">{rating}</span>
-          </div>
-          <div className="text-xs font-mono font-bold text-brutal-muted uppercase">{year}</div>
-          {runtime && (
-            <div className="text-xs font-mono font-bold text-brutal-muted uppercase">
-              {Math.floor(runtime / 60)}H {runtime % 60}M
+          {movie.media_type === "tv" && (
+            <div className="flex items-center gap-4 px-6 py-3 border-b-3 border-brutal-border bg-surface-2">
+              <div className="brutal-chip bg-brutal-cyan text-black px-2 py-0.5 text-[10px] uppercase font-black">TV SERIES</div>
             </div>
           )}
-          {movie.media_type === "tv" && (
-            <div className="brutal-chip bg-brutal-cyan text-black px-2 py-0.5 text-[10px] uppercase font-black">TV SERIES</div>
-          )}
-        </div>
 
         {/* WHERE TO WATCH */}
         {watchProviders !== null && (
@@ -413,7 +450,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2">STREAM</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.flatrate.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
+                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
                     return (
                       <a
                         key={p.provider_id}
@@ -446,7 +483,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2">RENT</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.rent.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
+                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
                     return (
                       <a
                         key={p.provider_id}
@@ -479,7 +516,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                 <p className="text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2">BUY</p>
                 <div className="flex flex-wrap gap-2">
                   {currentProviders.buy.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p.provider_id, movie.title ?? movie.name ?? "");
+                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
                     return (
                       <a
                         key={p.provider_id}
@@ -511,12 +548,6 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
               <p className="text-[11px] font-mono text-brutal-dim italic">Not available for streaming in {REGIONS.find(r => r.code === region)?.label ?? region}</p>
             )}
 
-            {jwLink && (
-              <a href={jwLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 mt-3 text-[9px] font-mono font-bold text-brutal-dim hover:text-brutal-yellow transition-colors uppercase tracking-widest">
-                <ExternalLink className="w-2.5 h-2.5" strokeWidth={2.5} />
-                View all options on JustWatch
-              </a>
-            )}
           </div>
         )}
 
@@ -584,7 +615,7 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                     {cast.slice(0, 6).map((member) => (
                       <button
                         key={member.id}
-                        onClick={() => onActorClick?.(member.id)}
+                        onClick={() => setSelectedActorId(member.id)}
                         className="flex items-center gap-2 border-2 border-brutal-border bg-surface p-2 hover:border-brutal-violet hover:shadow-brutal-sm transition-all text-left"
                       >
                         <div className="w-8 h-8 bg-surface-2 overflow-hidden border border-brutal-border flex-shrink-0">
@@ -615,6 +646,22 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
                       onClick={() => setHistory(prev => [...prev, sim])}
                       className="flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"
                     >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!allowAction()) return;
+                          openBlockModal({
+                            id: sim.id,
+                            title: sim.title || sim.name || "Untitled",
+                            posterPath: sim.poster_path || "",
+                          });
+                        }}
+                        className="absolute top-0 left-0 z-20 border-b-2 border-r-2 border-brutal-border bg-black/80 p-1.5 text-brutal-dim transition-colors hover:bg-brutal-violet hover:text-brutal-white"
+                        aria-label="Add to CineBlock"
+                        title="Add to CineBlock"
+                      >
+                        <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+                      </button>
                       {sim.poster_path ? (
                         <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="140px" />
                       ) : (
@@ -633,6 +680,92 @@ export default function MovieModal({ movie: rootMovie, onClose, onBack, onActorC
             </div>{/* end fade+slide inner wrapper */}
           </div>
         </div>{/* end max-height reveal wrapper */}
+
+      </div>{/* end movie modal */}
+
+      {/* Actor side panel — attached to right of movie modal */}
+      <div
+        className="relative z-10 flex-none overflow-y-auto overflow-x-hidden bg-bg h-[92svh] sm:h-[85vh] border-brutal-border"
+        style={{
+          width: selectedActorId ? "22rem" : "0px",
+          overflowY: selectedActorId ? "auto" : "hidden",
+          overflowX: "hidden",
+          borderWidth: selectedActorId ? "3px" : "0px",
+          borderLeftWidth: selectedActorId ? "3px" : "0px",
+          borderTopWidth: selectedActorId ? "3px" : "0px",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="w-[22rem]">
+          {/* Header */}
+          <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-bg border-b-3 border-brutal-border">
+            <button onClick={() => setSelectedActorId(null)} className="brutal-btn p-2 flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" strokeWidth={3} />
+              <span className="text-xs font-mono font-bold">BACK</span>
+            </button>
+          </div>
+
+          {actorLoading ? (
+            <div className="p-4 flex flex-col gap-3">
+              <div className="w-full h-32 brutal-shimmer" />
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(6)].map((_, i) => <div key={i} className="aspect-[2/3] brutal-shimmer" />)}
+              </div>
+            </div>
+          ) : actorPerson ? (
+            <div>
+              {/* Bio */}
+              <div className="flex gap-4 p-4 border-b-3 border-brutal-border bg-surface-2">
+                <div className="flex-shrink-0 w-16 h-22 border-3 border-brutal-border overflow-hidden">
+                  {actorPerson.profile_path ? (
+                    <Image src={`https://image.tmdb.org/t/p/w185${actorPerson.profile_path}`} alt={actorPerson.name} width={64} height={88} className="object-cover w-full h-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-surface font-black">{actorPerson.name[0]}</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-sm font-display font-black text-brutal-white uppercase tracking-tight mb-1 leading-tight">{actorPerson.name}</h2>
+                  {actorPerson.known_for_department && (
+                    <span className="brutal-chip bg-brutal-violet text-white px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase">{actorPerson.known_for_department}</span>
+                  )}
+                  {actorPerson.biography && (
+                    <p className="mt-2 text-brutal-white text-[11px] leading-relaxed line-clamp-3 opacity-80">{actorPerson.biography}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Filmography */}
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Film className="w-3 h-3 text-brutal-violet" strokeWidth={2.5} />
+                  <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">FILMOGRAPHY</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(actorPerson.movie_credits?.cast || [])
+                    .filter((m) => m.poster_path)
+                    .sort((a, b) => b.popularity - a.popularity)
+                    .slice(0, 12)
+                    .map((m) => (
+                      <div
+                        key={m.id}
+                        className="group relative aspect-[2/3] border-2 border-brutal-border bg-surface cursor-pointer hover:border-brutal-violet transition-all overflow-hidden"
+                        onClick={() => { setHistory((prev) => [...prev, { ...m, original_title: m.title, genre_ids: [], adult: false, popularity: m.popularity } as TMDBMovie]); setSelectedActorId(null); }}
+                      >
+                        <Image src={posterUrl(m.poster_path, "small")} alt={m.title} fill className="object-cover group-hover:scale-105 transition-transform" sizes="100px" />
+                        <div className="absolute inset-x-0 bottom-0 p-1 bg-black/90 border-t border-brutal-border translate-y-full group-hover:translate-y-0 transition-transform">
+                          <p className="text-[8px] font-black uppercase text-white truncate">{m.title}</p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Star className="w-2 h-2 text-brutal-yellow fill-current" />
+                            <span className="text-[8px] font-mono text-brutal-yellow font-bold">{m.vote_average.toFixed(1)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

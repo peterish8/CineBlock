@@ -46,21 +46,45 @@ export const REGION_TO_LANGUAGE: Record<string, string> = {
   ES: "es",
 };
 
-function detectRegion(): string {
+function detectRegionFallback(): string {
   if (typeof window === "undefined") return "US";
-  // navigator.language is like "en-IN", "hi-IN", "ko-KR", "en-US"
   const lang = navigator.language || navigator.languages?.[0] || "en-US";
   const parts = lang.split("-");
   const country = parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "";
   return LANG_TO_REGION[country] ?? "US";
 }
 
+function getInitialRegion(): string {
+  if (typeof window === "undefined") return "US";
+  return localStorage.getItem("cineblock_region") || detectRegionFallback();
+}
+
 export function useRegion() {
-  const [region, setRegion] = useState<string>("US");
+  const [region, setRegionState] = useState<string>(getInitialRegion);
 
   useEffect(() => {
-    setRegion(detectRegion());
+    if (localStorage.getItem("cineblock_region")) return;
+
+    // No cached region — detect via server-side API (avoids CSP/CORS issues)
+    fetch("/api/region")
+      .then(r => r.json())
+      .then(data => {
+        const code = data?.country?.toUpperCase();
+        if (code && code.length === 2) {
+          setRegionState(code);
+          localStorage.setItem("cineblock_region", code);
+        }
+      })
+      .catch(() => {
+        const fallback = detectRegionFallback();
+        localStorage.setItem("cineblock_region", fallback);
+      });
   }, []);
+
+  const setRegion = (newRegion: string) => {
+    setRegionState(newRegion);
+    localStorage.setItem("cineblock_region", newRegion);
+  };
 
   return { region, setRegion };
 }
