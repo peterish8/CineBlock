@@ -204,7 +204,7 @@ function extractSearchQuery(title: string): string | null {
 async function fetchOGImage(articleUrl: string): Promise<string | undefined> {
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), 3000);
 
     const res = await fetch(articleUrl, {
       signal: controller.signal,
@@ -278,9 +278,9 @@ async function tmdbBackdrop(query: string, apiKey: string): Promise<string | und
 }
 
 export async function GET(request: Request) {
-  // Protect internal route — only callable with the correct secret header
+  // Protect internal route — secret is REQUIRED; no secret configured = refuse all
   const secret = process.env.INTERNAL_API_SECRET;
-  if (secret && request.headers.get("x-internal-secret") !== secret) {
+  if (!secret || request.headers.get("x-internal-secret") !== secret) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -307,11 +307,11 @@ export async function GET(request: Request) {
         new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
     );
 
-    const articles = deduped.slice(0, 60);
+    const articles = deduped.slice(0, 40);
 
     // Fill missing thumbnails: og:image first (actual article photo), then TMDB backdrop
     const apiKey = process.env.TMDB_API_KEY;
-    const missing = articles.filter((a) => !a.thumbnail).slice(0, 30);
+    const missing = articles.filter((a) => !a.thumbnail).slice(0, 12);
 
     await Promise.all(
       missing.map(async (article) => {

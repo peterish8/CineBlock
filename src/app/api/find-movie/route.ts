@@ -1,6 +1,24 @@
 import { NextResponse, NextRequest } from "next/server";
 import { buildTMDBParams, WizardState } from "@/lib/tmdbQueryBuilder";
 
+// --- Rate limiting: 10 requests per minute per IP (each call fans out to ~20 TMDB requests) ---
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+
+function isRateLimited(request: NextRequest): boolean {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (timestamps.length >= RATE_LIMIT) return true;
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+  return false;
+}
+
 type PersonalizationInput = {
   likedIds?: number[];
   watchlistIds?: number[];
@@ -196,6 +214,9 @@ function dedupeAndLimit(movies: any[], excludeSet: Set<number>, limit: number) {
 }
 
 export async function POST(req: NextRequest) {
+  if (isRateLimited(req)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
   try {
     const body = (await req.json()) as Partial<RequestBody>;
     const apiKey = process.env.TMDB_API_KEY;

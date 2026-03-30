@@ -22,7 +22,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("/api/movies?action=trending&window=day");
+        const res = await fetch("/api/movies?action=trending&window=day&include_logos=1");
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();
         setAllMovies(data.results?.slice(0, 20) || []);

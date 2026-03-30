@@ -1,7 +1,8 @@
 import { internalMutation } from "./_generated/server";
+import { v } from "convex/values";
 
-const NEWS_RETENTION_DAYS = 7;
-const THROTTLE_RETENTION_DAYS = 7;
+const NEWS_RETENTION_DAYS = 3;
+const THROTTLE_RETENTION_DAYS = 1;
 const BATCH_SIZE = 100;
 const USER_BATCH_SIZE = 50;
 
@@ -33,11 +34,14 @@ export const purgeOldData = internalMutation({
 });
 
 export const recomputeUserCounts = internalMutation({
-  args: {},
-  handler: async (ctx) => {
-    // Process users in batches to avoid loading the entire table at once
-    const users = await ctx.db.query("users").take(USER_BATCH_SIZE);
-    for (const user of users) {
+  args: { cursor: v.optional(v.string()) },
+  handler: async (ctx, { cursor }) => {
+    // Use paginate() so each cron invocation can be called with a stored cursor
+    // and eventually cover all users — not just the first USER_BATCH_SIZE.
+    const page = await ctx.db
+      .query("users")
+      .paginate({ numItems: USER_BATCH_SIZE, cursor: cursor ?? null });
+    for (const user of page.page) {
       const [liked, watched, watchlist] = await Promise.all([
         ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),
         ctx.db.query("watched").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),
@@ -49,5 +53,7 @@ export const recomputeUserCounts = internalMutation({
         watchlistCount: watchlist.length,
       });
     }
+    // Returns the continuation cursor so callers can page through all users if needed
+    return { isDone: page.isDone, continueCursor: page.continueCursor };
   },
 });

@@ -2,8 +2,8 @@ import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
-const MAX_BLOCKS_PER_USER = 20;
-const MAX_MOVIES_PER_BLOCK = 50;
+const MAX_BLOCKS_PER_USER = 15;
+const MAX_MOVIES_PER_BLOCK = 35;
 const CREATE_BLOCK_MIN_INTERVAL_MS = 4000;
 const ADD_MOVIE_MIN_INTERVAL_MS = 500;
 const TOGGLE_SAVE_MIN_INTERVAL_MS = 500;

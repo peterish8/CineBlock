@@ -27,6 +27,24 @@ async function attachLogos<T extends { id: number }>(movies: T[]): Promise<(T & 
   });
 }
 
+// --- Rate limiting: 60 requests per minute per IP ---
+const rateLimitMap = new Map<string, number[]>();
+const RATE_LIMIT = 60;
+const RATE_WINDOW_MS = 60_000;
+
+function isRateLimited(request: NextRequest): boolean {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const now = Date.now();
+  const timestamps = (rateLimitMap.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (timestamps.length >= RATE_LIMIT) return true;
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+  return false;
+}
+
 // Actions whose response has a `results` array of movies (not TV)
 const MOVIE_LIST_ACTIONS = new Set([
   "recommendations",
@@ -37,8 +55,12 @@ const MOVIE_LIST_ACTIONS = new Set([
 ]);
 
 export async function GET(request: NextRequest) {
+  if (isRateLimited(request)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
+  }
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action") || "discover";
+  const includeLogos = searchParams.get("include_logos") === "1";
 
   // Basic input validation
   const rawPage = parseInt(searchParams.get("page") || "1", 10);
@@ -77,7 +99,7 @@ export async function GET(request: NextRequest) {
             (m: { original_language: string }) => langs.includes(m.original_language)
           );
         }
-        searchData.results = await attachLogos(searchData.results || []);
+        if (includeLogos) searchData.results = await attachLogos(searchData.results || []);
         return NextResponse.json(searchData);
       }
 
@@ -121,7 +143,7 @@ export async function GET(request: NextRequest) {
         const res = await fetch(`${TMDB_BASE}/discover/movie?${params.toString()}`, { headers });
         if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
         const data = await res.json();
-        data.results = await attachLogos((data.results || []).slice(0, 20));
+        if (includeLogos) data.results = await attachLogos((data.results || []).slice(0, 20));
         return NextResponse.json(data);
       }
 
@@ -192,7 +214,7 @@ export async function GET(request: NextRequest) {
         const trendingRes = await fetch(url, { headers });
         if (!trendingRes.ok) return NextResponse.json({ error: `TMDB API error: ${trendingRes.status}` }, { status: trendingRes.status });
         const trendingData = await trendingRes.json();
-        trendingData.results = await attachLogos(trendingData.results?.slice(0, 20) || []);
+        if (includeLogos) trendingData.results = await attachLogos(trendingData.results?.slice(0, 20) || []);
         return NextResponse.json(trendingData);
       }
 
@@ -455,9 +477,9 @@ export async function GET(request: NextRequest) {
     }
     const data = await res.json();
 
-    // Attach clearlogos for all movie-list actions
+    // Attach clearlogos only when the caller opts in via include_logos=1
     const resolvedAction = action === "discover" || !action ? "discover" : action;
-    if (MOVIE_LIST_ACTIONS.has(resolvedAction) && Array.isArray(data.results)) {
+    if (includeLogos && MOVIE_LIST_ACTIONS.has(resolvedAction) && Array.isArray(data.results)) {
       data.results = await attachLogos(data.results);
     }
 
