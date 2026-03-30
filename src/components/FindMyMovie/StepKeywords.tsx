@@ -36,6 +36,10 @@ export const KEYWORD_CHIPS = [
   { label: "Artificial Intelligence", id: 9951 },
   { label: "Time Travel",      id: 10537    },
   { label: "Underwater",       id: 11322    },
+
+  // Asian Drama
+  { label: "K-Drama",          id: 318385   },
+  { label: "C-Drama",          id: 292014   },
 ];
 
 interface StepKeywordsProps {
