@@ -28,10 +28,28 @@ export default function AuthButton() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const [showDebug, setShowDebug] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) setShowDebug(true);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+
   if (isLoading) {
     return (
-      <div className="brutal-btn p-1.5 opacity-50">
-        <User className="w-4 h-4" strokeWidth={2.5} />
+      <div className="flex items-center gap-2">
+        <div className="brutal-btn p-1.5 opacity-50">
+          <User className="w-4 h-4 animate-pulse" strokeWidth={2.5} />
+        </div>
+        {showDebug && (
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-[9px] font-mono font-bold text-brutal-red underline decoration-2 underline-offset-2"
+          >
+            STUCK? RELOAD
+          </button>
+        )}
       </div>
     );
   }
