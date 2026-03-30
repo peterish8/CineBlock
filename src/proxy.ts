@@ -33,7 +33,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// Middleware wraps auth token into requests + applies security headers
+// Proxy wraps auth token into requests + applies security headers
 // (client-side guards handle redirects to avoid auth race conditions)
 export default convexAuthNextjsMiddleware((_request: NextRequest) => {
   return withSecurityHeaders(NextResponse.next());
