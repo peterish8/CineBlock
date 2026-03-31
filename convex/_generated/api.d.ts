@@ -16,6 +16,8 @@ import type * as http from "../http.js";
 import type * as lists from "../lists.js";
 import type * as maintenance from "../maintenance.js";
 import type * as news from "../news.js";
+import type * as stamps from "../stamps.js";
+import type * as testError from "../testError.js";
 import type * as users from "../users.js";
 
 import type {
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   lists: typeof lists;
   maintenance: typeof maintenance;
   news: typeof news;
+  stamps: typeof stamps;
+  testError: typeof testError;
   users: typeof users;
 }>;
 

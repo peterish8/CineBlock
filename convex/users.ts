@@ -157,8 +157,58 @@ export const deleteAccount = mutation({
       for (const r of rateLimits) await ctx.db.delete(r._id);
     }
 
+    // Delete stamps
+    const stamps = await ctx.db.query("stamps").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const s of stamps) await ctx.db.delete(s._id);
+
     // Delete the user record
     await ctx.db.delete(userId as Id<"users">);
+  },
+});
+
+export const searchUsers = query({
+  args: { query: v.string() },
+  handler: async (ctx, args) => {
+    const q = args.query.trim();
+    if (q.length < 2) return [];
+
+    const viewerId = await getAuthUserId(ctx);
+
+    const [byUsername, byName] = await Promise.all([
+      ctx.db
+        .query("users")
+        .withSearchIndex("search_by_username", (s) => s.search("username", q))
+        .take(12),
+      ctx.db
+        .query("users")
+        .withSearchIndex("search_by_name", (s) => s.search("name", q))
+        .take(12),
+    ]);
+
+    const seen = new Set<string>();
+    const results: { _id: string; name?: string; username?: string; image?: string }[] = [];
+
+    for (const user of [...byUsername, ...byName]) {
+      if (seen.has(user._id)) continue;
+      if (viewerId && user._id === viewerId) continue;
+      seen.add(user._id);
+      results.push({ _id: user._id, name: user.name, username: user.username, image: user.image });
+      if (results.length >= 12) break;
+    }
+
+    return results;
+  },
+});
+
+export const getUserPublicProfile = query({
+  args: { username: v.string() },
+  handler: async (ctx, { username }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", username.toLowerCase().trim()))
+      .first();
+    if (!user) return null;
+    return { _id: user._id, name: user.name, username: user.username, image: user.image };
   },
 });
 

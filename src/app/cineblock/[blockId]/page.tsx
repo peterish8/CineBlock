@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import MovieModal from "@/components/MovieModal";
+import StampIndicator from "@/components/StampIndicator";
 import { posterUrl } from "@/lib/constants";
 import { GENRES, LANGUAGES } from "@/lib/constants";
 import {
@@ -447,6 +448,14 @@ export default function CineBlockViewPage() {
     blockId: blockId as Id<"blocks">,
   });
 
+  // Fetch creator's public stamps for movies in this block (no auth required)
+  const creatorStampsData = useQuery(
+    api.stamps.getCreatorStampsForBlock,
+    blockDetails
+      ? { creatorUserId: blockDetails.block.userId, movieIds: blockDetails.movies.map((m) => m.movieId) }
+      : "skip"
+  );
+
   const [savingBlock, setSavingBlock] = useState(false);
   const [importingBlock, setImportingBlock] = useState(false);
   const [removingMovieId, setRemovingMovieId] = useState<number | null>(null);
@@ -487,6 +496,8 @@ export default function CineBlockViewPage() {
 
   const { block, movies, isOwner, isSaved, progress } = blockDetails;
   const blockMovieIds = new Set(movies.map((m) => m.movieId));
+  const stampedMovieIds = new Set((creatorStampsData ?? []).map((s) => s.movieId));
+  const stampReviewMap = new Map((creatorStampsData ?? []).map((s) => [s.movieId, s.reviewText]));
   const isFull = movies.length >= 50;
   const progressPct = Math.round(progress.percentage);
 
@@ -791,6 +802,10 @@ export default function CineBlockViewPage() {
                             </div>
                           </div>
                         </button>
+                        <StampIndicator
+                          hasStamp={stampedMovieIds.has(movie.movieId)}
+                          reviewText={stampReviewMap.get(movie.movieId)}
+                        />
                         {isOwner && (
                           <button
                             onClick={() => void handleRemoveMovie(movie.movieId)}

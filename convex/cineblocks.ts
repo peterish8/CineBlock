@@ -329,6 +329,30 @@ export const getUserBlocks = query({
   },
 });
 
+export const getPublicBlocksByUserId = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const blocks = await ctx.db
+      .query("blocks")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .order("desc")
+      .collect();
+
+    const publicBlocks = blocks.filter((b) => b.isPublic).slice(0, 20);
+
+    return Promise.all(
+      publicBlocks.map(async (block) => {
+        const previewMovies = normalizeBlockMovies(block.movies ?? []).slice(0, 4);
+        return {
+          ...block,
+          movieCount: block.movieCount ?? 0,
+          previewPosters: previewMovies.map((m) => m.posterPath),
+        };
+      })
+    );
+  },
+});
+
 export const getSavedBlocks = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);

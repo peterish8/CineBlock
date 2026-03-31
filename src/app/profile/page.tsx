@@ -3,12 +3,15 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import StampCard from "@/components/StampCard";
+import { Id } from "../../../convex/_generated/dataModel";
+import { useStampModal } from "@/components/StampProvider";
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -17,6 +20,10 @@ export default function ProfilePage() {
   const setUsername = useMutation(api.users.setUsername);
   const setPreferredLanguage = useMutation(api.users.setPreferredLanguage);
   const deleteAccount = useMutation(api.users.deleteAccount);
+  const myStamps = useQuery(api.stamps.getMyStamps);
+  const deleteStamp = useMutation(api.stamps.deleteStamp);
+  const setStampVisibility = useMutation(api.stamps.setStampVisibility);
+  const { openStampModal } = useStampModal();
   const { signOut } = useAuthActions();
   const router = useRouter();
 
@@ -419,6 +426,40 @@ export default function ProfilePage() {
               {label}
             </Link>
           ))}
+        </div>
+
+        {/* Stamps section */}
+        <div className="brutal-card p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <Stamp className="w-4 h-4 text-brutal-yellow" strokeWidth={2.5} />
+            <h2 className="text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] flex-1">Stamps</h2>
+            {myStamps && myStamps.length > 0 && (
+              <span className="brutal-chip text-brutal-yellow border-brutal-yellow text-[10px]">
+                {myStamps.length}
+              </span>
+            )}
+          </div>
+
+          {myStamps === undefined ? (
+            <div className="py-4 text-center font-mono text-xs text-brutal-dim uppercase">Loading stamps...</div>
+          ) : myStamps.length === 0 ? (
+            <div className="border-2 border-dashed border-brutal-border py-6 text-center font-mono text-xs text-brutal-dim uppercase">
+              No stamps yet. Mark a film as watched to write your first stamp.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {myStamps.map((stamp) => (
+                <StampCard
+                  key={stamp._id}
+                  stamp={stamp}
+                  isOwner={true}
+                  onDelete={(stampId) => void deleteStamp({ stampId })}
+                  onToggleVisibility={(stampId, isPublic) => void setStampVisibility({ stampId, isPublic })}
+                  onContinue={(s) => openStampModal({ id: s.movieId, title: s.movieTitle, posterPath: s.posterPath })}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Danger zone */}

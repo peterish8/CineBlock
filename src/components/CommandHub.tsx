@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
 import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
+import StampSearchModal from "./StampSearchModal";
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const SHOW_STREAMING = false; // set to true when streaming page is ready
@@ -37,6 +38,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [keyword, setKeyword] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [stampSearchOpen, setStampSearchOpen] = useState(false);
   const [isNetflixTheme, setIsNetflixTheme] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -300,9 +302,19 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                     {label}
                   </Link>
                 ))}
+                
+                {/* Additional actions that open modals */}
+                <button
+                  onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                  className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-yellow hover:bg-brutal-yellow/10 transition-colors text-left"
+                >
+                  <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />
+                  STAMP A FILM
+                </button>
               </div>
             </div>
           </div>
+
 
           {/* FIND MOVIE — primary CTA */}
           <button
@@ -445,6 +457,12 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
 
 
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
+      {stampSearchOpen && (
+        <StampSearchModal
+          isOpen={stampSearchOpen}
+          onClose={() => setStampSearchOpen(false)}
+        />
+      )}
     </div>
   );
 }

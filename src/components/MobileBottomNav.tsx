@@ -8,9 +8,10 @@ import Link from "next/link";
 import {
   Home, Box, Users, Sparkles, Bookmark,
   Trophy, Newspaper, X, Tv2, User, LogIn,
-  Heart, Eye, LayoutGrid, ArrowUp,
+  Heart, Eye, LayoutGrid, ArrowUp, CheckCircle,
 } from "lucide-react";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
+import StampSearchModal from "./StampSearchModal";
 import { useMovieLists } from "@/hooks/useMovieLists";
 
 // Keep in sync with CommandHub SHOW_STREAMING flag
@@ -21,6 +22,7 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { liked, watchlist, watched } = useMovieLists();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [stampSearchOpen, setStampSearchOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [listsOpen, setListsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -133,6 +135,13 @@ export default function MobileBottomNav() {
               >
                 <Sparkles className="w-5 h-5 shrink-0" strokeWidth={2.5} />
                 <span className="font-mono text-xs font-black tracking-widest">FIND MOVIE</span>
+              </button>
+              <button
+                onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"
+              >
+                <CheckCircle className="w-5 h-5 shrink-0" strokeWidth={2.5} />
+                <span className="font-mono text-xs font-black tracking-widest">STAMP FILMS</span>
               </button>
               <Link
                 href="/box-office"
@@ -251,6 +260,12 @@ export default function MobileBottomNav() {
 
       {/* ── Find My Movie wizard ── */}
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
+      {stampSearchOpen && (
+        <StampSearchModal
+          isOpen={stampSearchOpen}
+          onClose={() => setStampSearchOpen(false)}
+        />
+      )}
     </>
   );
 }

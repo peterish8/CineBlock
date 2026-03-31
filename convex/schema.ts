@@ -88,6 +88,20 @@ const schema = defineSchema({
     .index("by_blockId", ["blockId"])
     .index("by_userId_blockId", ["userId", "blockId"]),
 
+  stamps: defineTable({
+    userId: v.id("users"),
+    movieId: v.number(),
+    movieTitle: v.string(),
+    posterPath: v.string(),
+    reviewText: v.string(),
+    isPublic: v.boolean(),
+    isDraft: v.optional(v.boolean()),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_movieId", ["userId", "movieId"])
+    .index("by_userId_isPublic", ["userId", "isPublic"]),
+
   mutation_throttles: defineTable({
     userId: v.id("users"),
     action: v.string(),

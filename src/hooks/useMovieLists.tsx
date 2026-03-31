@@ -17,7 +17,7 @@ interface MovieListsContextType {
 
   watched: TMDBMovie[];
   isWatched: (id: number) => boolean;
-  toggleWatched: (movie: TMDBMovie) => void;
+  toggleWatched: (movie: TMDBMovie) => Promise<{ added: boolean }>;
   moveToWatched: (movie: TMDBMovie) => void;
 }
 
@@ -170,18 +170,21 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
     }
   }, [watchlist, isAuthenticated, convexAddWatchlist, convexRemoveWatchlist]);
 
-  const toggleWatched = useCallback((movie: TMDBMovie) => {
+  const toggleWatched = useCallback(async (movie: TMDBMovie): Promise<{ added: boolean }> => {
     const currentlyWatched = watched.some((m) => m.id === movie.id);
     if (isAuthenticated) {
       if (currentlyWatched) {
         void convexRemoveWatched({ movieId: movie.id });
+        return { added: false };
       } else {
-        void convexAddWatched({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
+        await convexAddWatched({ movieId: movie.id, movieTitle: movie.title, posterPath: movie.poster_path ?? "" });
+        return { added: true };
       }
     } else {
       setLocalWatched((prev) =>
         currentlyWatched ? prev.filter((m) => m.id !== movie.id) : [movie, ...prev]
       );
+      return { added: !currentlyWatched };
     }
   }, [watched, isAuthenticated, convexAddWatched, convexRemoveWatched]);
 

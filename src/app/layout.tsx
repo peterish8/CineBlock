@@ -61,6 +61,7 @@ export const viewport: Viewport = {
 };
 
 import { BlockModalProvider } from "@/components/BlockModalProvider";
+import { StampProvider } from "@/components/StampProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 
 export default function RootLayout({
@@ -75,11 +76,13 @@ export default function RootLayout({
           <ConvexClientProvider>
             <ToastProvider>
               <BlockModalProvider>
-                <MovieListsProvider>
-                  {children}
-                  <MobileBottomNav />
-                  <Analytics />
-                </MovieListsProvider>
+                <StampProvider>
+                  <MovieListsProvider>
+                    {children}
+                    <MobileBottomNav />
+                    <Analytics />
+                  </MovieListsProvider>
+                </StampProvider>
               </BlockModalProvider>
             </ToastProvider>
           </ConvexClientProvider>

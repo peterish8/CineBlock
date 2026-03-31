@@ -4,6 +4,7 @@ import { Heart, Bookmark, CheckCircle, Plus } from "lucide-react";
 import { TMDBMovie } from "@/lib/types";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useBlockModal } from "@/components/BlockModalProvider";
+import { useStampModal } from "@/components/StampProvider";
 
 export type MovieAction = "like" | "watchlist" | "watched" | "add";
 
@@ -20,6 +21,7 @@ export default function MovieActionRail({
 }: MovieActionRailProps) {
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const { openBlockModal } = useBlockModal();
+  const { openStampNudge } = useStampModal();
 
   const liked = isLiked(movie.id);
   const inWatchlist = isInWatchlist(movie.id);
@@ -85,15 +87,31 @@ export default function MovieActionRail({
         <div
           role="button"
           tabIndex={0}
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
-            void toggleWatched(movie);
+            const wasWatched = isWatched(movie.id);
+            const { added } = await toggleWatched(movie);
+            if (added && !wasWatched) {
+              openStampNudge({
+                id: movie.id,
+                title: movie.title || movie.name || "Untitled",
+                posterPath: movie.poster_path || "",
+              });
+            }
           }}
-          onKeyDown={(e) => {
+          onKeyDown={async (e) => {
             if (e.key === "Enter" || e.key === " ") {
               if (e.key === " ") e.preventDefault();
               e.stopPropagation();
-              void toggleWatched(movie);
+              const wasWatched = isWatched(movie.id);
+              const { added } = await toggleWatched(movie);
+              if (added && !wasWatched) {
+                openStampNudge({
+                  id: movie.id,
+                  title: movie.title || movie.name || "Untitled",
+                  posterPath: movie.poster_path || "",
+                });
+              }
             }
           }}
           className={`min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${
