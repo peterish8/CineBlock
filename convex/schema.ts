@@ -23,6 +23,8 @@ const schema = defineSchema({
     likedCount: v.optional(v.number()),
     watchedCount: v.optional(v.number()),
     watchlistCount: v.optional(v.number()),
+    lastRadarSync: v.optional(v.number()),
+    lastRadarSyncLanguage: v.optional(v.string()),
   })
     .index("email", ["email"])
     .index("by_username", ["username"])
@@ -34,6 +36,7 @@ const schema = defineSchema({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
     addedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -44,6 +47,7 @@ const schema = defineSchema({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
     watchedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -54,6 +58,7 @@ const schema = defineSchema({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
     likedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -168,6 +173,23 @@ const schema = defineSchema({
     .index("by_invitedUser_status", ["invitedUserId", "status"])
     .index("by_roomId", ["roomId"])
     .index("by_roomId_invitedUser", ["roomId", "invitedUserId"]),
+
+  radar: defineTable({
+    userId: v.id("users"),
+    tmdbId: v.number(),
+    title: v.string(),
+    releaseDate: v.string(), // ISO format
+    posterPath: v.string(),
+    genreIds: v.array(v.number()),
+    overview: v.string(),
+    voteAverage: v.number(),
+    popularity: v.number(),
+    addedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_tmdbId", ["userId", "tmdbId"])
+    .index("by_userId_releaseDate", ["userId", "releaseDate"])
+    .index("by_releaseDate", ["releaseDate"]),
 });
 
 export default schema;

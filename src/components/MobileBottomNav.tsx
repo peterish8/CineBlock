@@ -8,7 +8,7 @@ import Link from "next/link";
 import {
   Home, Box, Users, Sparkles, Bookmark,
   Trophy, Newspaper, X, Tv2, User, LogIn,
-  Heart, Eye, LayoutGrid, ArrowUp, CheckCircle,
+  Heart, Eye, LayoutGrid, ArrowUp, CheckCircle, Radio,
 } from "lucide-react";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 import StampSearchModal from "./StampSearchModal";
@@ -150,6 +150,16 @@ export default function MobileBottomNav() {
               >
                 <Trophy className="w-5 h-5 shrink-0" strokeWidth={2.5} />
                 <span className="font-mono text-xs font-black tracking-widest">BOX OFFICE</span>
+              </Link>
+              <Link
+                href="/radar"
+                onClick={() => setBrowseOpen(false)}
+                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-cyan text-brutal-cyan bg-brutal-cyan/10 relative"
+              >
+                <Radio className="w-5 h-5 shrink-0" strokeWidth={2.5} />
+                <span className="font-mono text-xs font-black tracking-widest">RADAR</span>
+                {/* Small Pulse Dot */}
+                <div className="absolute top-2 right-2 w-2 h-2 bg-brutal-cyan rounded-full border border-bg animate-pulse" />
               </Link>
               {/* Row 2 */}
               <Link

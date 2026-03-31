@@ -9,6 +9,7 @@ import PosterGrid from "@/components/PosterGrid";
 import TVGrid from "@/components/TVGrid";
 import TrendingHero from "@/components/TrendingHero";
 import RecommendationsSection from "@/components/RecommendationsSection";
+import { Suspense } from "react";
 // Lazy-load modals — not needed on initial paint, improves FCP
 const MovieModal = dynamic(() => import("@/components/MovieModal"), { ssr: false });
 const WatchlistPanel = dynamic(() => import("@/components/WatchlistPanel"), { ssr: false });

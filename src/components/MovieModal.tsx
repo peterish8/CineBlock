@@ -149,6 +149,7 @@ export default function MovieModal({
     }
   }, []);
 
+  // 4. Handle Scroll Lock & Details Fetching
   useEffect(() => {
     if (movie) {
       fetchDetails(movie.id, movie.media_type || "movie");
@@ -157,14 +158,19 @@ export default function MovieModal({
       setDetails(null);
       setWatchProviders(null);
       setPlayingTrailer(false);
-      setTimeout(() => {
-        if (!document.querySelector('[role="dialog"]')) document.body.style.overflow = "";
-      }, 10);
+      // Clean up overflow only if no other modals explicitly exist
+      const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
+      if (activeDialogs <= 1) {
+        document.body.style.overflow = "";
+      }
     }
-    return () => { 
-      setTimeout(() => {
-        if (!document.querySelector('[role="dialog"]')) document.body.style.overflow = "";
-      }, 10);
+    
+    return () => {
+      // Unmount cleanup (handles Back Button navigation)
+      const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
+      if (activeDialogs <= 1) {
+        document.body.style.overflow = "";
+      }
     };
   }, [movie, fetchDetails]);
 
@@ -433,12 +439,26 @@ export default function MovieModal({
         {/* WHERE TO WATCH */}
         {watchProviders !== null && (
           <div className="px-6 py-4 border-b-3 border-brutal-border">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">WHERE TO WATCH</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col gap-0.5">
+                <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">WHERE TO WATCH</h3>
+                {/* Mobile Category Switcher Pills */}
+                <div className="flex sm:hidden gap-1.5 mt-1">
+                  {currentProviders?.flatrate?.length > 0 && (
+                    <button onClick={() => { const el = document.getElementById('provider-stream'); el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); }} className="text-[8px] font-mono font-black text-brutal-lime border border-brutal-lime/30 px-1.5 py-0.5 rounded-full hover:bg-brutal-lime hover:text-black transition-all uppercase">STREAM</button>
+                  )}
+                  {currentProviders?.rent?.length > 0 && (
+                    <button onClick={() => { const el = document.getElementById('provider-rent'); el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); }} className="text-[8px] font-mono font-black text-brutal-yellow border border-brutal-yellow/30 px-1.5 py-0.5 rounded-full hover:bg-brutal-yellow hover:text-black transition-all uppercase">RENT</button>
+                  )}
+                  {currentProviders?.buy?.length > 0 && (
+                    <button onClick={() => { const el = document.getElementById('provider-buy'); el?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' }); }} className="text-[8px] font-mono font-black text-brutal-cyan border border-brutal-cyan/30 px-1.5 py-0.5 rounded-full hover:bg-brutal-cyan hover:text-black transition-all uppercase">BUY</button>
+                  )}
+                </div>
+              </div>
               <select
                 value={region}
                 onChange={(e) => setRegion(e.target.value)}
-                className="brutal-input px-2 py-0.5 text-[9px] font-mono font-bold bg-surface text-brutal-white border-brutal-border focus:border-brutal-yellow outline-none cursor-pointer"
+                className="brutal-input px-2 py-0.5 text-[9px] font-mono font-bold bg-surface text-brutal-white border-brutal-border focus:border-brutal-yellow outline-none cursor-pointer h-fit"
               >
                 {REGIONS.map((r) => (
                   <option key={r.code} value={r.code}>{r.label}</option>
@@ -446,104 +466,106 @@ export default function MovieModal({
               </select>
             </div>
 
-            {currentProviders?.flatrate?.length > 0 && (
-              <div className="mb-3">
-                <p className="text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2">STREAM</p>
-                <div className="flex flex-wrap gap-2">
-                  {currentProviders.flatrate.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
-                    return (
-                      <a
-                        key={p.provider_id}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={p.provider_name}
-                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-lime hover:shadow-brutal-sm transition-all group"
-                      >
-                        {p.logo_path && (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
-                            alt={p.provider_name}
-                            width={20}
-                            height={20}
-                            className="rounded-sm w-5 h-5 object-cover"
-                          />
-                        )}
-                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-lime transition-colors whitespace-nowrap">{p.provider_name}</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-lime transition-colors" strokeWidth={2.5} />
-                      </a>
-                    );
-                  })}
+            <div className="flex flex-row sm:flex-col gap-6 sm:gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
+              {currentProviders?.flatrate?.length > 0 && (
+                <div id="provider-stream" className="flex-none w-full sm:w-auto snap-start">
+                  <p className="hidden sm:block text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2.5 px-0.5">STREAM</p>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1.5 snap-x overscroll-x-contain">
+                    {currentProviders.flatrate.map((p: TMDBWatchProvider) => {
+                      const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
+                      return (
+                        <a
+                          key={p.provider_id}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.provider_name}
+                          className="flex items-center justify-center p-0.5 sm:px-2.5 sm:py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-lime hover:shadow-brutal-sm transition-all group snap-start flex-none sm:flex-auto"
+                        >
+                          {p.logo_path && (
+                            <Image
+                              src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                              alt={p.provider_name}
+                              width={22}
+                              height={22}
+                              className="rounded-sm w-[22px] h-[22px] sm:w-5 sm:h-5 object-cover"
+                            />
+                          )}
+                          <span className="hidden sm:inline text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-lime transition-colors whitespace-nowrap">{p.provider_name}</span>
+                          <ExternalLink className="hidden sm:inline w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-lime transition-colors" strokeWidth={2.5} />
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {currentProviders?.rent?.length > 0 && (
-              <div className="mb-3">
-                <p className="text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2">RENT</p>
-                <div className="flex flex-wrap gap-2">
-                  {currentProviders.rent.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
-                    return (
-                      <a
-                        key={p.provider_id}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={p.provider_name}
-                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-yellow hover:shadow-brutal-sm transition-all group"
-                      >
-                        {p.logo_path && (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
-                            alt={p.provider_name}
-                            width={20}
-                            height={20}
-                            className="rounded-sm w-5 h-5 object-cover"
-                          />
-                        )}
-                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-yellow transition-colors whitespace-nowrap">{p.provider_name}</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-yellow transition-colors" strokeWidth={2.5} />
-                      </a>
-                    );
-                  })}
+              )}
+   
+              {currentProviders?.rent?.length > 0 && (
+                <div id="provider-rent" className="flex-none w-full sm:w-auto snap-start">
+                  <p className="hidden sm:block text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2.5 px-0.5">RENT</p>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1.5 snap-x overscroll-x-contain">
+                    {currentProviders.rent.map((p: TMDBWatchProvider) => {
+                      const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
+                      return (
+                        <a
+                          key={p.provider_id}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.provider_name}
+                          className="flex items-center justify-center p-0.5 sm:px-2.5 sm:py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-yellow hover:shadow-brutal-sm transition-all group snap-start flex-none sm:flex-auto"
+                        >
+                          {p.logo_path && (
+                            <Image
+                              src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                              alt={p.provider_name}
+                              width={22}
+                              height={22}
+                              className="rounded-sm w-[22px] h-[22px] sm:w-5 sm:h-5 object-cover"
+                            />
+                          )}
+                          <span className="hidden sm:inline text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-yellow transition-colors whitespace-nowrap">{p.provider_name}</span>
+                          <ExternalLink className="hidden sm:inline w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-yellow transition-colors" strokeWidth={2.5} />
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            {currentProviders?.buy?.length > 0 && (
-              <div className="mb-1">
-                <p className="text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2">BUY</p>
-                <div className="flex flex-wrap gap-2">
-                  {currentProviders.buy.map((p: TMDBWatchProvider) => {
-                    const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
-                    return (
-                      <a
-                        key={p.provider_id}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={p.provider_name}
-                        className="flex items-center gap-2 px-2.5 py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-cyan hover:shadow-brutal-sm transition-all group"
-                      >
-                        {p.logo_path && (
-                          <Image
-                            src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
-                            alt={p.provider_name}
-                            width={20}
-                            height={20}
-                            className="rounded-sm w-5 h-5 object-cover"
-                          />
-                        )}
-                        <span className="text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-cyan transition-colors whitespace-nowrap">{p.provider_name}</span>
-                        <ExternalLink className="w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-cyan transition-colors" strokeWidth={2.5} />
-                      </a>
-                    );
-                  })}
+              )}
+   
+              {currentProviders?.buy?.length > 0 && (
+                <div id="provider-buy" className="flex-none w-full sm:w-auto snap-start">
+                  <p className="hidden sm:block text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2.5 px-0.5">BUY</p>
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1.5 snap-x overscroll-x-contain">
+                    {currentProviders.buy.map((p: TMDBWatchProvider) => {
+                      const url = getProviderUrl(p, movie.title ?? movie.name ?? "", releaseYear);
+                      return (
+                        <a
+                          key={p.provider_id}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={p.provider_name}
+                          className="flex items-center justify-center p-0.5 sm:px-2.5 sm:py-1.5 bg-surface border-2 border-brutal-border hover:border-brutal-cyan hover:shadow-brutal-sm transition-all group snap-start flex-none sm:flex-auto"
+                        >
+                          {p.logo_path && (
+                            <Image
+                              src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                              alt={p.provider_name}
+                              width={22}
+                              height={22}
+                              className="rounded-sm w-[22px] h-[22px] sm:w-5 sm:h-5 object-cover"
+                            />
+                          )}
+                          <span className="hidden sm:inline text-[10px] font-mono font-bold text-brutal-white group-hover:text-brutal-cyan transition-colors whitespace-nowrap">{p.provider_name}</span>
+                          <ExternalLink className="hidden sm:inline w-2.5 h-2.5 text-brutal-dim group-hover:text-brutal-cyan transition-colors" strokeWidth={2.5} />
+                        </a>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {!currentProviders && (
               <p className="text-[11px] font-mono text-brutal-dim italic">Not available for streaming in {REGIONS.find(r => r.code === region)?.label ?? region}</p>
@@ -556,20 +578,20 @@ export default function MovieModal({
         {details?.belongs_to_collection && (
           <a
             href={`/collections?id=${details.belongs_to_collection.id}`}
-            className={`flex items-center justify-between px-6 py-3 bg-brutal-violet text-black border-b-3 border-brutal-border hover:bg-brutal-violet/90 transition-all group ${
+            className={`flex items-center justify-between px-6 py-2.5 sm:py-3 bg-brutal-violet text-black border-b-3 border-brutal-border hover:bg-brutal-violet/90 transition-all group ${
               cinemaRevealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
             }`}
             style={{ transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s" }}
           >
             <div className="flex items-center gap-3">
-              <Film className="w-5 h-5" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-mono font-black uppercase tracking-widest opacity-70">PART OF THE COLLECTION</span>
-                <span className="text-sm font-display font-black uppercase tracking-tight">{details.belongs_to_collection.name}</span>
+              <Film className="w-5 h-5 flex-shrink-0" />
+              <div className="flex flex-col sm:flex-col leading-tight">
+                <span className="hidden sm:block text-[10px] font-mono font-black uppercase tracking-widest opacity-70">PART OF THE COLLECTION</span>
+                <span className="text-xs sm:text-sm font-display font-black uppercase tracking-tight line-clamp-1">{details.belongs_to_collection.name}</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 font-mono font-black text-xs group-hover:translate-x-1 transition-transform">
-              FRANCHISE VAULT <ArrowLeft className="w-4 h-4 rotate-180" strokeWidth={3} />
+            <div className="flex items-center gap-1.5 sm:gap-2 font-mono font-black text-[10px] sm:text-xs group-hover:translate-x-1 transition-transform whitespace-nowrap">
+              <span className="hidden sm:inline">FRANCHISE VAULT</span> <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 rotate-180" strokeWidth={3} />
             </div>
           </a>
         )}

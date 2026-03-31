@@ -185,3 +185,16 @@ export interface FilterState {
   sort: string;
   page: number;
 }
+
+export interface RadarMovie {
+  id: number;
+  title: string;
+  release_date: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  genre_ids: number[];
+  overview: string;
+  vote_average: number;
+  popularity: number;
+  media_type: "movie" | "tv";
+}

@@ -39,6 +39,7 @@ export const addToWatchlist = mutation({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -56,6 +57,7 @@ export const addToWatchlist = mutation({
       movieId: args.movieId,
       movieTitle: args.movieTitle,
       posterPath: args.posterPath,
+      genreIds: args.genreIds,
       addedAt: Date.now(),
     });
     await ctx.db.patch(userId, {
@@ -119,6 +121,7 @@ export const addToWatched = mutation({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -136,6 +139,7 @@ export const addToWatched = mutation({
       movieId: args.movieId,
       movieTitle: args.movieTitle,
       posterPath: args.posterPath,
+      genreIds: args.genreIds,
       watchedAt: Date.now(),
     });
     await ctx.db.patch(userId, {
@@ -199,6 +203,7 @@ export const addToLiked = mutation({
     movieId: v.number(),
     movieTitle: v.string(),
     posterPath: v.string(),
+    genreIds: v.optional(v.array(v.number())),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -216,6 +221,7 @@ export const addToLiked = mutation({
       movieId: args.movieId,
       movieTitle: args.movieTitle,
       posterPath: args.posterPath,
+      genreIds: args.genreIds,
       likedAt: Date.now(),
     });
     let watchedCount = counts.watchedCount;
@@ -232,6 +238,7 @@ export const addToLiked = mutation({
         movieId: args.movieId,
         movieTitle: args.movieTitle,
         posterPath: args.posterPath,
+        genreIds: args.genreIds,
         watchedAt: Date.now(),
       });
       watchedCount += 1;
@@ -288,5 +295,27 @@ export const isLiked = query({
       )
       .first();
     return !!existing;
+  },
+});
+export const getUserGenres = query({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const [liked, watchlist] = await Promise.all([
+      ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+      ctx.db.query("watchlist").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+    ]);
+
+    const genreCounts: Record<number, number> = {};
+    [...liked, ...watchlist].forEach((item: any) => {
+      item.genreIds?.forEach((gid: number) => {
+        genreCounts[gid] = (genreCounts[gid] || 0) + 1;
+      });
+    });
+
+    return Object.entries(genreCounts)
+      .map(([id, count]) => ({ genreId: Number(id), count }))
+      .sort((a, b) => b.count - a.count);
   },
 });

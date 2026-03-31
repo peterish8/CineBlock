@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle, Radio } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
@@ -311,6 +311,17 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />
                   STAMP A FILM
                 </button>
+
+                {/* RELEASE RADAR */}
+                <Link
+                  href="/radar"
+                  onClick={() => setBrowseOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-cyan hover:bg-brutal-cyan/10 transition-colors text-left relative group"
+                >
+                  <Radio className="w-4 h-4 shrink-0 group-hover:animate-pulse" strokeWidth={2.5} />
+                  RELEASE RADAR
+                  <div className="absolute top-1/2 -translate-y-1/2 right-4 w-2 h-2 bg-brutal-cyan rounded-full shadow-[0_0_8px_rgba(87,255,245,0.5)]" />
+                </Link>
               </div>
             </div>
           </div>
