@@ -23,7 +23,7 @@ type StampSearchModalProps = {
 export default function StampSearchModal({ isOpen, onClose }: StampSearchModalProps) {
   const { isAuthenticated } = useConvexAuth();
   const { toggleWatched, isWatched } = useMovieLists();
-  const { openStampNudge } = useStampModal();
+  const { openStampModal } = useStampModal();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MovieResult[]>([]);
@@ -120,8 +120,8 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
         await toggleWatched(tmdbMovie);
       }
 
-      // Open stamp nudge
-      openStampNudge({
+      // Open stamp modal directly
+      openStampModal({
         id: movie.id,
         title: movie.title,
         posterPath: movie.poster_path ?? "",
