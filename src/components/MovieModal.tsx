@@ -356,9 +356,9 @@ export default function MovieModal({
                 {trailer && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setPlayingTrailer(true); }}
-                    className="group brutal-btn p-2.5 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all"
+                    className="group brutal-btn p-2.5 sm:p-5 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all shadow-brutal-sm sm:shadow-brutal"
                   >
-                    <Play className="w-4 h-4 fill-current" />
+                    <Play className="w-4 h-4 sm:w-7 sm:h-7 fill-current" />
                   </button>
                 )}
                 <div className="flex items-center gap-1.5 bg-black/60 border border-brutal-border px-2.5 py-1 backdrop-blur-sm">
@@ -385,7 +385,6 @@ export default function MovieModal({
             </div>
           </div>
         </div>
-
         {/* Below Hero Container */}
         <div style={{ overflow: "hidden", maxHeight: cinemaRevealed ? "9999px" : "0px", transition: cinemaRevealed ? "max-height 0.6s cubic-bezier(0.3, 1.25, 0.4, 1)" : "max-height 0.3s ease" }}>
           <div style={{ opacity: cinemaRevealed ? 1 : 0, transform: cinemaRevealed ? "translateY(0)" : "translateY(15px)", transition: "opacity 0.4s easeOut, transform 0.4s easeOut" }}>
@@ -396,9 +395,10 @@ export default function MovieModal({
               </div>
             )}
 
-            {/* WHERE TO WATCH */}
-            {watchProviders !== null && (
-              <div className="px-6 py-4 border-b-3 border-brutal-border overflow-hidden">
+            {/* TWO-COLUMN GRID FOR LAPTOP VIEW */}
+            <div className="grid grid-cols-1 md:grid-cols-[1.2fr,1fr] border-b-3 border-brutal-border divide-y-3 md:divide-y-0 md:divide-x-3 divide-brutal-border">
+              {/* Left Column: Where to Watch */}
+              <div className="px-6 py-4 overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex flex-col gap-0.5">
                     <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">WHERE TO WATCH</h3>
@@ -480,16 +480,26 @@ export default function MovieModal({
                         </motion.div>
                       </AnimatePresence>
                     </motion.div>
-                    {categories.length > 1 && (
-                      <div className="flex justify-center gap-1 mt-3">
-                        {categories.map((c) => <div key={c} className={`w-1 h-1 rounded-full border border-brutal-border transition-all ${activeCategory === c ? "bg-white scale-125" : "bg-brutal-dim"}`} />)}
-                      </div>
-                    )}
                   </div>
                 </div>
                 {!currentProviders && <p className="text-[11px] font-mono text-brutal-dim italic">Not available for streaming in {region}</p>}
               </div>
-            )}
+
+              {/* Right Column (Laptop View Only): Genres & Synopsis */}
+              <div className="hidden md:flex flex-col gap-5 px-6 py-6 bg-black/20">
+                {genres.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {genres.map((g) => <span key={g.id} className="brutal-chip bg-transparent border-2 border-brutal-border text-brutal-white font-mono font-bold text-[10px] uppercase px-2 py-0.5">{g.name}</span>)}
+                  </div>
+                )}
+                {movie.overview && (
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">SYNOPSIS</h3>
+                    <p className="text-brutal-white text-[12px] leading-relaxed opacity-90">{movie.overview}</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Collection Banner */}
             {details?.belongs_to_collection && (
@@ -507,70 +517,80 @@ export default function MovieModal({
               </a>
             )}
 
-            <div className="px-6 pb-6 bg-bg">
-              <div className="flex flex-col gap-6 pt-6">
-                <div className="flex flex-col gap-5 min-w-0">
-                  {genres.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {genres.map((g) => <span key={g.id} className="brutal-chip bg-transparent border-2 border-brutal-border text-brutal-white font-mono font-bold text-[10px] uppercase px-2 py-0.5">{g.name}</span>)}
-                    </div>
-                  )}
-                  {movie.overview && (
-                    <div className="flex flex-col gap-1.5">
-                      <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">SYNOPSIS</h3>
-                      <p className="text-brutal-white text-[13px] leading-relaxed opacity-90">{movie.overview}</p>
-                    </div>
-                  )}
-                  {cast.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-brutal-violet" />
-                        <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">CAST</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {cast.slice(0, 6).map((member) => (
-                          <button key={member.id} onClick={() => setSelectedActorId(member.id)} className="flex items-center gap-2 border-2 border-brutal-border bg-surface p-2 hover:border-brutal-violet hover:shadow-brutal-sm transition-all text-left">
-                            <div className="w-8 h-8 bg-surface-2 overflow-hidden border border-brutal-border flex-shrink-0">
-                              {member.profile_path ? <Image src={`https://image.tmdb.org/t/p/w185${member.profile_path}`} alt={member.name} width={32} height={32} className="object-cover w-full h-full" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs">{member.name[0]}</div>}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black uppercase text-brutal-white truncate">{member.name}</p>
-                              <p className="text-[9px] font-mono font-bold text-brutal-dim truncate">{member.character}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {similar.length > 0 && (
-                  <div className="flex flex-col gap-3 pt-6 border-t-2 border-brutal-border">
-                    <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">MORE LIKE THIS</h3>
-                    <div className="flex gap-4 overflow-x-auto pb-4 snap-x overscroll-x-contain hide-scrollbar">
-                      {similar.map((sim) => (
-                        <div key={sim.id} onClick={() => setHistory(prev => [...prev, sim])} className="flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden">
-                          <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; openBlockModal({ id: sim.id, title: sim.title || sim.name || "Untitled", posterPath: sim.poster_path || "" }); }} className="absolute top-0 left-0 z-20 border-b-2 border-r-2 border-brutal-border bg-black/80 p-1.5 text-brutal-dim transition-colors hover:bg-brutal-violet hover:text-brutal-white">
-                            <Plus className="h-3.5 w-3.5" strokeWidth={3} />
-                          </button>
-                          {sim.poster_path ? <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="140px" /> : <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] font-black uppercase">{sim.title ?? sim.name}</div>}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                            <p className="text-[10px] font-black uppercase text-white line-clamp-2">{sim.title ?? sim.name}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+            <div className="px-6 pb-6 bg-bg flex flex-col gap-6 pt-6">
+              {/* MOBILE ONLY: Genres & Synopsis */}
+              <div className="flex flex-col gap-5 min-w-0 md:hidden">
+                {genres.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {genres.map((g) => <span key={g.id} className="brutal-chip bg-transparent border-2 border-brutal-border text-brutal-white font-mono font-bold text-[10px] uppercase px-2 py-0.5">{g.name}</span>)}
+                  </div>
+                )}
+                {movie.overview && (
+                  <div className="flex flex-col gap-1.5">
+                    <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">SYNOPSIS</h3>
+                    <p className="text-brutal-white text-[13px] leading-relaxed opacity-90">{movie.overview}</p>
                   </div>
                 )}
               </div>
-            </div>
 
+              {cast.length > 0 && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-brutal-violet" />
+                    <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">CAST</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {cast.slice(0, 5).map((member) => (
+                      <button key={member.id} onClick={() => setSelectedActorId(member.id)} className="flex items-center gap-2 border-2 border-brutal-border bg-surface p-2 hover:border-brutal-violet hover:shadow-brutal-sm transition-all text-left">
+                        <div className="w-8 h-8 bg-surface-2 overflow-hidden border border-brutal-border flex-shrink-0">
+                          {member.profile_path ? <Image src={`https://image.tmdb.org/t/p/w185${member.profile_path}`} alt={member.name} width={32} height={32} className="object-cover w-full h-full" /> : <div className="w-full h-full flex items-center justify-center font-black text-xs">{member.name[0]}</div>}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-black uppercase text-brutal-white truncate">{member.name}</p>
+                          <p className="text-[9px] font-mono font-bold text-brutal-dim truncate">{member.character}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {similar.length > 0 && (
+                <div className="flex flex-col gap-3 pt-6 border-t-2 border-brutal-border">
+                  <h3 className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest">MORE LIKE THIS</h3>
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x overscroll-x-contain hide-scrollbar">
+                    {similar.map((sim) => (
+                      <div key={sim.id} onClick={() => setHistory(prev => [...prev, sim])} className="flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden">
+                        <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; openBlockModal({ id: sim.id, title: sim.title || sim.name || "Untitled", posterPath: sim.poster_path || "" }); }} className="absolute top-0 left-0 z-20 border-b-2 border-r-2 border-brutal-border bg-black/80 p-1.5 text-brutal-dim transition-colors hover:bg-brutal-violet hover:text-brutal-white">
+                          <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+                        </button>
+                        {sim.poster_path ? <Image src={posterUrl(sim.poster_path)} alt={sim.title ?? sim.name ?? ""} fill className="object-cover transition-transform group-hover:scale-110" sizes="140px" /> : <div className="w-full h-full flex items-center justify-center p-1 text-center text-[9px] font-black uppercase">{sim.title ?? sim.name}</div>}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                          <p className="text-[10px] font-black uppercase text-white line-clamp-2">{sim.title ?? sim.name}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Actor panel */}
-      <div className="relative z-10 flex-none overflow-y-auto overflow-x-hidden bg-bg h-[92svh] sm:h-[85vh] border-brutal-border" style={{ width: selectedActorId ? "22rem" : "0px", overflowY: selectedActorId ? "auto" : "hidden", overflowX: "hidden", borderWidth: selectedActorId ? "3px" : "0px", borderLeftWidth: selectedActorId ? "3px" : "0px", borderTopWidth: selectedActorId ? "3px" : "0px" }} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="relative z-10 flex-none overflow-y-auto overflow-x-hidden bg-bg h-[92svh] sm:h-[85vh] border-brutal-border" 
+        style={{ 
+          width: selectedActorId ? "22rem" : "0px", 
+          overflowY: selectedActorId ? "auto" : "hidden", 
+          overflowX: "hidden", 
+          borderWidth: selectedActorId ? "3px" : "0px", 
+          borderLeftWidth: selectedActorId ? "3px" : "0px", 
+          borderTopWidth: selectedActorId ? "3px" : "0px" 
+        }} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="w-[22rem]">
           <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-bg border-b-3 border-brutal-border">
             <button onClick={() => setSelectedActorId(null)} className="brutal-btn p-2 flex items-center gap-2">
@@ -619,13 +639,13 @@ function ProviderItem({ provider, category, movie, releaseYear, region, isMobile
   const textColor = category === 'flatrate' ? "group-hover:text-brutal-lime" : category === 'rent' ? "group-hover:text-brutal-yellow" : "group-hover:text-brutal-cyan";
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" title={provider.provider_name} className={`flex items-center justify-center p-0.5 sm:px-2.5 sm:py-1.5 bg-surface border-2 border-brutal-border hover:shadow-brutal-sm transition-all group snap-start flex-none sm:flex-auto ${colorClass}`}>
-      {provider.logo_path && <Image src={`https://image.tmdb.org/t/p/original${provider.logo_path}`} alt={provider.provider_name} width={22} height={22} className="rounded-sm w-[22px] h-[22px] sm:w-5 sm:h-5 object-cover" />}
+    <a href={url} target="_blank" rel="noopener noreferrer" title={provider.provider_name} className={`flex items-center justify-center h-8 px-2 sm:px-3 bg-surface border-2 border-brutal-border hover:shadow-brutal-sm transition-all group snap-start flex-none w-fit ${colorClass}`}>
+      {provider.logo_path && <Image src={`https://image.tmdb.org/t/p/original${provider.logo_path}`} alt={provider.provider_name} width={18} height={18} className="rounded-sm w-[18px] h-[18px] sm:w-[16px] sm:h-[16px] object-cover" />}
       {!isMobile && (
-        <>
-          <span className="hidden sm:inline text-[10px] font-mono font-bold text-brutal-white transition-colors whitespace-nowrap ml-2">{provider.provider_name}</span>
-          <ExternalLink className={`hidden sm:inline w-2.5 h-2.5 text-brutal-dim transition-colors ml-1 ${textColor}`} strokeWidth={2.5} />
-        </>
+        <div className="flex items-center ml-2">
+          <span className="hidden sm:inline text-[9px] font-mono font-bold text-brutal-white transition-colors whitespace-nowrap">{provider.provider_name}</span>
+          <ExternalLink className={`hidden sm:inline w-2 h-2 text-brutal-dim transition-colors ml-1 ${textColor}`} strokeWidth={3} />
+        </div>
       )}
     </a>
   );
