@@ -87,8 +87,14 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       }
     };
     window.addEventListener("keydown", handleKeyDown);
+    
+    // Listen for global reset-filters event (from nav buttons)
+    const handleReset = () => clearAll();
+    window.addEventListener("reset-filters", handleReset);
+
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("reset-filters", handleReset);
     };
   }, []);
 
@@ -122,7 +128,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime, newState.keyword);
   };
 
-  const clearAll = () => {
+  const clearAll = useCallback(() => {
     setQuery("");
     setGenre("");
     setYear("");
@@ -132,7 +138,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setRuntime("");
     setKeyword("");
     emitFilters("", "", "", "", "popularity.desc", "", "", "");
-  };
+  }, [emitFilters]);
 
   const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime || keyword;
 
@@ -186,7 +192,12 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       {/* Single compact bar: logo | search | controls */}
       <div className="w-full px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3">
         {/* Logo — left */}
-        <Link href="/" className="hidden sm:block shrink-0" title="CineBlock">
+        <Link 
+          href="/" 
+          className="hidden sm:block shrink-0" 
+          title="CineBlock"
+          onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}
+        >
           <Image src="/logo.png" alt="CineBlock" width={128} height={128} className="w-32 h-32 object-contain -my-6" />
         </Link>
 

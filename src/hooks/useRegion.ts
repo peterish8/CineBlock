@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 
 // Maps country code → TMDB region code (mostly the same, with some exceptions)
 const LANG_TO_REGION: Record<string, string> = {
@@ -83,10 +83,10 @@ export function useRegion() {
       });
   }, []);
 
-  const setRegion = (newRegion: string) => {
+  const setRegion = useCallback((newRegion: string) => {
     setRegionState(newRegion);
     localStorage.setItem("cineblock_region", newRegion);
-  };
+  }, []);
 
-  return { region, setRegion };
+  return useMemo(() => ({ region, setRegion }), [region, setRegion]);
 }

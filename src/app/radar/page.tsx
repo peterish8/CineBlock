@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radio, ChevronLeft, LayoutGrid, LayoutList, Lock, Sparkles, Filter, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -14,7 +14,7 @@ export default function RadarPage() {
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"all" | "personalized">("all");
 
-  const handleMovieClick = (item: any) => {
+  const handleMovieClick = useCallback((item: any) => {
     if (item.media_type === "tv") {
       const asMovie = {
         ...item,
@@ -26,7 +26,7 @@ export default function RadarPage() {
     } else {
       setSelectedMovie({ ...item, media_type: "movie" as const });
     }
-  };
+  }, []);
 
   const filteredMovies = activeTab === "personalized" 
     ? movies.filter(m => true) // In our API, movies are already merged. We could re-filter if we had flags.

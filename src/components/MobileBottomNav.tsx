@@ -67,7 +67,11 @@ export default function MobileBottomNav() {
         <div className="flex items-center justify-around px-2 py-2 pb-safe">
 
           {/* HOME */}
-          <Link href="/" className={navItem(isActive("/"))}>
+          <Link 
+            href="/" 
+            className={navItem(isActive("/"))}
+            onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}
+          >
             <Home className="w-6 h-6" strokeWidth={2.5} />
           </Link>
 
