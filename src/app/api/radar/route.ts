@@ -34,8 +34,9 @@ export async function GET(req: NextRequest) {
     const fetchPage = async (page: number) => {
       const url = new URL(`${TMDB_BASE}/discover/movie`);
       url.searchParams.set("region", region);
-      url.searchParams.set("primary_release_date.gte", today);
-      url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+      url.searchParams.set("release_date.gte", today);
+      url.searchParams.set("release_date.lte", sixMonthsStr);
+      url.searchParams.set("with_release_type", "2|3");
       url.searchParams.set("sort_by", "popularity.desc");
       url.searchParams.set("include_adult", "false");
       url.searchParams.set("page", page.toString());

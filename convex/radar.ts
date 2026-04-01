@@ -145,12 +145,14 @@ export const syncRadar = action({
       const sixMonthsStr = sixMonths.toISOString().split("T")[0];
       const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
-      // Use /discover/movie with a 6-month window — much broader than /movie/upcoming (~2 weeks only)
+      // release_date.gte/lte + region=IN = Indian theatrical release dates (not worldwide premiere)
+      // with_release_type=2|3 = theatrical releases only (same as what TMDB website shows)
       const fetchPage = async (page: number) => {
         const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
         url.searchParams.set("region", region);
-        url.searchParams.set("primary_release_date.gte", today);
-        url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+        url.searchParams.set("release_date.gte", today);
+        url.searchParams.set("release_date.lte", sixMonthsStr);
+        url.searchParams.set("with_release_type", "2|3");
         url.searchParams.set("sort_by", "popularity.desc");
         url.searchParams.set("include_adult", "false");
         url.searchParams.set("page", page.toString());
@@ -164,8 +166,9 @@ export const syncRadar = action({
         const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
         url.searchParams.set("region", region);
         url.searchParams.set("with_genres", args.genreIds.join(","));
-        url.searchParams.set("primary_release_date.gte", today);
-        url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+        url.searchParams.set("release_date.gte", today);
+        url.searchParams.set("release_date.lte", sixMonthsStr);
+        url.searchParams.set("with_release_type", "2|3");
         url.searchParams.set("sort_by", "popularity.desc");
         url.searchParams.set("include_adult", "false");
         const res = await fetch(url.toString(), { headers });
