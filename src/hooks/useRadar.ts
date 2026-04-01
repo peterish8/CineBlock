@@ -1,82 +1,88 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { RadarMovie } from "@/lib/types";
-import { usePreferredLanguage } from "./usePreferredLanguage";
 
 const SYNC_THROTTLE = 24 * 60 * 60 * 1000; // 24 hours
+
+// Detect region from browser timezone — same signal TMDB uses
+function getRegion(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz.startsWith("Asia/Kolkata") || tz.startsWith("Asia/Calcutta")) return "IN";
+    if (tz.startsWith("Asia/Seoul")) return "KR";
+    if (tz.startsWith("Asia/Tokyo")) return "JP";
+    if (tz.startsWith("Asia/Shanghai") || tz.startsWith("Asia/Hong_Kong")) return "CN";
+    if (tz.startsWith("Asia/Singapore") || tz.startsWith("Asia/Kuala_Lumpur")) return "SG";
+    if (tz.startsWith("Australia/")) return "AU";
+    if (tz.startsWith("America/")) return "US";
+    if (tz.startsWith("Europe/London")) return "GB";
+    if (tz.startsWith("Europe/")) return "DE";
+  } catch {}
+  return "US";
+}
 
 export function useRadar() {
   const [guestMovies, setGuestMovies] = useState<RadarMovie[]>([]);
   const [loadingGuest, setLoadingGuest] = useState(false);
   const [guestError, setGuestError] = useState<string | null>(null);
-  
+
   const user = useQuery(api.users.currentUser);
   const dbRadar = useQuery(api.radar.getUserRadar);
   const syncRadar = useAction(api.radar.syncRadar);
   const clearRadar = useMutation(api.radar.clearUserRadar);
-  const preferredLanguage = usePreferredLanguage();
-  const hasSynced = useRef<string | null>(null);
+  const isSyncing = useRef(false);
+  const syncFailed = useRef(false);
+  const lastAttemptedRegion = useRef<string | null>(null);
 
-  // 1. Get genre interests for sync action
+  const region = useMemo(() => getRegion(), []);
+
+  // 1. Get genre interests for personalized secondary layer
   const genreData = useQuery(api.lists.getUserGenres);
   const topGenreIds = useMemo(() => {
     if (!genreData) return [];
     return genreData.slice(0, 5).map(g => g.genreId);
   }, [genreData]);
 
-  // 2. Handle Sync Throttling & Language Changes
-  const [isSyncing, setIsSyncing] = useState(false);
-
+  // 2. Sync logic — region-based, throttled
   useEffect(() => {
-    if (user && genreData !== undefined && !isSyncing) {
+    if (user && genreData !== undefined && !isSyncing.current) {
       const now = Date.now();
       const lastSync = user.lastRadarSync || 0;
-      const lastSyncLang = user.lastRadarSyncLanguage || "";
-      
-      // Trigger sync if:
-      // 1. More than 24h passed
-      // 2. Language has changed from what's stored in DB
-      // 3. Radar is currently empty (safety fallback)
-      const languageMismatched = preferredLanguage !== lastSyncLang;
+      const lastSyncRegion = user.lastRadarSyncLanguage || ""; // reusing this field for region
+
+      const regionChanged = region !== lastSyncRegion;
       const timeExpired = now - lastSync > SYNC_THROTTLE;
       const neverSynced = !user.lastRadarSync;
       const radarIsEmpty = dbRadar && dbRadar.length === 0;
 
-      if (timeExpired || languageMismatched || neverSynced || radarIsEmpty) {
-        console.log("Radar needs sync:", { timeExpired, languageMismatched, neverSynced, radarIsEmpty, preferredLanguage, lastSyncLang });
-        
-        // Prevent concurrent syncs
-        setIsSyncing(true);
+      // Don't retry the same region after failure
+      if (syncFailed.current && lastAttemptedRegion.current === region) return;
+      if (syncFailed.current) syncFailed.current = false;
+
+      if (timeExpired || regionChanged || neverSynced || radarIsEmpty) {
+        isSyncing.current = true;
+        lastAttemptedRegion.current = region;
 
         const runSync = async () => {
-          // If language changed, wipe the old data first to clear clutter
-          if (languageMismatched) {
-             console.log("Language changed - clearing old Radar entries first...");
-             await clearRadar();
-          }
-
-          await syncRadar({ 
-            genreIds: topGenreIds, 
-            language: preferredLanguage 
-          });
+          if (regionChanged) await clearRadar();
+          await syncRadar({ genreIds: topGenreIds, region });
         };
-        
+
         runSync()
-          .then(() => console.log("Radar Sync Success"))
-          .catch(err => console.error("Radar Sync Error:", err))
-          .finally(() => setIsSyncing(false));
+          .then(() => { syncFailed.current = false; })
+          .catch(() => { syncFailed.current = true; })
+          .finally(() => { isSyncing.current = false; });
       }
     }
-  }, [user, genreData, topGenreIds, preferredLanguage, syncRadar, clearRadar, isSyncing, dbRadar]);
+  }, [user, genreData, topGenreIds, region, syncRadar, clearRadar, dbRadar]);
 
-  // 3. Handle Guest Mode (Stateless TMDB Fetch)
+  // 3. Guest mode — pass region, server detects from IP or falls back to query param
   useEffect(() => {
     if (user === null) {
       setLoadingGuest(true);
-      const params = new URLSearchParams();
-      if (preferredLanguage) params.set("lang", preferredLanguage);
-      
+      const params = new URLSearchParams({ region });
+
       fetch(`/api/radar?${params.toString()}`)
         .then(res => res.json())
         .then(data => {
@@ -86,9 +92,9 @@ export function useRadar() {
         .catch(err => setGuestError(err.message))
         .finally(() => setLoadingGuest(false));
     }
-  }, [user, preferredLanguage]);
+  }, [user, region]);
 
-  // 4. Consolidate Data
+  // 4. Consolidate
   const movies = useMemo(() => {
     if (user !== null && dbRadar) {
       return dbRadar.map(m => ({
@@ -96,7 +102,7 @@ export function useRadar() {
         title: m.title,
         release_date: m.releaseDate,
         poster_path: m.posterPath,
-        backdrop_path: "", // Not stored for storage efficiency
+        backdrop_path: "",
         genre_ids: m.genreIds,
         overview: m.overview,
         vote_average: m.voteAverage,

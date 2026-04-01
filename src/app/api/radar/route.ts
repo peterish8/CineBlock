@@ -1,81 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUpcomingMovies, getMoviesByGenreUpcoming, getUpcomingTV, getTVByGenreUpcoming } from "@/lib/tmdb";
-import { TMDBMovie } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 3600; // 1 hour
+
+const TMDB_BASE = "https://api.themoviedb.org/3";
+
+// Map common IP-country headers (Vercel/Cloudflare) to ISO region codes
+function getRegionFromRequest(req: NextRequest, fallback: string): string {
+  // Vercel sets x-vercel-ip-country, Cloudflare sets cf-ipcountry
+  const country =
+    req.headers.get("x-vercel-ip-country") ||
+    req.headers.get("cf-ipcountry") ||
+    fallback;
+  return country.toUpperCase();
+}
 
 export async function GET(req: NextRequest) {
   try {
+    const apiKey = process.env.TMDB_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "misconfigured" }, { status: 500 });
+
     const { searchParams } = new URL(req.url);
-    const genresStr = searchParams.get("genres");
-    const lang = searchParams.get("lang") || undefined;
-    const genreIds = genresStr ? genresStr.split(",").map(Number).filter(id => !isNaN(id)) : [];
+    // Client sends its timezone-derived region as a hint; IP header takes priority
+    const clientRegion = searchParams.get("region") || "US";
+    const region = getRegionFromRequest(req, clientRegion);
 
-    let personalized = false;
+    const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
-    // 1. Fetch data in parallel (Movies Only)
-    const promises: Promise<any>[] = [
-      getUpcomingMovies(1, lang)
-    ];
-    
-    if (genreIds.length > 0) {
-      promises.push(getMoviesByGenreUpcoming(genreIds, lang));
+    const today = new Date().toISOString().split("T")[0];
+    const sixMonths = new Date();
+    sixMonths.setMonth(sixMonths.getMonth() + 6);
+    const sixMonthsStr = sixMonths.toISOString().split("T")[0];
+
+    const fetchPage = async (page: number) => {
+      const url = new URL(`${TMDB_BASE}/discover/movie`);
+      url.searchParams.set("region", region);
+      url.searchParams.set("primary_release_date.gte", today);
+      url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+      url.searchParams.set("sort_by", "popularity.desc");
+      url.searchParams.set("include_adult", "false");
+      url.searchParams.set("page", page.toString());
+      const res = await fetch(url.toString(), { headers });
+      const data = await res.json();
+      return (data.results || []) as any[];
+    };
+
+    const [page1, page2] = await Promise.all([fetchPage(1), fetchPage(2)]);
+
+    const movieMap = new Map<number, any>();
+    for (const m of [...page1, ...page2]) {
+      if (!m.release_date || m.release_date < today) continue;
+      if (movieMap.has(m.id)) continue;
+      movieMap.set(m.id, {
+        id: m.id,
+        title: m.title || "Untitled",
+        release_date: m.release_date,
+        poster_path: m.poster_path,
+        backdrop_path: m.backdrop_path,
+        genre_ids: m.genre_ids,
+        overview: m.overview || "",
+        vote_average: m.vote_average,
+        popularity: m.popularity,
+        media_type: "movie",
+      });
     }
 
-    const results = await Promise.all(promises);
-    const globalMovies = (results[0].results || []).map((m: any) => ({ ...m, media_type: "movie" }));
-    const genreMatchedMovies = (results[1]?.results || []).map((m: any) => ({ ...m, media_type: "movie" }));
-
-    // 2. Merge and Deduplicate
-    const movieMap = new Map<number, any>();
-    
-    // Prioritize genre matches
-    genreMatchedMovies.forEach((m: any) => {
-      movieMap.set(m.id, m);
-      personalized = true;
-    });
-
-    // Fill with global upcoming
-    globalMovies.forEach((m: any) => {
-      if (!movieMap.has(m.id)) {
-        movieMap.set(m.id, m);
-      }
-    });
-
-    const combined = Array.from(movieMap.values());
-
-    // 3. Sort by release date ASC (nearest first)
-    combined.sort((a, b) => {
-      const dateA = a.release_date || "9999-12-31";
-      const dateB = b.release_date || "9999-12-31";
-      return dateA.localeCompare(dateB);
-    });
-
-    // 4. Transform and Limit to 60
-    const finalItems = combined.slice(0, 60).map(m => ({
-      id: m.id,
-      title: m.title || "Untitled",
-      release_date: m.release_date || "",
-      poster_path: m.poster_path,
-      backdrop_path: m.backdrop_path,
-      genre_ids: m.genre_ids,
-      overview: m.overview || "",
-      vote_average: m.vote_average,
-      popularity: m.popularity,
-      media_type: "movie",
-    }));
+    const movies = Array.from(movieMap.values())
+      .sort((a, b) => a.release_date.localeCompare(b.release_date))
+      .slice(0, 60);
 
     return NextResponse.json(
-      {
-        personalized,
-        movies: finalItems,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-        },
-      }
+      { movies, region },
+      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } }
     );
   } catch (error) {
     console.error("Radar API Error:", error);

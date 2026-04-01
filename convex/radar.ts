@@ -128,7 +128,7 @@ export const updateRadarItems = mutation({
 export const syncRadar = action({
   args: {
     genreIds: v.array(v.number()),
-    language: v.optional(v.string()),
+    region: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -138,105 +138,76 @@ export const syncRadar = action({
     if (!apiKey) throw new ConvexError("TMDB_API_KEY is not configured");
 
     try {
+      const region = args.region || "IN";
       const today = new Date().toISOString().split("T")[0];
-      const sixMonthsFromNow = new Date();
-      sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-      const sixMonthsStr = sixMonthsFromNow.toISOString().split("T")[0];
+      const sixMonths = new Date();
+      sixMonths.setMonth(sixMonths.getMonth() + 6);
+      const sixMonthsStr = sixMonths.toISOString().split("T")[0];
+      const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
-      // Build TMDB Query Params
-      const baseParams = {
-        include_adult: "false",
-        "primary_release_date.gte": today, // Use primary for true 'newness'
-        "primary_release_date.lte": sixMonthsStr,
-        sort_by: "popularity.desc",
+      // Use /discover/movie with a 6-month window — much broader than /movie/upcoming (~2 weeks only)
+      const fetchPage = async (page: number) => {
+        const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
+        url.searchParams.set("region", region);
+        url.searchParams.set("primary_release_date.gte", today);
+        url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+        url.searchParams.set("sort_by", "popularity.desc");
+        url.searchParams.set("include_adult", "false");
+        url.searchParams.set("page", page.toString());
+        const res = await fetch(url.toString(), { headers });
+        const data = await res.json();
+        return (data.results || []) as any[];
       };
 
-      const langPipe = args.language ? args.language.replace(/,/g, "|") : "";
+      const fetchGenrePage = async () => {
+        if (args.genreIds.length === 0) return [];
+        const url = new URL(`${TMDB_BASE_URL}/discover/movie`);
+        url.searchParams.set("region", region);
+        url.searchParams.set("with_genres", args.genreIds.join(","));
+        url.searchParams.set("primary_release_date.gte", today);
+        url.searchParams.set("primary_release_date.lte", sixMonthsStr);
+        url.searchParams.set("sort_by", "popularity.desc");
+        url.searchParams.set("include_adult", "false");
+        const res = await fetch(url.toString(), { headers });
+        const data = await res.json();
+        return (data.results || []) as any[];
+      };
 
-      // 1. Fetch Language-Specific (WIDE SEARCH - 2 Pages)
-      let languageMovies: any[] = [];
-      if (langPipe) {
-        const fetchLangPage = async (page: number) => {
-          const langUrl = new URL(`${TMDB_BASE_URL}/discover/movie`);
-          Object.entries(baseParams).forEach(([k, v]) => langUrl.searchParams.set(k, v));
-          langUrl.searchParams.set("with_original_language", langPipe);
-          langUrl.searchParams.set("page", page.toString());
-          
-          const res = await fetch(langUrl.toString(), {
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }
-          });
-          const data = await res.json();
-          return data.results || [];
-        };
+      const [page1, page2, genreMovies] = await Promise.all([
+        fetchPage(1),
+        fetchPage(2),
+        fetchGenrePage(),
+      ]);
 
-        const [p1, p2] = await Promise.all([fetchLangPage(1), fetchLangPage(2)]);
-        languageMovies = [...p1, ...p2];
-      }
+      // Genre matches go first so they appear prioritized in dedup
+      const allMovies = [...genreMovies, ...page1, ...page2];
 
-      // 2. Fetch Regional Trends (India Specific)
-      const globalUrl = new URL(`${TMDB_BASE_URL}/discover/movie`);
-      Object.entries(baseParams).forEach(([k, v]) => globalUrl.searchParams.set(k, v));
-      globalUrl.searchParams.set("region", "IN");
-      globalUrl.searchParams.set("with_release_type", "2|3"); // Standard theatrical for global hits
-      
-      const globalRes = await fetch(globalUrl.toString(), {
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }
-      });
-      const globalData = await globalRes.json();
-      const globalMovies = globalData.results || [];
-
-      // 3. Fetch Personalized Genre Matches
-      let genreMovies: any[] = [];
-      if (args.genreIds.length > 0) {
-        const genreUrl = new URL(`${TMDB_BASE_URL}/discover/movie`);
-        Object.entries(baseParams).forEach(([k, v]) => genreUrl.searchParams.set(k, v));
-        genreUrl.searchParams.set("with_genres", args.genreIds.join(","));
-        genreUrl.searchParams.set("region", "IN");
-        genreUrl.searchParams.set("vote_count.gte", "0");
-
-        const genreRes = await fetch(genreUrl.toString(), {
-          headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" }
-        });
-        const genreData = await genreRes.json();
-        genreMovies = genreData.results || [];
-      }
-
-      // 4. Merge and Normalize
+      // 3. Deduplicate, filter past releases, normalize
       const movieMap = new Map<number, any>();
-      // Combined list, prioritizes earlier indices for mapping
-      [...languageMovies, ...genreMovies, ...globalMovies].forEach(m => {
-        // STRICT FILTER: Exclude any movie without a valid future release date
-        if (!m.release_date || m.release_date < today) return;
+      for (const m of allMovies) {
+        if (!m.release_date || m.release_date < today) continue;
+        if (movieMap.has(m.id)) continue;
+        movieMap.set(m.id, {
+          tmdbId: m.id,
+          title: m.title || "Untitled",
+          releaseDate: m.release_date,
+          posterPath: m.poster_path || "",
+          genreIds: m.genre_ids || [],
+          overview: m.overview || "",
+          voteAverage: m.vote_average || 0,
+          popularity: m.popularity || 0,
+        });
+      }
 
-        if (!movieMap.has(m.id)) {
-          movieMap.set(m.id, {
-            tmdbId: m.id,
-            title: m.title || "Untitled",
-            releaseDate: m.release_date, 
-            posterPath: m.poster_path || "",
-            genreIds: m.genre_ids || [],
-            overview: m.overview || "",
-            voteAverage: m.vote_average || 0,
-            popularity: m.popularity || 0,
-          });
-        }
-      });
-
-      // 5. Final Sort & Trim
       const finalMovies = Array.from(movieMap.values())
-        .sort((a, b) => a.releaseDate.localeCompare(b.releaseDate)) // Earliest first
-        .slice(0, 50);
+        .sort((a, b) => a.releaseDate.localeCompare(b.releaseDate))
+        .slice(0, 60);
 
-      console.log(`Syncing Radar:
-        Language: ${args.language}
-        Items Found: ${finalMovies.length}
-        Movies: ${finalMovies.slice(0, 3).map(m => m.title).join(", ")}
-      `);
+      console.log(`Radar sync [region=${region}]: ${finalMovies.length} movies`);
 
-      // 4. Update Convex Database with tracking metadata
-      await ctx.runMutation(api.radar.updateRadarItems, { 
+      await ctx.runMutation(api.radar.updateRadarItems, {
         movies: finalMovies,
-        syncedLanguage: args.language 
+        syncedLanguage: region, // reusing field to store region
       });
 
       return { success: true, count: finalMovies.length };
