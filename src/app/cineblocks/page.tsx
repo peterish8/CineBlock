@@ -17,6 +17,7 @@ import {
   X,
   Lock,
   Users,
+  Search,
 } from "lucide-react";
 
 // ─── Create Block Form ────────────────────────────────────────────────────────
@@ -271,10 +272,10 @@ export default function CineBlocksPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/cineblocks/discover"
-              className="brutal-btn flex items-center gap-2 px-4 py-2.5 text-xs font-mono uppercase hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"
+              className="brutal-btn p-2.5"
+              title="Discover users & playlists"
             >
-              <Users className="w-3.5 h-3.5" strokeWidth={3} />
-              DISCOVER USERS
+              <Search className="w-4 h-4" strokeWidth={2.5} />
             </Link>
             <button
               onClick={() => setShowCreate(true)}

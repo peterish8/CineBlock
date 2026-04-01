@@ -152,7 +152,43 @@ function SearchPanel({
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedLang, setSelectedLang] = useState("");
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [baseUrl, setBaseUrl] = useState("");
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<() => void>(() => {});
+
+  // Keep loadMoreRef current so the stable observer always calls the latest logic
+  loadMoreRef.current = async () => {
+    if (loadingMore || searching || currentPage >= totalPages || !baseUrl) return;
+    const nextPage = currentPage + 1;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`${baseUrl}&page=${nextPage}`);
+      if (res.ok) {
+        const data = await res.json();
+        setResults((prev) => [...prev, ...(data.results || [])]);
+        setCurrentPage(nextPage);
+        setTotalPages(data.total_pages ?? totalPages);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Stable IntersectionObserver — set up once, always calls the latest loadMoreRef
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMoreRef.current(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   // Reset state when tab changes
   useEffect(() => {
@@ -163,6 +199,9 @@ function SearchPanel({
     setSelectedGenre("");
     setSelectedYear("");
     setSelectedLang("");
+    setCurrentPage(1);
+    setTotalPages(1);
+    setBaseUrl("");
     if (debounceRef.current) clearTimeout(debounceRef.current);
   }, [tab]);
 
@@ -170,13 +209,18 @@ function SearchPanel({
 
   const doSearch = (url: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setBaseUrl(url);
+    setCurrentPage(1);
+    setTotalPages(1);
     debounceRef.current = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(url);
+        const res = await fetch(`${url}&page=1`);
         if (res.ok) {
           const data = await res.json();
-          setResults((data.results || []).slice(0, 20));
+          setResults(data.results || []);
+          setTotalPages(data.total_pages ?? 1);
+          setCurrentPage(1);
         }
       } finally {
         setSearching(false);
@@ -203,7 +247,7 @@ function SearchPanel({
 
   const handleTitleChange = (q: string) => {
     setQuery(q);
-    if (!q.trim()) { setResults([]); return; }
+    if (!q.trim()) { setResults([]); setBaseUrl(""); return; }
     doSearch(`/api/movies?action=search&query=${encodeURIComponent(q.trim())}`);
   };
 
@@ -211,6 +255,7 @@ function SearchPanel({
     setQuery(q);
     setSelectedPerson(null);
     setResults([]);
+    setBaseUrl("");
     doPersonSearch(q);
   };
 
@@ -224,23 +269,24 @@ function SearchPanel({
 
   const handleGenreChange = (g: string) => {
     setSelectedGenre(g);
-    if (!g) { setResults([]); return; }
+    if (!g) { setResults([]); setBaseUrl(""); return; }
     doSearch(`/api/movies?action=discover&genre=${g}&sort=popularity.desc`);
   };
 
   const handleYearChange = (y: string) => {
     setSelectedYear(y);
-    if (!y) { setResults([]); return; }
+    if (!y) { setResults([]); setBaseUrl(""); return; }
     doSearch(`/api/movies?action=discover&year=${y}&sort=popularity.desc`);
   };
 
   const handleLangChange = (l: string) => {
     setSelectedLang(l);
-    if (!l) { setResults([]); return; }
+    if (!l) { setResults([]); setBaseUrl(""); return; }
     doSearch(`/api/movies?action=discover&lang=${l}&sort=popularity.desc`);
   };
 
   const showMovieGrid = results.length > 0 && !searching;
+  const hasMore = currentPage < totalPages;
   const isPersonTab = tab === "director" || tab === "actor";
 
   return (
@@ -417,19 +463,28 @@ function SearchPanel({
 
         {/* Movie grid */}
         {showMovieGrid && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {results.map((r) => (
-              <SearchPosterCard
-                key={r.id}
-                movie={r}
-                alreadyIn={blockMovieIds.has(r.id)}
-                isAdding={addingMovieId === r.id}
-                isFull={isFull}
-                onAdd={() => onAdd(r)}
-                onDragStart={(e) => onDragStart(e, r)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+              {results.map((r) => (
+                <SearchPosterCard
+                  key={r.id}
+                  movie={r}
+                  alreadyIn={blockMovieIds.has(r.id)}
+                  isAdding={addingMovieId === r.id}
+                  isFull={isFull}
+                  onAdd={() => onAdd(r)}
+                  onDragStart={(e) => onDragStart(e, r)}
+                />
+              ))}
+            </div>
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="py-4 flex items-center justify-center">
+              {loadingMore && <Loader2 className="w-4 h-4 animate-spin text-brutal-dim" />}
+              {!loadingMore && !hasMore && results.length > 0 && (
+                <span className="font-mono text-[9px] text-brutal-dim uppercase tracking-widest">End of results</span>
+              )}
+            </div>
+          </>
         )}
       </div>
     </>

@@ -299,7 +299,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
                   { href: "/collections",     icon: Box,        label: "FRANCHISE VAULT", color: "hover:text-brutal-violet hover:bg-brutal-violet/10" },
                   { href: "/cineblocks",      icon: LayoutGrid, label: "CINEBLOCKS",      color: "hover:text-brutal-cyan hover:bg-brutal-cyan/10" },
-                  { href: "/cineblocks/discover", icon: Users,  label: "DISCOVER BLOCKS", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" },
                   { href: "/blocks",          icon: Users,      label: "WATCH BLOCKS",    color: "hover:text-brutal-red hover:bg-brutal-red/10" },
                   { href: "/news",            icon: Newspaper,  label: "NEWS",            color: "hover:text-brutal-orange hover:bg-brutal-orange/10" },
                 ].map(({ href, icon: Icon, label, color }) => (

@@ -192,14 +192,6 @@ export default function MobileBottomNav() {
                 <span className="font-mono text-xs font-black tracking-widest">CINEBLOCKS (CURATED)</span>
               </Link>
               <Link
-                href="/cineblocks/discover"
-                onClick={() => setBrowseOpen(false)}
-                className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"
-              >
-                <Users className="w-5 h-5 shrink-0" strokeWidth={2.5} />
-                <span className="font-mono text-xs font-black tracking-widest">DISCOVER BLOCKS</span>
-              </Link>
-              <Link
                 href="/recommendations"
                 onClick={() => setBrowseOpen(false)}
                 className="brutal-btn flex items-center gap-3 px-4 py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"

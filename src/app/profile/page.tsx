@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp, Copy, Link2 } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -39,6 +39,7 @@ export default function ProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [copiedProfileLink, setCopiedProfileLink] = useState(false);
 
   useEffect(() => {
     setIsNetflixTheme(localStorage.getItem("theme") === "netflix");
@@ -310,6 +311,33 @@ export default function ProfilePage() {
                 </button>
               )}
             </div>
+
+            {/* Profile link row — only shown when username is set */}
+            {user?.username && (
+              <div className="flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Link2 className="w-4 h-4 text-brutal-violet shrink-0" strokeWidth={2.5} />
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-mono font-bold text-brutal-dim uppercase tracking-widest">Your Public Profile</p>
+                    <p className="text-sm font-bold text-brutal-white truncate">
+                      moviex.app/u/{user.username}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(`${window.location.origin}/u/${user.username}`).then(() => {
+                      setCopiedProfileLink(true);
+                      setTimeout(() => setCopiedProfileLink(false), 2000);
+                    });
+                  }}
+                  className="brutal-chip text-brutal-violet border-brutal-violet hover:bg-brutal-violet hover:text-black transition-colors text-[9px] flex items-center gap-1 shrink-0"
+                >
+                  {copiedProfileLink ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                  {copiedProfileLink ? "COPIED!" : "COPY"}
+                </button>
+              </div>
+            )}
 
             {/* Email row */}
             <div className="flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border">
