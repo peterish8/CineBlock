@@ -28,6 +28,7 @@ export default function StampIndicator({ hasStamp, reviewText }: StampIndicatorP
         alt="Stamped"
         width={36}
         height={36}
+        unoptimized
         className="drop-shadow-md"
       />
 

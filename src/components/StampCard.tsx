@@ -64,6 +64,7 @@ export default function StampCard({ stamp, isOwner, onDelete, onToggleVisibility
           alt=""
           width={120}
           height={120}
+          unoptimized
           className={`rotate-[-15deg] ${isDraft ? "opacity-10" : "opacity-15"}`}
         />
       </div>

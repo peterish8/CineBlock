@@ -152,7 +152,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
         {/* Header */}
         <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-yellow p-4">
           <h2 id={titleId} className="font-outfit text-lg font-black uppercase tracking-wider text-black flex items-center gap-2">
-            <Image src="/stamped_cineblock.png" alt="" width={28} height={28} />
+            <Image src="/stamped_cineblock.png" alt="" width={28} height={28} unoptimized />
             STAMP A FILM
           </h2>
           <button onClick={onClose} aria-label="Close" className="p-1 hover:bg-black/10 transition-colors">
@@ -229,7 +229,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
                     ) : watched ? (
                       <CheckCircle className="w-5 h-5 text-brutal-cyan" strokeWidth={2.5} />
                     ) : (
-                      <Image src="/stamped_cineblock.png" alt="" width={24} height={24} className="opacity-40" />
+                      <Image src="/stamped_cineblock.png" alt="" width={24} height={24} className="opacity-40" unoptimized />
                     )}
                   </div>
                 </button>
