@@ -238,6 +238,32 @@ export const generateCliToken = mutation({
   },
 });
 
+// Verify token without consuming a search count (used on first login)
+export const pingCliToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_cliToken", (q) => q.eq("cliToken", token))
+      .first();
+    if (!user) return { ok: false, error: "Invalid token" };
+
+    const DAILY_LIMIT = 15;
+    const todayUtcStart = new Date();
+    todayUtcStart.setUTCHours(0, 0, 0, 0);
+    const todayStart = todayUtcStart.getTime();
+    const resetAt = user.cliSearchesResetAt ?? 0;
+    const searchesUsed = resetAt < todayStart ? 0 : (user.cliSearchesUsed ?? 0);
+
+    return {
+      ok: true,
+      name: user.name ?? "User",
+      searchesUsed,
+      searchesRemaining: Math.max(0, DAILY_LIMIT - searchesUsed),
+    };
+  },
+});
+
 export const validateCliSearch = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {

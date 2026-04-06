@@ -29,7 +29,7 @@ async function attachLogos<T extends { id: number }>(movies: T[]): Promise<(T & 
 
 // --- Rate limiting: 60 requests per minute per IP ---
 const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT = 60;
+const RATE_LIMIT = 120;
 const RATE_WINDOW_MS = 60_000;
 
 function isRateLimited(request: NextRequest): boolean {

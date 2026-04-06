@@ -2,8 +2,8 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useConvexAuth } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp, Copy, Link2 } from "lucide-react";
+import { useConvexAuth, useConvex } from "convex/react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp, Copy, Link2, Download, Upload } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -22,6 +22,8 @@ export default function ProfilePage() {
   const myStamps = useQuery(api.stamps.getMyStamps);
   const deleteStamp = useMutation(api.stamps.deleteStamp);
   const setStampVisibility = useMutation(api.stamps.setStampVisibility);
+  const importUserData = useMutation(api.dataExport.importUserData);
+  const convex = useConvex();
   const { openStampModal } = useStampModal();
   const { signOut } = useAuthActions();
   const router = useRouter();
@@ -43,6 +45,16 @@ export default function ProfilePage() {
   const [cliTokenVisible, setCliTokenVisible] = useState(false);
   const [copiedCliToken, setCopiedCliToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState(false);
+
+  // Import/Export State
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportOptions, setExportOptions] = useState({ watched: true, liked: true, watchlist: true, blocks: true, stamps: true });
+  const [isExporting, setIsExporting] = useState(false);
+
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importDataPreview, setImportDataPreview] = useState<any>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState("");
 
   useEffect(() => {
     setIsNetflixTheme(localStorage.getItem("theme") === "netflix");
@@ -154,6 +166,69 @@ export default function ProfilePage() {
     } catch {
       setDeleteError("Something went wrong. Please try again.");
       setDeleting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      const data = await convex.query(api.dataExport.exportUserData, { options: exportOptions });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `cineblock-backup-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setShowExportModal(false);
+    } catch (err) {
+      console.error(err);
+      alert("Export failed: " + (err.message || err));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError("");
+    setImportDataPreview(null);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const json = JSON.parse(text);
+        if (!json.version) throw new Error("Invalid CineBlock backup file structure.");
+        setImportDataPreview(json);
+        setShowImportModal(true);
+      } catch (err) {
+        setImportError("Error parsing backup file. Make sure it's a valid JSON backup exported from CineBlock.");
+        setShowImportModal(true);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImportData = async () => {
+    if (!importDataPreview) return;
+    setIsImporting(true);
+    setImportError("");
+    try {
+      const stats = await importUserData({ payload: importDataPreview });
+      alert(`Import completed successfully!\n\nAdded:\n${stats.watchedAdded} Watched Movies\n${stats.likedAdded} Liked Movies\n${stats.watchlistAdded} Watchlist Movies\n${stats.blocksAdded} CineBlocks\n${stats.stampsAdded} Stamps`);
+      setShowImportModal(false);
+      setImportDataPreview(null);
+    } catch (err: any) {
+      console.error(err);
+      setImportError(err.message || "Failed to parse and import data payload.");
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -523,8 +598,14 @@ export default function ProfilePage() {
               </div>
 
               <p className="text-[11px] font-mono text-brutal-muted">
-                Use this token to log in to the CineBlock Terminal CLI. You get <span className="text-brutal-yellow font-bold">15 searches per day</span>. Token resets at midnight UTC.
+                Use this token to search movies from your terminal. You get <span className="text-brutal-yellow font-bold">15 searches per day</span>. Token resets at midnight UTC.
               </p>
+
+              <div className="p-3 bg-black/40 border border-brutal-border font-mono text-[10px] text-brutal-dim space-y-1">
+                <p className="text-brutal-muted">$ npx cineblock</p>
+                <p className="text-brutal-dim">or set env var manually:</p>
+                <p className="text-brutal-muted">$ CINEBLOCK_TOKEN=cb_... npx cineblock</p>
+              </div>
 
               {user?.cliToken ? (
                 <div className="space-y-3">
@@ -571,6 +652,43 @@ export default function ProfilePage() {
             </div>
           );
         })()}
+
+        {/* Data & Privacy */}
+        <div className="brutal-card p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <Download className="w-4 h-4 text-brutal-cyan" strokeWidth={2.5} />
+            <h2 className="text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] flex-1">Data & Privacy</h2>
+          </div>
+          <p className="text-[11px] font-mono text-brutal-muted">
+            Securely backup your library offline, or migrate your profile to a secondary node via raw JSON payloads.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-cyan hover:bg-brutal-cyan/5 transition-all text-left group"
+            >
+              <div className="w-8 h-8 rounded-full bg-brutal-cyan/20 flex items-center justify-center group-hover:bg-brutal-cyan">
+                <Download className="w-4 h-4 text-brutal-cyan group-hover:text-black" />
+              </div>
+              <div>
+                <h3 className="font-display font-black text-white group-hover:text-brutal-cyan">EXPORT BACKUP</h3>
+                <p className="font-mono text-[10px] text-brutal-dim mt-1">Download local JSON file</p>
+              </div>
+            </button>
+
+            <label className="brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-lime hover:bg-brutal-lime/5 transition-all text-left group cursor-pointer">
+              <input type="file" accept=".json" className="hidden" onChange={handleFileChange} />
+              <div className="w-8 h-8 rounded-full bg-brutal-lime/20 flex items-center justify-center group-hover:bg-brutal-lime">
+                <Upload className="w-4 h-4 text-brutal-lime group-hover:text-black" />
+              </div>
+              <div>
+                <h3 className="font-display font-black text-white group-hover:text-brutal-lime">IMPORT DATA</h3>
+                <p className="font-mono text-[10px] text-brutal-dim mt-1">Merge JSON into account</p>
+              </div>
+            </label>
+          </div>
+        </div>
 
         {/* Danger zone */}
         <div className="brutal-card p-6 border-2 border-brutal-red">
@@ -638,6 +756,106 @@ export default function ProfilePage() {
                   CANCEL
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Export Data Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/70">
+            <div className="brutal-card w-full max-w-sm p-6 space-y-5 animate-fade-in">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display font-black text-lg text-brutal-cyan uppercase tracking-tight">Export Terminal</h3>
+                  <p className="text-[11px] font-mono text-brutal-muted mt-1">Select sub-systems to bundle into payload.</p>
+                </div>
+                <button onClick={() => setShowExportModal(false)} className="brutal-btn p-1.5 shrink-0 hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan">
+                  <X className="w-4 h-4" strokeWidth={3} />
+                </button>
+              </div>
+
+              <div className="space-y-2 border-2 border-dashed border-brutal-border p-3">
+                {[
+                  { key: "watched", label: "Watched Movies (incl. Franchise Progress)", count: user?.watchedCount || 0 },
+                  { key: "liked", label: "Liked Movies", count: user?.likedCount || 0 },
+                  { key: "watchlist", label: "Watchlist (Queue)", count: user?.watchlistCount || 0 },
+                  { key: "stamps", label: "Profile Stamps", count: myStamps?.length || 0 },
+                  { key: "blocks", label: "CineBlocks (Playlists)", count: "-" },
+                ].map(({ key, label, count }) => (
+                  <label key={key} className="flex items-center gap-3 cursor-pointer group">
+                    <div className={`w-4 h-4 border-2 flex items-center justify-center transition-colors ${exportOptions[key as keyof typeof exportOptions] ? "bg-brutal-cyan border-brutal-cyan" : "bg-bg border-brutal-dim group-hover:border-brutal-white"}`}>
+                      {exportOptions[key as keyof typeof exportOptions] && <Check className="w-3 h-3 text-black" strokeWidth={4} />}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={exportOptions[key as keyof typeof exportOptions]}
+                      onChange={(e) => setExportOptions({ ...exportOptions, [key]: e.target.checked })}
+                    />
+                    <div className="flex-1 flex justify-between gap-2">
+                       <span className="text-[11px] font-mono text-brutal-white group-hover:text-brutal-cyan transition-colors">{label}</span>
+                       <span className="text-[10px] font-mono text-brutal-dim">{count}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              <button
+                onClick={handleExportData}
+                disabled={isExporting || !Object.values(exportOptions).some(v => v)}
+                className="brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-cyan !text-black !border-brutal-cyan hover:opacity-80 disabled:opacity-50"
+              >
+                {isExporting ? "PACKAGING PAYLOAD..." : "DOWNLOAD JSON PAYLOAD"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Import Data Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/70">
+            <div className="brutal-card w-full max-w-sm p-6 space-y-5 animate-fade-in relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brutal-lime/20 blur-3xl -mx-4 -my-4 pointer-events-none" />
+              
+              <div className="flex items-start justify-between gap-3 relative z-10">
+                <div>
+                  <h3 className="font-display font-black text-lg text-brutal-lime uppercase tracking-tight">Import Terminal</h3>
+                  <p className="text-[11px] font-mono text-brutal-muted mt-1">Merging external node data to local profile.</p>
+                </div>
+                <button onClick={() => setShowImportModal(false)} className="brutal-btn p-1.5 shrink-0 hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime">
+                  <X className="w-4 h-4" strokeWidth={3} />
+                </button>
+              </div>
+
+              {importError ? (
+                <div className="brutal-chip text-brutal-red border-brutal-red p-3 text-xs w-full bg-black/50">
+                  {importError}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-black/60 border border-brutal-border p-4 font-mono text-[10px] text-brutal-dim space-y-3">
+                    <p className="text-brutal-white uppercase tracking-widest text-[9px]">Payload Analyzed:</p>
+                    <ul className="space-y-1 ml-2">
+                       {importDataPreview?.watched?.length > 0 && <li><span className="text-brutal-lime">+</span> {importDataPreview.watched.length} Watched records (Updates Franchise)</li>}
+                       {importDataPreview?.liked?.length > 0 && <li><span className="text-brutal-lime">+</span> {importDataPreview.liked.length} Liked records</li>}
+                       {importDataPreview?.watchlist?.length > 0 && <li><span className="text-brutal-lime">+</span> {importDataPreview.watchlist.length} Queue entries</li>}
+                       {importDataPreview?.stamps?.length > 0 && <li><span className="text-brutal-lime">+</span> {importDataPreview.stamps.length} Stamps</li>}
+                       {importDataPreview?.blocks?.length > 0 && <li><span className="text-brutal-lime">+</span> {importDataPreview.blocks.length} CineBlocks</li>}
+                    </ul>
+                    <p className="text-[9px] text-brutal-muted border-t border-brutal-border/50 pt-2">
+                      New lists will merge existing items (duplicates skipped). New blocks will be generated separately.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={handleImportData}
+                    disabled={isImporting}
+                    className="brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-lime !text-black !border-brutal-lime hover:opacity-80 disabled:opacity-50 relative z-10"
+                  >
+                    {isImporting ? "MERGING NODES..." : "CONFIRM MERGE PROTOCOL"}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

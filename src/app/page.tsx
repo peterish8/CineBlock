@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Bookmark, Sparkles, Film, Tv } from "lucide-react";
 import Link from "next/link";
@@ -8,14 +8,13 @@ import CommandHub from "@/components/CommandHub";
 import PosterGrid from "@/components/PosterGrid";
 import TVGrid from "@/components/TVGrid";
 import TrendingHero from "@/components/TrendingHero";
-import RecommendationsSection from "@/components/RecommendationsSection";
-import { Suspense } from "react";
 // Lazy-load modals — not needed on initial paint, improves FCP
 const MovieModal = dynamic(() => import("@/components/MovieModal"), { ssr: false });
 const WatchlistPanel = dynamic(() => import("@/components/WatchlistPanel"), { ssr: false });
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
+import { usePersonalizedRecs } from "@/hooks/usePersonalizedRecs";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 
@@ -36,6 +35,23 @@ function HomeContent() {
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
   const { liked, watchlist, watched } = useMovieLists();
   const likedCount = liked.length;
+
+  // Snapshot watched IDs at page load only — cards only disappear after a refresh,
+  // not immediately when you mark something as watched during the session.
+  const watchedSnapshotRef = useRef<Set<number> | null>(null);
+  if (watchedSnapshotRef.current === null && watched.length > 0) {
+    watchedSnapshotRef.current = new Set(watched.map((m) => m.id));
+  }
+  const watchedIds = watchedSnapshotRef.current ?? new Set<number>();
+
+  // Personalized recommendations — analyzed from watch history, max 2 API calls per session
+  const { cards: personalizedCards } = usePersonalizedRecs({
+    watched,
+    liked,
+    excludeIds: watchedIds,
+    limit: 12,
+    skip: watched.length + liked.length < 2,
+  });
   const preferredLanguage = usePreferredLanguage();
   const { region } = useRegion();
   // Use explicit preference if set, else fall back to region-based language
@@ -248,9 +264,20 @@ function HomeContent() {
       {/* Content Grid */}
       <div className="flex-1 max-w-[1600px] mx-auto w-full pt-4 pb-8">
         {mediaTab === "movies" ? (
-          <PosterGrid filters={effectiveFilters} onMovieClick={handleMovieClick} />
+          <PosterGrid
+            filters={effectiveFilters}
+            onMovieClick={handleMovieClick}
+            hiddenIds={watchedIds}
+            personalizedCards={personalizedCards}
+          />
         ) : (
-          <TVGrid filters={effectiveFilters} onShowClick={handleTVClick} />
+          <TVGrid
+            filters={effectiveFilters}
+            onShowClick={handleTVClick}
+            watchedIds={watchedIds}
+            watched={[]}
+            onMovieClick={handleMovieClick}
+          />
         )}
       </div>
 

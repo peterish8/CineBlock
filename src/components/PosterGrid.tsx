@@ -6,6 +6,9 @@ import PosterCard from "./PosterCard";
 import SkeletonCard from "./SkeletonCard";
 import { Loader2, Film } from "lucide-react";
 
+// After this many main-grid cards, inject personalized rec cards inline
+const INJECT_AFTER = 18;
+
 interface PosterGridProps {
   filters: {
     query: string;
@@ -18,9 +21,18 @@ interface PosterGridProps {
     keyword?: string;
   };
   onMovieClick: (movie: TMDBMovie) => void;
+  /** IDs to hide immediately (watched + liked + watchlist) */
+  hiddenIds?: Set<number>;
+  /** Pre-computed personalized cards from usePersonalizedRecs — injected inline */
+  personalizedCards?: TMDBMovie[];
 }
 
-export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
+export default function PosterGrid({
+  filters,
+  onMovieClick,
+  hiddenIds,
+  personalizedCards = [],
+}: PosterGridProps) {
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -151,10 +163,41 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
     );
   }
 
+  // Hide any movies the user has already interacted with (watched, liked, watchlisted)
+  const visibleMovies = hiddenIds && hiddenIds.size > 0
+    ? movies.filter((m) => !hiddenIds.has(m.id))
+    : movies;
+
+  // Filter personalized cards: remove anything already in the main grid
+  const mainIds = new Set(visibleMovies.map((m) => m.id));
+  const filteredPersonalized = personalizedCards.filter(
+    (m) => !mainIds.has(m.id) && !(hiddenIds?.has(m.id))
+  );
+
+  // Inject personalized cards after INJECT_AFTER main cards (only if no filters active)
+  const hasActiveFilters =
+    filters.query || filters.genre || filters.year || filters.language ||
+    filters.sort !== "popularity.desc" || filters.rating || filters.runtime || filters.keyword;
+
+  let allCards: TMDBMovie[];
+  if (!hasActiveFilters && filteredPersonalized.length > 0 && visibleMovies.length >= INJECT_AFTER) {
+    allCards = [
+      ...visibleMovies.slice(0, INJECT_AFTER),
+      ...filteredPersonalized,
+      ...visibleMovies.slice(INJECT_AFTER),
+    ];
+  } else {
+    allCards = visibleMovies;
+  }
+
+  // Final dedup
+  const seen = new Set<number>();
+  const dedupedCards = allCards.filter((m) => seen.has(m.id) ? false : (seen.add(m.id), true));
+
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 sm:px-6">
-        {movies.map((movie, i) => (
+        {dedupedCards.map((movie, i) => (
           <PosterCard
             key={movie.id}
             movie={movie}
@@ -177,7 +220,7 @@ export default function PosterGrid({ filters, onMovieClick }: PosterGridProps) {
       {/* Counter */}
       <div className="text-center pb-6">
         <span className="brutal-chip text-brutal-dim inline-block">
-          {movies.length} MOVIES · PAGE {page}/{totalPages}
+          {visibleMovies.length} MOVIES · PAGE {page}/{totalPages}
         </span>
       </div>
     </>

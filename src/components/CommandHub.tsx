@@ -198,7 +198,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           title="CineBlock"
           onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}
         >
-          <Image src="/logo.png" alt="CineBlock" width={128} height={128} className="w-32 h-32 object-contain -my-6" />
+          <Image src="/logo.png" alt="CineBlock" width={128} height={128} className="w-32 h-32 object-contain -my-6" unoptimized />
         </Link>
 
         {/* Search bar — grows to fill middle */}

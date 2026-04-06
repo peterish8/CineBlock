@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Image from "next/image";
 import { Loader2, Tv, Star } from "lucide-react";
-import { TMDBTVShow, TMDBTVDiscoverResponse } from "@/lib/types";
+import { TMDBTVShow, TMDBTVDiscoverResponse, TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import MovieActionRail from "./MovieActionRail";
 import SkeletonCard from "./SkeletonCard";
+import SimilarRow from "./SimilarRow";
+
+const CHUNK_SIZE = 18;
 
 interface TVGridProps {
   filters: {
@@ -19,9 +22,12 @@ interface TVGridProps {
     runtime?: string;
   };
   onShowClick: (show: TMDBTVShow) => void;
+  watchedIds?: Set<number>;
+  watched?: { movieId: number; movieTitle: string }[];
+  onMovieClick?: (movie: TMDBMovie) => void;
 }
 
-export default function TVGrid({ filters, onShowClick }: TVGridProps) {
+export default function TVGrid({ filters, onShowClick, watchedIds, watched, onMovieClick }: TVGridProps) {
   const [shows, setShows] = useState<TMDBTVShow[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -136,86 +142,110 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
     );
   }
 
+  // Filter out watched shows
+  const visibleShows = watchedIds && watchedIds.size > 0
+    ? shows.filter((s) => !watchedIds.has(s.id))
+    : shows;
+
+  // Chunk into groups of CHUNK_SIZE for SimilarRow injection
+  const chunks: TMDBTVShow[][] = [];
+  for (let i = 0; i < visibleShows.length; i += CHUNK_SIZE) {
+    chunks.push(visibleShows.slice(i, i + CHUNK_SIZE));
+  }
+  const hasSimilar = watched && watched.length > 0 && onMovieClick;
+
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 sm:px-6">
-        {shows.map((show, i) => {
-          const year = show.first_air_date?.split("-")[0] || "—";
-          const rating = show.vote_average?.toFixed(1) || "0";
-          const hasImage = show.poster_path !== null;
-          const asMovie = {
-            id: show.id,
-            title: show.name,
-            original_title: show.original_name,
-            overview: show.overview,
-            poster_path: show.poster_path,
-            backdrop_path: show.backdrop_path,
-            release_date: show.first_air_date,
-            vote_average: show.vote_average,
-            vote_count: show.vote_count,
-            genre_ids: show.genre_ids,
-            original_language: show.original_language,
-            popularity: show.popularity,
-            adult: false,
-            media_type: "tv" as const,
-          };
+      {chunks.map((chunk, chunkIndex) => (
+        <div key={chunkIndex}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 px-4 sm:px-6">
+            {chunk.map((show, i) => {
+              const year = show.first_air_date?.split("-")[0] || "—";
+              const rating = show.vote_average?.toFixed(1) || "0";
+              const hasImage = show.poster_path !== null;
+              const asMovie = {
+                id: show.id,
+                title: show.name,
+                original_title: show.original_name,
+                overview: show.overview,
+                poster_path: show.poster_path,
+                backdrop_path: show.backdrop_path,
+                release_date: show.first_air_date,
+                vote_average: show.vote_average,
+                vote_count: show.vote_count,
+                genre_ids: show.genre_ids,
+                original_language: show.original_language,
+                popularity: show.popularity,
+                adult: false,
+                media_type: "tv" as const,
+              };
 
-          return (
-            <button
-              key={`${show.id}-${i}`}
-              onClick={() => onShowClick(show)}
-              className="group brutal-poster relative aspect-[2/3] w-full focus:outline-none animate-fade-in"
-              style={{ animationDelay: `${(i % 20) * 40}ms` }}
-            >
-              {hasImage ? (
-                <Image
-                  src={posterUrl(show.poster_path, "medium")}
-                  alt={show.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-surface-2 p-3">
-                  <span className="text-brutal-muted text-xs font-mono font-bold text-center uppercase">
-                    {show.name}
-                  </span>
-                </div>
-              )}
+              return (
+                <button
+                  key={`${show.id}-${i}`}
+                  onClick={() => onShowClick(show)}
+                  className="group brutal-poster relative aspect-[2/3] w-full focus:outline-none animate-fade-in"
+                  style={{ animationDelay: `${(i % 20) * 40}ms` }}
+                >
+                  {hasImage ? (
+                    <Image
+                      src={posterUrl(show.poster_path, "medium")}
+                      alt={show.name}
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-surface-2 p-3">
+                      <span className="text-brutal-muted text-xs font-mono font-bold text-center uppercase">
+                        {show.name}
+                      </span>
+                    </div>
+                  )}
 
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-                <div className="absolute bottom-0 left-0 right-0 p-3">
-                  <p className="text-brutal-white text-xs font-display font-bold uppercase leading-tight line-clamp-2">
-                    {show.name}
-                  </p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="flex items-center gap-1 text-brutal-yellow">
-                      <Star className="w-3.5 h-3.5 fill-current" strokeWidth={2.5} />
-                      <span className="text-[11px] font-mono font-bold">{rating}</span>
-                    </span>
-                    <span className="text-[11px] font-mono font-bold text-brutal-dim">{year}</span>
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-brutal-white text-xs font-display font-bold uppercase leading-tight line-clamp-2">
+                        {show.name}
+                      </p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="flex items-center gap-1 text-brutal-yellow">
+                          <Star className="w-3.5 h-3.5 fill-current" strokeWidth={2.5} />
+                          <span className="text-[11px] font-mono font-bold">{rating}</span>
+                        </span>
+                        <span className="text-[11px] font-mono font-bold text-brutal-dim">{year}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Rating badge */}
-              <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
-                <Star className="w-3 h-3 text-brutal-yellow fill-current" />
-                <span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
-              </div>
+                  {/* Rating badge */}
+                  <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
+                    <Star className="w-3 h-3 text-brutal-yellow fill-current" />
+                    <span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
+                  </div>
 
-              <MovieActionRail movie={asMovie} actions={["watchlist", "add"]} />
+                  <MovieActionRail movie={asMovie} actions={["watchlist", "add"]} />
 
-              {/* TV badge — bottom left */}
-              <div className="absolute bottom-0 left-0 bg-brutal-cyan text-black border-t-3 border-r-3 border-brutal-border px-1.5 py-1">
-                <Tv className="w-3 h-3" strokeWidth={3} />
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                  {/* TV badge — bottom left */}
+                  <div className="absolute bottom-0 left-0 bg-brutal-cyan text-black border-t-3 border-r-3 border-brutal-border px-1.5 py-1">
+                    <Tv className="w-3 h-3" strokeWidth={3} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {hasSimilar && (
+            <SimilarRow
+              seed={watched![chunkIndex % watched!.length]}
+              mediaType="tv"
+              onMovieClick={onMovieClick!}
+            />
+          )}
+        </div>
+      ))}
 
       <div ref={sentinelRef} className="flex justify-center py-8">
         {loadingMore && (
@@ -228,7 +258,7 @@ export default function TVGrid({ filters, onShowClick }: TVGridProps) {
 
       <div className="text-center pb-6">
         <span className="brutal-chip text-brutal-dim inline-block">
-          {shows.length} TV SHOWS · PAGE {page}/{totalPages}
+          {visibleShows.length} TV SHOWS · PAGE {page}/{totalPages}
         </span>
       </div>
     </>

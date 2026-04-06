@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { TMDBMovie } from "@/lib/types";
+import { saveMovieMeta } from "@/lib/movieMetaCache";
 
 interface MovieListsContextType {
   liked: TMDBMovie[];
@@ -138,6 +139,7 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
 
   const toggleLiked = useCallback((movie: TMDBMovie) => {
     const currentlyLiked = liked.some((m) => m.id === movie.id);
+    if (!currentlyLiked) saveMovieMeta(movie); // cache metadata on add
     if (isAuthenticated) {
       // Server handles auto-add to watched when liking (see lists.ts addToLiked)
       if (currentlyLiked) {
@@ -157,6 +159,7 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
 
   const toggleWatchlist = useCallback((movie: TMDBMovie) => {
     const currentlyIn = watchlist.some((m) => m.id === movie.id);
+    if (!currentlyIn) saveMovieMeta(movie); // cache metadata on add
     if (isAuthenticated) {
       if (currentlyIn) {
         void convexRemoveWatchlist({ movieId: movie.id });
@@ -172,6 +175,7 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
 
   const toggleWatched = useCallback(async (movie: TMDBMovie): Promise<{ added: boolean }> => {
     const currentlyWatched = watched.some((m) => m.id === movie.id);
+    if (!currentlyWatched) saveMovieMeta(movie); // cache metadata on add
     if (isAuthenticated) {
       if (currentlyWatched) {
         void convexRemoveWatched({ movieId: movie.id });

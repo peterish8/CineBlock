@@ -56,8 +56,8 @@ const PosterCard = memo(function PosterCard({ movie, onClick, index }: PosterCar
         </div>
       )}
 
-      {/* Hover overlay - always visible on mobile */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-100 opacity-100">
+      {/* Hover overlay - pointer-events-none so it never intercepts mouse events (prevents border flicker) */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-150 opacity-100">
         <div className="absolute bottom-0 left-0 right-0 p-3">
           {movie.logo_path ? (
             <Image
@@ -83,8 +83,8 @@ const PosterCard = memo(function PosterCard({ movie, onClick, index }: PosterCar
         </div>
       </div>
 
-      {/* Rating badge — top right */}
-      <div className="absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
+      {/* Rating badge — top right, decorative only */}
+      <div className="pointer-events-none absolute top-0 right-0 bg-black border-b-3 border-l-3 border-brutal-border px-2 py-1 flex items-center gap-1">
         <Star className="w-3 h-3 text-brutal-yellow fill-current" />
         <span className="text-[10px] font-mono font-bold text-brutal-yellow">{rating}</span>
       </div>

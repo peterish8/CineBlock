@@ -8,7 +8,9 @@
       "WebFetch(domain:api.github.com)",
       "Bash(ls \"c:/Users/nithy/Desktop/1 prats projects/movieX\"/*.mjs)",
       "Read(//c/Users/nithy/.claude/skills/vercel//**)",
-      "Read(//c/Users/nithy/.claude/skills/vercel/**)"
+      "Read(//c/Users/nithy/.claude/skills/vercel/**)",
+      "Bash(grep \"\\\\.ts$\")",
+      "Bash(node -e \"const { CheckSquare2 } = require\\('lucide-react'\\); console.log\\(CheckSquare2 ? 'exists' : 'missing'\\)\")"
     ]
   }
 }
