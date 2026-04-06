@@ -10,7 +10,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import StampCard from "@/components/StampCard";
-import { Id } from "../../../convex/_generated/dataModel";
 import { useStampModal } from "@/components/StampProvider";
 
 export default function ProfilePage() {
@@ -40,6 +39,10 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [copiedProfileLink, setCopiedProfileLink] = useState(false);
+  const generateCliToken = useMutation(api.users.generateCliToken);
+  const [cliTokenVisible, setCliTokenVisible] = useState(false);
+  const [copiedCliToken, setCopiedCliToken] = useState(false);
+  const [generatingToken, setGeneratingToken] = useState(false);
 
   useEffect(() => {
     setIsNetflixTheme(localStorage.getItem("theme") === "netflix");
@@ -129,6 +132,16 @@ export default function ProfilePage() {
     setEditingUsername(false);
     setUsernameValue("");
     setUsernameError("");
+  };
+
+  const handleGenerateToken = async () => {
+    setGeneratingToken(true);
+    try {
+      await generateCliToken();
+      setCliTokenVisible(true);
+    } finally {
+      setGeneratingToken(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -489,6 +502,75 @@ export default function ProfilePage() {
             </div>
           )}
         </div>
+
+        {/* CineBlock Terminal */}
+        {(() => {
+          const todayStart = new Date();
+          todayStart.setUTCHours(0, 0, 0, 0);
+          const todaySearches = (user?.cliSearchesResetAt ?? 0) >= todayStart.getTime()
+            ? (user?.cliSearchesUsed ?? 0)
+            : 0;
+          const remaining = Math.max(0, 15 - todaySearches);
+
+          return (
+            <div className="brutal-card p-6 space-y-4 border-2 border-brutal-yellow">
+              <div className="flex items-center gap-3">
+                <span className="text-brutal-yellow text-lg">⌨</span>
+                <h2 className="text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em] flex-1">CineBlock Terminal</h2>
+                <span className={`brutal-chip text-[10px] font-mono font-black ${remaining > 0 ? "text-brutal-lime border-brutal-lime" : "text-brutal-red border-brutal-red"}`}>
+                  {todaySearches}/15 TODAY
+                </span>
+              </div>
+
+              <p className="text-[11px] font-mono text-brutal-muted">
+                Use this token to log in to the CineBlock Terminal CLI. You get <span className="text-brutal-yellow font-bold">15 searches per day</span>. Token resets at midnight UTC.
+              </p>
+
+              {user?.cliToken ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 bg-surface-2 border-2 border-brutal-border font-mono text-sm">
+                    <span className={`flex-1 truncate text-brutal-white transition-all select-all ${cliTokenVisible ? "" : "blur-sm select-none"}`}>
+                      {user.cliToken}
+                    </span>
+                    <button
+                      onClick={() => setCliTokenVisible(v => !v)}
+                      className="brutal-chip text-brutal-dim border-brutal-border text-[9px] shrink-0"
+                    >
+                      {cliTokenVisible ? "HIDE" : "SHOW"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        void navigator.clipboard.writeText(user.cliToken!).then(() => {
+                          setCopiedCliToken(true);
+                          setTimeout(() => setCopiedCliToken(false), 2000);
+                        });
+                      }}
+                      className="brutal-chip text-brutal-yellow border-brutal-yellow hover:bg-brutal-yellow hover:text-black transition-colors text-[9px] flex items-center gap-1 shrink-0"
+                    >
+                      {copiedCliToken ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
+                      {copiedCliToken ? "COPIED!" : "COPY"}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => void handleGenerateToken()}
+                    disabled={generatingToken}
+                    className="brutal-btn px-3 py-2 text-[10px] font-mono font-bold text-brutal-dim border-brutal-border hover:border-brutal-yellow hover:text-brutal-yellow disabled:opacity-50"
+                  >
+                    {generatingToken ? "REGENERATING..." : "⟳ REGENERATE TOKEN"}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => void handleGenerateToken()}
+                  disabled={generatingToken}
+                  className="brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-yellow !text-black !border-brutal-yellow hover:opacity-80 disabled:opacity-50"
+                >
+                  {generatingToken ? "GENERATING..." : "⌨ GENERATE CLI TOKEN"}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Danger zone */}
         <div className="brutal-card p-6 border-2 border-brutal-red">

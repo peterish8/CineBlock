@@ -220,3 +220,57 @@ export const currentUser = query({
     return await ctx.db.get(userId);
   },
 });
+
+// ── CLI TOKEN ─────────────────────────────────────────────────────────────────
+
+export const generateCliToken = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
+
+    const bytes = new Uint8Array(24);
+    crypto.getRandomValues(bytes);
+    const token = "cb_" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    await ctx.db.patch(userId, { cliToken: token, cliSearchesUsed: 0, cliSearchesResetAt: 0 });
+    return token;
+  },
+});
+
+export const validateCliSearch = mutation({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_cliToken", (q) => q.eq("cliToken", token))
+      .first();
+
+    if (!user) return { ok: false, error: "Invalid token" };
+
+    const DAILY_LIMIT = 15;
+    const now = Date.now();
+    const todayUtcStart = new Date();
+    todayUtcStart.setUTCHours(0, 0, 0, 0);
+    const todayStart = todayUtcStart.getTime();
+
+    const resetAt = user.cliSearchesResetAt ?? 0;
+    const searchesUsed = resetAt < todayStart ? 0 : (user.cliSearchesUsed ?? 0);
+
+    if (searchesUsed >= DAILY_LIMIT) {
+      return { ok: false, error: "Daily limit reached", searchesUsed: DAILY_LIMIT, searchesRemaining: 0 };
+    }
+
+    await ctx.db.patch(user._id, {
+      cliSearchesUsed: searchesUsed + 1,
+      cliSearchesResetAt: resetAt < todayStart ? now : resetAt,
+    });
+
+    return {
+      ok: true,
+      searchesUsed: searchesUsed + 1,
+      searchesRemaining: DAILY_LIMIT - searchesUsed - 1,
+      name: user.name ?? "User",
+    };
+  },
+});

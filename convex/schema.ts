@@ -25,9 +25,14 @@ const schema = defineSchema({
     watchlistCount: v.optional(v.number()),
     lastRadarSync: v.optional(v.number()),
     lastRadarSyncLanguage: v.optional(v.string()),
+    // CineBlock Terminal CLI
+    cliToken: v.optional(v.string()),
+    cliSearchesUsed: v.optional(v.number()),
+    cliSearchesResetAt: v.optional(v.number()),
   })
     .index("email", ["email"])
     .index("by_username", ["username"])
+    .index("by_cliToken", ["cliToken"])
     .searchIndex("search_by_username", { searchField: "username" })
     .searchIndex("search_by_name", { searchField: "name" }),
 
