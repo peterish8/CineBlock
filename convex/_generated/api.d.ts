@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as blocks from "../blocks.js";
 import type * as cineblocks from "../cineblocks.js";
+import type * as cineswipe from "../cineswipe.js";
 import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
 import type * as http from "../http.js";
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   blocks: typeof blocks;
   cineblocks: typeof cineblocks;
+  cineswipe: typeof cineswipe;
   crons: typeof crons;
   dataExport: typeof dataExport;
   http: typeof http;

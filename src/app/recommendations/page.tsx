@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Sparkles, ArrowLeft, Bookmark, Star, Loader2, Info, X, Tv2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
@@ -19,6 +20,16 @@ function RecommendationsContent() {
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [showSources, setShowSources] = useState(false);
   const [includeCartoons, setIncludeCartoons] = useState(false);
+  const [isGlass, setIsGlass] = useState(false);
+
+  useEffect(() => {
+    setIsGlass(document.body.classList.contains("theme-glass"));
+    const observer = new MutationObserver(() =>
+      setIsGlass(document.body.classList.contains("theme-glass"))
+    );
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const hasFetchedInitialRef = useRef(false);
@@ -65,6 +76,7 @@ function RecommendationsContent() {
       if (genreQuery) params.set("genre", genreQuery);
       // If NOT including cartoons, exclude animation genre
       if (!includeCartoons) params.set("without_genres", String(ANIMATION_GENRE_ID));
+      params.set("include_logos", "1");
       return `/api/movies?action=${action}&${params.toString()}`;
     };
 
@@ -84,7 +96,7 @@ function RecommendationsContent() {
       const pick = watchlist[Math.floor(Math.random() * watchlist.length)];
       const isTv = !!pick.name || !!pick.first_air_date;
       const recAction = isTv ? "recommendations-tv" : "recommendations";
-      apiCalls.push(fetch(`/api/movies?action=${recAction}&id=${pick.id}`));
+      apiCalls.push(fetch(`/api/movies?action=${recAction}&id=${pick.id}&include_logos=1`));
     }
 
     try {
@@ -180,18 +192,21 @@ function RecommendationsContent() {
   };
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
+    <main className={`min-h-screen flex flex-col pb-16 lg:pb-0 ${isGlass ? "bg-transparent" : "bg-bg"}`}>
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
+      <div className={isGlass
+        ? "sticky top-0 z-50 backdrop-blur-2xl border-b border-white/10"
+        : "sticky top-0 z-50 bg-bg border-b-3 border-brutal-border"
+      } style={isGlass ? { background: "rgba(2,8,23,0.75)" } : undefined}>
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2.5">
-              <ArrowLeft className="w-4 h-4" strokeWidth={3} />
+            <Link href="/" className={isGlass ? "p-2.5 rounded-xl bg-white/8 border border-white/10 text-white hover:bg-white/15 transition-all" : "brutal-btn p-2.5"}>
+              <ArrowLeft className="w-4 h-4" strokeWidth={2.5} />
             </Link>
             <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 text-brutal-yellow" strokeWidth={2.5} />
-              <h1 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight">
-                FOR YOU
+              <Sparkles className={`w-5 h-5 ${isGlass ? "text-blue-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
+              <h1 className={isGlass ? "font-display font-semibold text-xl text-white tracking-tight" : "font-display font-bold text-xl text-brutal-white uppercase tracking-tight"}>
+                {isGlass ? "For You" : "FOR YOU"}
               </h1>
             </div>
           </div>
@@ -284,11 +299,38 @@ function RecommendationsContent() {
             </div>
           </div>
         ) : loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <Loader2 className="w-8 h-8 text-brutal-yellow animate-spin" />
-            <span className="text-brutal-dim text-xs font-mono uppercase tracking-widest">
-              ANALYZING YOUR TASTE...
-            </span>
+          <div className="flex flex-col items-center justify-center py-24 gap-6">
+            {isGlass ? (
+              <>
+                <div className="relative w-20 h-20">
+                  <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-[30px] animate-pulse" />
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 rounded-full border-2 border-dashed border-blue-400/25"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="w-8 h-8 text-blue-400 animate-pulse" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <p className="text-white font-display font-medium text-lg tracking-tight">Curating your feed…</p>
+                  <div className="h-0.5 w-36 rounded-full overflow-hidden bg-white/10">
+                    <motion.div
+                      animate={{ x: ["-100%", "200%"] }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                      className="h-full w-1/2 bg-gradient-to-r from-blue-400 to-orange-400 rounded-full"
+                    />
+                  </div>
+                  <p className="text-slate-500 text-xs font-sans">Analyzing your taste…</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Loader2 className="w-8 h-8 text-brutal-yellow animate-spin" />
+                <span className="text-brutal-dim text-xs font-mono uppercase tracking-widest">ANALYZING YOUR TASTE...</span>
+              </>
+            )}
           </div>
         ) : (
           <>

@@ -10,17 +10,223 @@
   box-sizing: border-box;
 }
 
-html {
-  /* scroll-behavior: smooth removed — blocks main thread on low-end devices */
-}
+/* scroll-behavior: smooth intentionally omitted — blocks main thread on low-end devices */
 
 :root {
   --theme-primary: #FFE156;
+  --color-surface: #161616;
+  --color-surface-2: #1E1E1E;
 }
 
 body.theme-netflix {
   --theme-primary: #E50914;
+  --theme-accent: #B20710;
+  --theme-match: #46D369;
+  --color-surface: #181818;
+  --color-surface-2: #222222;
+  background: #141414;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
 }
+
+body.theme-netflix main {
+  background: #141414 !important;
+}
+
+body.theme-netflix ::selection {
+  background: #E50914;
+  color: #ffffff;
+}
+
+body.theme-netflix::-webkit-scrollbar { width: 8px; height: 8px; }
+body.theme-netflix::-webkit-scrollbar-track { background: #141414; }
+body.theme-netflix::-webkit-scrollbar-thumb {
+  background: #2f2f2f;
+  border: 1px solid #141414;
+}
+body.theme-netflix::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
+
+body.theme-netflix .bg-bg { background: #141414 !important; }
+body.theme-netflix .bg-surface { background: #181818 !important; }
+body.theme-netflix .bg-surface-2 { background: #222222 !important; }
+body.theme-netflix .text-brutal-white { color: #ffffff !important; }
+body.theme-netflix .text-brutal-muted { color: rgba(255,255,255,0.68) !important; }
+body.theme-netflix .text-brutal-dim { color: rgba(255,255,255,0.45) !important; }
+body.theme-netflix .border-brutal-border { border-color: rgba(255,255,255,0.10) !important; }
+body.theme-netflix .divide-brutal-border > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,0.10) !important; }
+body.theme-netflix .text-brutal-yellow { color: #ffffff !important; }
+body.theme-netflix .text-brutal-red { color: #E50914 !important; }
+body.theme-netflix .text-brutal-pink { color: #E50914 !important; }
+body.theme-netflix .text-brutal-lime { color: #46D369 !important; }
+body.theme-netflix .text-brutal-cyan { color: #ffffff !important; }
+body.theme-netflix .text-brutal-violet { color: #ffffff !important; }
+body.theme-netflix .bg-brutal-yellow { background: #ffffff !important; }
+body.theme-netflix .bg-brutal-red { background: #E50914 !important; }
+body.theme-netflix .bg-brutal-pink { background: #E50914 !important; }
+body.theme-netflix .bg-brutal-lime { background: #2b2b2b !important; }
+body.theme-netflix .bg-brutal-cyan { background: #2b2b2b !important; }
+body.theme-netflix .bg-brutal-violet { background: #2b2b2b !important; color: #ffffff !important; }
+body.theme-netflix .border-brutal-yellow { border-color: #ffffff !important; }
+body.theme-netflix .border-brutal-red,
+body.theme-netflix .border-brutal-pink { border-color: #E50914 !important; }
+body.theme-netflix .border-brutal-lime { border-color: #46D369 !important; }
+body.theme-netflix .border-brutal-cyan,
+body.theme-netflix .border-brutal-violet { border-color: rgba(255,255,255,0.20) !important; }
+
+body.theme-netflix .sticky.top-0 {
+  background: linear-gradient(180deg, rgba(20,20,20,0.96), rgba(20,20,20,0.82)) !important;
+  border-bottom-color: rgba(255,255,255,0.08) !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+}
+
+body.theme-netflix .brutal-card {
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.32);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+body.theme-netflix .brutal-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 24px 52px rgba(0,0,0,0.42);
+}
+
+body.theme-netflix .brutal-input,
+body.theme-netflix .brutal-select {
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: none;
+  color: #ffffff;
+  border-radius: 6px;
+}
+body.theme-netflix .brutal-input:focus,
+body.theme-netflix .brutal-select:focus {
+  border-color: rgba(255,255,255,0.3);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+body.theme-netflix .brutal-btn {
+  background: #2a2a2a;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: none;
+  color: #ffffff;
+  border-radius: 6px;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+body.theme-netflix .brutal-btn:hover {
+  transform: none;
+  background: #333333;
+  border-color: rgba(255,255,255,0.26);
+  box-shadow: none;
+  color: #ffffff;
+}
+body.theme-netflix .brutal-btn:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+body.theme-netflix .brutal-chip {
+  background: #202020;
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.78);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+body.theme-netflix .brutal-poster {
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: none;
+  border-radius: 4px;
+}
+body.theme-netflix .brutal-poster:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.45);
+}
+
+body.theme-netflix .brutal-shimmer {
+  background: #181818;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+body.theme-netflix .brutal-shimmer::after {
+  background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.08) 50%, transparent 75%);
+}
+
+body.theme-netflix .brutal-modal-overlay {
+  background: rgba(0,0,0,0.8);
+}
+
+body.theme-glass {
+  /* ── Palette ── */
+  --theme-primary: #60A5FA;
+  --theme-accent: #F97316;
+
+  /* ── Surface tokens — makes bg-surface / bg-surface-2 glass-transparent ── */
+  --color-surface: rgba(255,255,255,0.05);
+  --color-surface-2: rgba(255,255,255,0.08);
+
+  /* ── Glass depth hierarchy (Apple visionOS layering) ── */
+  --glass-0: rgba(255,255,255,0.025); /* page background layer */
+  --glass-1: rgba(255,255,255,0.05);  /* cards, panels */
+  --glass-2: rgba(255,255,255,0.08);  /* elevated cards, inputs */
+  --glass-3: rgba(255,255,255,0.12);  /* active/hover states */
+  --glass-4: rgba(255,255,255,0.18);  /* tooltips, top-level overlays */
+
+  /* ── Glass system tokens ── */
+  --glass-border: rgba(255,255,255,0.10);
+  --glass-border-strong: rgba(96,165,250,0.40);
+  --glass-border-accent: rgba(249,115,22,0.30);
+  --glass-blur: 16px;
+  --glass-blur-heavy: 28px;
+  --glass-blur-ultra: 48px;
+  --glass-specular: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.18);
+  --glass-specular-strong: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -1px 0 rgba(0,0,0,0.25);
+
+  /* ── Background ── */
+  background: linear-gradient(135deg, #020817 0%, #050f2e 30%, #0a1628 60%, #020817 100%);
+  background-attachment: fixed;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv01", "liga";
+}
+
+/* Depth orbs intentionally removed from body pseudo-elements.
+   They live inside TrendingHero (position:absolute) so they only
+   appear in the hero and never bleed into the poster grid. */
+
+/* ── Glass fluid typography (Apple / Linear / Stripe) ── */
+body.theme-glass h1 {
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+body.theme-glass h2 {
+  font-size: clamp(1.2rem, 2.5vw, 1.75rem);
+  letter-spacing: -0.02em;
+}
+body.theme-glass h3 {
+  font-size: clamp(1rem, 1.8vw, 1.35rem);
+  letter-spacing: -0.015em;
+}
+
+/* ── Glass selection ── */
+body.theme-glass ::selection {
+  background: rgba(96,165,250,0.28);
+  color: #fff;
+}
+
+/* ── Glass scrollbar ── */
+body.theme-glass::-webkit-scrollbar { width: 6px; }
+body.theme-glass::-webkit-scrollbar-track { background: rgba(2,8,23,0.6); }
+body.theme-glass::-webkit-scrollbar-thumb {
+  background: rgba(96,165,250,0.25);
+  border-radius: 6px;
+}
+body.theme-glass::-webkit-scrollbar-thumb:hover { background: rgba(96,165,250,0.45); }
 
 body {
   background: #0D0D0D;
@@ -38,7 +244,7 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-/* ─── SELECTION ─── */
+/* ─── SELECTION (default + netflix) ─── */
 ::selection {
   background: var(--theme-primary);
   color: #0D0D0D;
@@ -262,4 +468,697 @@ option {
   left: 0; right: 0;
   height: 3px;
   background: var(--theme-primary);
+}
+
+/* ════════════════════════════════════════════════════════════
+   CINEGLASS LAYOUT OVERRIDES
+   These transform the page-level structure in glass mode
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Main page wrapper — transparent so body gradient shows through ── */
+body.theme-glass main {
+  background: transparent !important;
+}
+
+/* ── CommandHub sticky navbar — glass bar ── */
+/* (CommandHub conditionally applies glass-nav class — this is the fallback) */
+body.theme-glass .sticky.top-0 {
+  background: rgba(2, 8, 23, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ── Mobile bottom nav bar — glass ── */
+body.theme-glass nav {
+  background: rgba(2, 8, 23, 0.82) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-top-width: 1px !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ── Buttons inside slide-up glass panels — strip brutal borders, go glass ── */
+body.theme-glass .panel-spring .brutal-btn {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  color: rgba(226, 232, 240, 0.85) !important;
+}
+body.theme-glass .panel-spring .brutal-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  color: #fff !important;
+  transform: none !important;
+  box-shadow: 0 0 16px rgba(96, 165, 250, 0.12) !important;
+}
+/* Panel header label */
+body.theme-glass .panel-spring .text-brutal-dim {
+  color: rgba(148, 163, 184, 0.7) !important;
+  letter-spacing: 0.18em !important;
+}
+
+/* ── Slide-up panels (browse + my lists) — glass ── */
+body.theme-glass .panel-spring {
+  background: rgba(4, 12, 36, 0.94) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border-top: 1px solid rgba(96, 165, 250, 0.2) !important;
+  border-top-width: 1px !important;
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5), 0 -1px 0 rgba(96, 165, 250, 0.15) !important;
+}
+/* Panel grid gap */
+body.theme-glass .panel-spring .grid {
+  gap: 8px !important;
+}
+
+/* ── Slide-up panel backdrop overlays ── */
+body.theme-glass .bg-black\/60 {
+  background-color: rgba(2, 6, 23, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* ── Media tabs divider lines — gradient instead of hard border ── */
+body.theme-glass .h-\[3px\] {
+  height: 1px !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(96, 165, 250, 0.4) 20%,
+    rgba(249, 115, 22, 0.25) 50%,
+    rgba(96, 165, 250, 0.4) 80%,
+    transparent 100%
+  ) !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CINEGLASS THEME — body.theme-glass overrides
+   Scoped under body.theme-glass — never fires for default/netflix
+   Sits outside @layer so it beats every @layer components rule
+   ════════════════════════════════════════════════════════════ */
+
+/* (scrollbar + selection moved to body.theme-glass block above) */
+
+/* ── Tab active bar ── */
+body.theme-glass .tab-active-bar::after {
+  background: linear-gradient(90deg, #60A5FA, #F97316);
+  border-radius: 2px;
+  height: 2px;
+}
+
+/* ── brutal-card ── */
+body.theme-glass .brutal-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-radius: 12px;
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease, border-color 0.3s ease;
+}
+body.theme-glass .brutal-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px var(--glass-border-strong), inset 0 1px 0 rgba(255,255,255,0.12);
+  border-color: var(--glass-border-strong);
+}
+
+/* ── brutal-input ── */
+body.theme-glass .brutal-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+body.theme-glass .brutal-input:focus {
+  border-color: rgba(96,165,250,0.5);
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.12), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* ── brutal-select ── */
+body.theme-glass .brutal-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+body.theme-glass .brutal-select:focus {
+  border-color: rgba(96,165,250,0.5);
+  box-shadow: 0 0 0 3px rgba(96,165,250,0.12);
+}
+
+/* ── brutal-btn ── */
+body.theme-glass .brutal-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+}
+body.theme-glass .brutal-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(96,165,250,0.12);
+  border-color: rgba(96,165,250,0.4);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 16px rgba(96,165,250,0.2), inset 0 1px 0 rgba(255,255,255,0.12);
+  color: #93C5FD;
+}
+body.theme-glass .brutal-btn:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ── brutal-chip ── */
+body.theme-glass .brutal-chip {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ── brutal-poster ── */
+body.theme-glass .brutal-poster {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 18px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.3);
+  overflow: hidden;
+  transition: all 0.15s cubic-bezier(0.22,1,0.36,1);
+}
+body.theme-glass .brutal-poster img {
+  border-radius: 0; /* parent overflow:hidden handles clipping */
+}
+body.theme-glass .brutal-poster:hover {
+  transform: translate(-3px, -3px);
+  border-color: rgba(249,115,22,0.55);
+  box-shadow:
+    0 0 0 2px rgba(249,115,22,0.5),
+    0 16px 48px rgba(0,0,0,0.65),
+    0 0 28px 4px rgba(249,115,22,0.18),
+    6px 6px 0px 0px rgba(249,115,22,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.18);
+}
+body.theme-glass .brutal-poster .glass-poster-overlay {
+  background: linear-gradient(to top, rgba(10,4,0,0.92) 0%, rgba(20,8,0,0.4) 50%, transparent 100%) !important;
+}
+body.theme-glass .brutal-poster .glass-poster-rating {
+  background: rgba(0,0,0,0.45) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0 0 0 10px !important;
+  top: 0 !important;
+  right: 0 !important;
+  border-width: 0 0 1px 1px !important;
+  color: #fff !important;
+}
+
+/* ── region dropdown scrollbar ── */
+.glass-region-drop::-webkit-scrollbar { width: 5px; }
+.glass-region-drop::-webkit-scrollbar-track { background: transparent; }
+.glass-region-drop::-webkit-scrollbar-thumb {
+  background: rgba(96,165,250,1);
+  border-radius: 99px;
+  min-height: 24px;
+}
+.glass-region-drop::-webkit-scrollbar-thumb:hover {
+  background: rgba(96,165,250,0.8);
+}
+
+/* ── actor overrides ── */
+body.theme-glass .glass-actor-card {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 16px !important;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+body.theme-glass .glass-actor-card:hover {
+  transform: translateY(-2px);
+  background: rgba(249,115,22,0.08) !important;
+  border-color: rgba(249,115,22,0.3) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 16px rgba(249,115,22,0.2) !important;
+}
+body.theme-glass .glass-actor-card > div.w-8 {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+body.theme-glass .glass-actor-panel {
+  background: rgba(4,8,20,0.85) !important;
+  backdrop-filter: blur(32px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(150%) !important;
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
+  border-right-width: 0 !important;
+}
+
+body.theme-glass .glass-actor-panel .sticky {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+body.theme-glass .glass-actor-panel .bg-surface-2 {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+body.theme-glass .glass-actor-panel .w-16 {
+  border-radius: 12px !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+body.theme-glass .glass-actor-movie {
+  border-radius: 12px !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  background: transparent !important;
+}
+body.theme-glass .glass-actor-movie:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(249,115,22,0.4), 0 0 20px 4px rgba(249,115,22,0.2);
+  border-color: rgba(249,115,22,0.4) !important;
+}
+body.theme-glass .glass-actor-movie img {
+  border-radius: 12px !important;
+}
+
+/* ── brutal-shimmer ── */
+body.theme-glass .brutal-shimmer {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 14px;
+  animation: glassBorderPulse 2.4s ease-in-out infinite;
+}
+body.theme-glass .brutal-shimmer::after {
+  background: linear-gradient(
+    110deg,
+    transparent 15%,
+    rgba(96,165,250,0.10) 35%,
+    rgba(139,92,246,0.07) 45%,
+    rgba(249,115,22,0.08) 55%,
+    rgba(96,165,250,0.10) 72%,
+    transparent 85%
+  );
+  animation: shimmerGlass 2.2s ease-in-out infinite !important;
+}
+@keyframes glassBorderPulse {
+  0%, 100% { border-color: rgba(255,255,255,0.07); }
+  50%       { border-color: rgba(96,165,250,0.20); }
+}
+@keyframes shimmerGlass {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+/* ── brutal-modal-overlay ── */
+body.theme-glass .brutal-modal-overlay {
+  background: rgba(2,8,23,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASS UTILITY CLASSES — usable in any theme
+   ════════════════════════════════════════════════════════════ */
+
+.glass-panel {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.glass-nav {
+  background: linear-gradient(180deg, rgba(6,12,30,0.72), rgba(6,12,30,0.56));
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+  backdrop-filter: blur(28px) saturate(205%);
+  -webkit-backdrop-filter: blur(28px) saturate(205%);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.glass-badge {
+  background: rgba(96,165,250,0.12);
+  border: 1px solid rgba(96,165,250,0.25);
+  color: #93C5FD;
+  border-radius: 20px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Aurora ambient overlay — add .aurora-bg to a container */
+.aurora-bg { position: relative; }
+.aurora-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(59,130,246,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(249,115,22,0.05) 0%, transparent 60%);
+  background-size: 200% 200%;
+  animation: aurora 12s ease-in-out infinite;
+}
+
+/* Neon border trace — animated gradient sweep */
+.neon-trace { position: relative; overflow: hidden; }
+.neon-trace::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(96,165,250,0.8) 30%,
+    rgba(249,115,22,0.8) 50%,
+    rgba(96,165,250,0.8) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: neonTrace 2s linear infinite;
+  z-index: -1;
+}
+
+/* Convenience animation classes */
+.animate-glass-float { animation: glassFloat 6s ease-in-out infinite; }
+.animate-glow-pulse  { animation: glowPulse 3s ease-in-out infinite; }
+.glass-emerge        { animation: glassEmerge 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+/* ════════════════════════════════════════════════════════════
+   GLASS KEYFRAMES
+   ════════════════════════════════════════════════════════════ */
+
+@keyframes glassFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-8px) rotate(0.5deg); }
+  66%       { transform: translateY(-4px) rotate(-0.5deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px 4px rgba(96,165,250,0.3); }
+  50%       { box-shadow: 0 0 40px 8px rgba(96,165,250,0.6), 0 0 80px 16px rgba(249,115,22,0.15); }
+}
+
+@keyframes aurora {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonTrace {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glassEmerge {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.97); filter: blur(4px); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.005); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* ── Ambient orb drift — GPU-composited (transform only) ── */
+@keyframes orbDrift1 {
+  0%, 100% { transform: translate(0, 0)   scale(1);    }
+  30%       { transform: translate(8vw, 6vh) scale(1.08); }
+  65%       { transform: translate(-4vw, 12vh) scale(0.95); }
+}
+@keyframes orbDrift2 {
+  0%, 100% { transform: translate(0, 0)    scale(1);    }
+  40%       { transform: translate(-7vw, -9vh) scale(1.1);  }
+  75%       { transform: translate(5vw, -4vh)  scale(0.92); }
+}
+
+/* ── Ken Burns subtle zoom for hero backdrops ── */
+@keyframes kenBurns {
+  0%   { transform: scale(1.06) translateX(0px); }
+  50%  { transform: scale(1.10) translateX(-8px); }
+  100% { transform: scale(1.06) translateX(0px); }
+}
+
+/* ── Glass modal/panel entrance from bottom ── */
+@keyframes glassEnterBottom {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.96); filter: blur(12px); }
+  55%  { opacity: 1; transform: translateY(-4px)  scale(1.01); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0)     scale(1);    filter: blur(0); }
+}
+
+/* ── Glass scale entrance (for posters, cards) ── */
+@keyframes glassEnterScale {
+  0%   { opacity: 0; transform: scale(0.93) translateY(12px); filter: blur(6px); }
+  60%  { opacity: 1; transform: scale(1.02) translateY(-2px); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1)    translateY(0);    filter: blur(0); }
+}
+
+/* ── Hero content stagger item ── */
+@keyframes heroContentIn {
+  0%   { opacity: 0; transform: translateY(20px); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* ── Backdrop cinematic reveal (modal) ── */
+@keyframes backdropReveal {
+  0%   { transform: scale(1.1);  filter: brightness(0.2) blur(12px); }
+  100% { transform: scale(1.0);  filter: brightness(0.6) blur(0px);  }
+}
+
+/* ── Toast drain progress bar ── */
+@keyframes toastDrain {
+  0%   { width: 100%; }
+  100% { width: 0%; }
+}
+
+/* ── Clip-path section header wipe ── */
+@keyframes headerWipe {
+  0%   { clip-path: inset(0 100% 0 0); }
+  100% { clip-path: inset(0 0% 0 0); }
+}
+
+/* ── Glass poster enter (more dramatic than posterIn) ── */
+body.theme-glass .animate-poster-in {
+  animation: glassEnterScale 0.45s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+/* ── Haptic press for glass nav items ── */
+body.theme-glass .tap-target:active {
+  transform: scale(0.90);
+  transition: transform 0.07s ease;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASS TOAST STYLES
+   ════════════════════════════════════════════════════════════ */
+.glass-toast {
+  background: rgba(4, 12, 36, 0.88);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.10);
+}
+.glass-toast-success { border-color: rgba(34,197,94,0.35) !important;  }
+.glass-toast-error   { border-color: rgba(239,68,68,0.35)  !important;  }
+.glass-toast-info    { border-color: rgba(96,165,250,0.35)  !important;  }
+.glass-toast-drain {
+  height: 2px;
+  border-radius: 0 0 16px 16px;
+  animation: toastDrain linear forwards;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASS POSTER CARD — 3D TILT + SPECULAR
+   ════════════════════════════════════════════════════════════ */
+body.theme-glass .brutal-poster {
+  transform-style: preserve-3d;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
+  /* transform handled by JS mouse tracking */
+}
+
+/* ── Specular catch-light on glass cards ── */
+body.theme-glass .brutal-card,
+body.theme-glass .glass-panel {
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.18);
+}
+
+/* ── Glass action rail — stagger slide-in on poster hover ── */
+body.theme-glass .glass-action-rail > div > div[role="button"],
+body.theme-glass .glass-action-rail > div > div[tabindex] {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.34,1.56,0.64,1), background 0.15s ease;
+}
+body.theme-glass .brutal-poster:hover .glass-action-rail > div > div[role="button"],
+body.theme-glass .brutal-poster:hover .glass-action-rail > div > div[tabindex] {
+  opacity: 1;
+  transform: translateX(0);
+}
+body.theme-glass .glass-action-rail > div > div[role="button"]:nth-child(1) { transition-delay: 0ms;  }
+body.theme-glass .glass-action-rail > div > div[role="button"]:nth-child(2) { transition-delay: 40ms; }
+body.theme-glass .glass-action-rail > div > div[role="button"]:nth-child(3) { transition-delay: 80ms; }
+body.theme-glass .glass-action-rail > div > div[role="button"]:nth-child(4) { transition-delay:120ms; }
+
+/* ── Radar skeleton glass override ── */
+body.theme-glass .glass-radar-skeleton {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.09) !important;
+  border-radius: 14px !important;
+  animation: glassBorderPulse 2.4s ease-in-out infinite;
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASS RESPONSIVE — viewport-specific tweaks
+   ════════════════════════════════════════════════════════════ */
+
+/* Mobile: tighter glass panels */
+@media (max-width: 639px) {
+  body.theme-glass .panel-spring {
+    border-radius: 28px 28px 0 0 !important;
+  }
+}
+
+/* ── Glass poster grid gap refinement ── */
+body.theme-glass .grid.grid-cols-2 {
+  gap: 0.875rem;
+}
+@media (min-width: 640px) {
+  body.theme-glass .grid.grid-cols-2 {
+    gap: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  body.theme-glass .grid.grid-cols-2 {
+    gap: 1.25rem;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   GLASS SUB-PAGE OVERRIDES
+   Applies to News, Box Office, Profile, Watchlist, Liked, Watched
+   These pages don't have isGlass logic so we handle via global CSS
+   ════════════════════════════════════════════════════════════ */
+
+/* Main page background — transparent so body gradient shows */
+body.theme-glass main {
+  background: transparent !important;
+}
+
+/* Sticky page headers — glass bar */
+body.theme-glass main > .sticky {
+  background: rgba(2, 8, 23, 0.78) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  border-bottom-width: 1px !important;
+}
+
+/* Brutal cards get glass treatment on sub-pages */
+body.theme-glass main .brutal-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+  border-radius: 16px !important;
+}
+
+/* Brutal poster cards on sub-pages */
+body.theme-glass main .brutal-poster {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+body.theme-glass main .brutal-poster:hover {
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(96, 165, 250, 0.3) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* Brutal buttons on sub-pages */
+body.theme-glass main .brutal-btn {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  color: rgba(226, 232, 240, 0.85) !important;
+}
+body.theme-glass main .brutal-btn:hover {
+  background: rgba(255, 255, 255, 0.11) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  color: #fff !important;
+  transform: none !important;
+}
+
+/* Brutal chips on sub-pages */
+body.theme-glass main .brutal-chip {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  font-family: 'Space Grotesk', system-ui, sans-serif !important;
+}
+
+/* Brutal selects on sub-pages */
+body.theme-glass main .brutal-select {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Surface background areas */
+body.theme-glass main .bg-surface,
+body.theme-glass main .bg-surface-2 {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+}
+body.theme-glass main .bg-bg {
+  background: rgba(2, 8, 23, 0.6) !important;
+}
+
+/* Typography softening for glass sub-pages */
+body.theme-glass main .font-mono {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+body.theme-glass main h1,
+body.theme-glass main h2 {
+  letter-spacing: -0.025em;
+}
+
+/* Border color overrides */
+body.theme-glass main .border-brutal-border {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+body.theme-glass main .border-b-3 {
+  border-bottom-width: 1px !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+/* Loading bar skins */
+body.theme-glass main .brutal-chip .animate-spin {
+  color: #60A5FA !important;
 }

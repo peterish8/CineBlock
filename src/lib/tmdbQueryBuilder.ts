@@ -13,6 +13,7 @@ export type BuildParamsOptions = {
   sortBy?: "vote_average.desc" | "popularity.desc";
   page?: number;
   minVoteAverage?: string;
+  voteCountMin?: string;
 };
 
 function sanitizeLanguages(languages: string[]) {
@@ -41,7 +42,7 @@ export function buildTMDBParams(state: WizardState, options: BuildParamsOptions 
     include_video: "false",
     page: String(page),
     "vote_average.gte": options.minVoteAverage ?? "6.9",
-    "vote_count.gte": voteCountMin,
+    "vote_count.gte": options.voteCountMin ?? voteCountMin,
     sort_by: options.sortBy ?? "vote_average.desc",
   };
 

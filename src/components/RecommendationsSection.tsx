@@ -31,7 +31,7 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
         moviesToFetch.map(async (movie) => {
           const isTv = !!movie.name || !!movie.first_air_date;
           const recAction = isTv ? "recommendations-tv" : "recommendations";
-          const res = await fetch(`/api/movies?action=${recAction}&id=${movie.id}`);
+          const res = await fetch(`/api/movies?action=${recAction}&id=${movie.id}&include_logos=1`);
           if (!res.ok) throw new Error("Failed");
           const data: TMDBDiscoverResponse = await res.json();
           return data.results;
@@ -110,7 +110,7 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
                 <PosterCard
                   key={movie.id}
                   movie={movie}
-                  onClick={() => onMovieClick(movie)}
+                  onMovieClick={onMovieClick}
                   index={i}
                 />
               ))}

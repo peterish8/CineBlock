@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"loader\\\\|loaderFile\\\\|images\" next.config*)",
+      "Bash(grep -n \"loader\" src/components/CommandHub.tsx)"
+    ]
+  }
+}

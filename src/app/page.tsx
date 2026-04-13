@@ -15,6 +15,7 @@ import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
 import { usePersonalizedRecs } from "@/hooks/usePersonalizedRecs";
+import { useThemeMode } from "@/hooks/useThemeMode";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 
@@ -35,6 +36,7 @@ function HomeContent() {
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
   const { liked, watchlist, watched } = useMovieLists();
   const likedCount = liked.length;
+  const isGlass = useThemeMode() === "glass";
 
   // Snapshot watched IDs at page load only — cards only disappear after a refresh,
   // not immediately when you mark something as watched during the session.
@@ -58,10 +60,13 @@ function HomeContent() {
   const activeLanguage = preferredLanguage || REGION_TO_LANGUAGE[region] || "";
 
   // Apply language preference as default when user hasn't manually set a language filter
-  const effectiveFilters = {
+  // useMemo prevents a new object reference on every render — without this, PosterGrid's
+  // fetchMovies useCallback sees [filters] as changed, fires useEffect, clears movies and
+  // re-fetches every time useMovieLists state updates (like/watchlist/watched toggles).
+  const effectiveFilters = useMemo(() => ({
     ...filters,
     language: filters.language || activeLanguage,
-  };
+  }), [filters, activeLanguage]);
 
   const isSearching = filters.query.trim().length > 0 || filters.genre !== "" || filters.year !== "" || filters.language !== "";
 
@@ -195,7 +200,7 @@ function HomeContent() {
   }, [openMovie]);
 
   return (
-    <main className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
+    <main suppressHydrationWarning className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
       {/* Trending Hero */}
       <TrendingHero onMovieClick={handleMovieClick} preferredLanguage={activeLanguage} />
 
@@ -205,17 +210,18 @@ function HomeContent() {
       {/* Bottom FABs */}
       <div className="fixed bottom-6 right-4 z-[80] hidden lg:flex flex-col sm:flex-row items-end sm:items-center gap-2">
         {likedCount > 0 && (
-          <Link
+          <Link suppressHydrationWarning
             href="/recommendations"
-            className="brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow"
+            className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow"}
+            style={isGlass ? { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" } : undefined}
           >
             <Sparkles className="w-4 h-4" strokeWidth={2.5} />
             <span className="font-mono font-bold text-xs">FOR YOU</span>
           </Link>
         )}
-        <button
-          onClick={() => setWatchlistOpen(true)}
-          className="brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime"
+        <button suppressHydrationWarning
+          className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime"}
+          style={isGlass ? { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" } : undefined}
           id="watchlist-fab"
         >
           <Bookmark className="w-4 h-4" fill={(watchlist.length + liked.length + watched.length) > 0 ? "currentColor" : "none"} strokeWidth={2.5} />

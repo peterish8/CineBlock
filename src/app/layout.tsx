@@ -63,6 +63,7 @@ export const viewport: Viewport = {
 import { BlockModalProvider } from "@/components/BlockModalProvider";
 import { StampProvider } from "@/components/StampProvider";
 import { ToastProvider } from "@/components/ToastProvider";
+import { ENABLE_NETFLIX_THEME } from "@/lib/themeConfig";
 
 export default function RootLayout({
   children,
@@ -72,6 +73,9 @@ export default function RootLayout({
   return (
     <ConvexAuthNextjsServerProvider>
       <html lang="en" suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme')||'default';var allowNetflix=${ENABLE_NETFLIX_THEME ? "true" : "false"};if(t==='glass')document.body.classList.add('theme-glass');else if(allowNetflix&&t==='netflix')document.body.classList.add('theme-netflix');}catch(e){}` }} />
+        </head>
         <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
           <ConvexClientProvider>
             <ToastProvider>

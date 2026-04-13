@@ -1,5 +1,7 @@
 // TMDB API TypeScript interfaces
 
+export type ThemeName = "default" | "netflix" | "glass";
+
 export interface TMDBMovie {
   id: number;
   title: string;

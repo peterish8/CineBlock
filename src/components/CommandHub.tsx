@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle, Radio } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +10,9 @@ import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 import StampSearchModal from "./StampSearchModal";
+import type { ThemeName } from "@/lib/types";
+import { applyThemeToDocument, readStoredTheme, useThemeMode } from "@/hooks/useThemeMode";
+import { getNextTheme } from "@/lib/themeConfig";
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 const SHOW_STREAMING = false; // set to true when streaming page is ready
@@ -39,8 +43,22 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [stampSearchOpen, setStampSearchOpen] = useState(false);
-  const [isNetflixTheme, setIsNetflixTheme] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
   const [browseOpen, setBrowseOpen] = useState(false);
+  const [keywordPopupOpen, setKeywordPopupOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [leftReactorFiring, setLeftReactorFiring] = useState(false);
+  const [rightReactorFiring, setRightReactorFiring] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const browseRef = useRef<HTMLDivElement>(null);
@@ -51,25 +69,56 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   // Clean up pending debounce on unmount to prevent memory leaks
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
+  const emitFilters = useCallback(
+    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string, kw: string) => {
+      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run, keyword: kw });
+    },
+    [onFilterChange]
+  );
+
+  const clearAll = useCallback(() => {
+    setQuery("");
+    setGenre("");
+    setYear("");
+    setLanguage("");
+    setSort("popularity.desc");
+    setRating("");
+    setRuntime("");
+    setKeyword("");
+    emitFilters("", "", "", "", "popularity.desc", "", "", "");
+  }, [emitFilters]);
+
+  const fireLeftReactor = useCallback(() => {
+    setLeftReactorFiring(true);
+    setTimeout(() => setLeftReactorFiring(false), 700);
+    clearAll();
+  }, [clearAll]);
+
+  const fireRightReactor = useCallback(() => {
+    setRightReactorFiring(true);
+    setTimeout(() => setRightReactorFiring(false), 700);
+    // Pick random filters
+    const randomGenre = GENRES[Math.floor(Math.random() * GENRES.length)];
+    const randomYear = String(2010 + Math.floor(Math.random() * 15));
+    const sortOptions = ["popularity.desc", "vote_average.desc", "release_date.desc", "revenue.desc"];
+    const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+    setGenre(randomGenre.id.toString());
+    setYear(randomYear);
+    setSort(randomSort);
+    setRating(""); setRuntime(""); setKeyword("");
+    emitFilters("", randomGenre.id.toString(), randomYear, "", randomSort, "", "", "");
+  }, [emitFilters]);
+
   useEffect(() => {
-    // Load theme setting
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "netflix") {
-      setIsNetflixTheme(true);
-      document.body.classList.add("theme-netflix");
-    }
+    const saved = readStoredTheme();
+    setCurrentTheme(saved);
+    applyThemeToDocument(saved);
   }, []);
 
   const toggleTheme = () => {
-    setIsNetflixTheme((prev) => {
-      const next = !prev;
-      if (next) {
-        document.body.classList.add("theme-netflix");
-        localStorage.setItem("theme", "netflix");
-      } else {
-        document.body.classList.remove("theme-netflix");
-        localStorage.setItem("theme", "default");
-      }
+    setCurrentTheme((prev) => {
+      const next = getNextTheme(prev);
+      applyThemeToDocument(next);
       return next;
     });
   };
@@ -98,13 +147,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     };
   }, []);
 
-  const emitFilters = useCallback(
-    (q: string, g: string, y: string, l: string, s: string, rat: string, run: string, kw: string) => {
-      onFilterChange({ query: q, genre: g, year: y, language: l, sort: s, rating: rat, runtime: run, keyword: kw });
-    },
-    [onFilterChange]
-  );
-
   const handleQueryChange = (value: string) => {
     setQuery(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -127,18 +169,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     if (key === "keyword") setKeyword(value);
     emitFilters(newState.query, newState.genre, newState.year, newState.language, newState.sort, newState.rating, newState.runtime, newState.keyword);
   };
-
-  const clearAll = useCallback(() => {
-    setQuery("");
-    setGenre("");
-    setYear("");
-    setLanguage("");
-    setSort("popularity.desc");
-    setRating("");
-    setRuntime("");
-    setKeyword("");
-    emitFilters("", "", "", "", "popularity.desc", "", "", "");
-  }, [emitFilters]);
 
   const hasActiveFilters = genre || year || language || sort !== "popularity.desc" || rating || runtime || keyword;
 
@@ -188,7 +218,34 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   }, [browseOpen]);
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-bg">
+    <div
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+        currentTheme === "glass"
+          ? "glass-nav"
+          : scrolled
+          ? ""
+          : "bg-bg"
+      }`}
+      style={currentTheme === "glass"
+        ? scrolled
+          ? {
+              background: "linear-gradient(180deg, rgba(6,12,30,0.78), rgba(6,12,30,0.62))",
+              backdropFilter: "blur(34px) saturate(220%)",
+              WebkitBackdropFilter: "blur(34px) saturate(220%)",
+              borderBottom: "1px solid rgba(255,255,255,0.12)",
+              boxShadow: "0 10px 34px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.08)",
+            }
+          : undefined
+        : scrolled
+        ? {
+            background: "rgba(13, 13, 13, 0.82)",
+            backdropFilter: "blur(22px) saturate(160%)",
+            WebkitBackdropFilter: "blur(22px) saturate(160%)",
+            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.45)",
+          }
+        : undefined}
+    >
       {/* Single compact bar: logo | search | controls */}
       <div className="w-full px-3 sm:px-6 py-3 flex items-center gap-2 sm:gap-3">
         {/* Logo — left */}
@@ -198,31 +255,60 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           title="CineBlock"
           onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}
         >
-          <Image src="/logo.png" alt="CineBlock" width={128} height={128} className="w-32 h-32 object-contain -my-6" unoptimized />
+          <Image src="/logo.png" alt="CineBlock" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
         </Link>
 
         {/* Search bar — grows to fill middle */}
-        <div className="brutal-input flex items-center px-4 py-2 flex-1 focus-within:border-brutal-yellow focus-within:shadow-brutal-accent">
-          <Search className="w-4 h-4 text-brutal-dim mr-2 flex-shrink-0" strokeWidth={2.5} />
+        <div className={`flex items-center px-3 sm:px-4 py-2 flex-1 transition-all duration-200 ${
+          currentTheme === "glass"
+            ? "rounded-xl border focus-within:shadow-[0_0_0_3px_rgba(96,165,250,0.18),0_0_20px_rgba(96,165,250,0.10)]"
+            : "brutal-input focus-within:border-brutal-yellow focus-within:shadow-brutal-accent"
+        }`}
+          style={currentTheme === "glass" ? {
+            background: "rgba(255,255,255,0.07)",
+            border: "1px solid rgba(255,255,255,0.11)",
+            backdropFilter: "blur(12px)",
+          } : undefined}
+        >
+          <Search
+            className={`w-4 h-4 mr-2 flex-shrink-0 transition-colors duration-200 ${
+              currentTheme === "glass" ? "text-slate-500 focus-within:text-blue-400" : "text-brutal-dim"
+            }`}
+            strokeWidth={2.5}
+          />
           <input
             ref={searchRef}
             type="text"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search movies..."
-            className="flex-1 bg-transparent text-brutal-white text-sm font-body placeholder:text-brutal-dim outline-none"
+            className={`flex-1 bg-transparent text-sm outline-none ${
+              currentTheme === "glass"
+                ? "text-white placeholder:text-slate-500 font-display"
+                : "text-brutal-white font-body placeholder:text-brutal-dim"
+            }`}
             id="search-input"
           />
-          <div className="hidden sm:flex items-center gap-1 ml-3 brutal-chip text-brutal-dim px-2 py-0.5 text-[10px]">
+          {/* Kbd shortcut */}
+          <div className={`hidden sm:flex items-center gap-1 ml-3 px-2 py-0.5 text-[10px] ${
+            currentTheme === "glass"
+              ? "text-slate-500 bg-white/5 border border-white/10 rounded-md"
+              : "brutal-chip text-brutal-dim"
+          }`}>
             <Command className="w-3 h-3" />
             <span>K</span>
           </div>
+          {/* Filter toggle */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`ml-2 brutal-btn px-2 py-1.5 ${
-              showFilters || hasActiveFilters
-                ? "!border-brutal-lime !shadow-brutal-lime !text-brutal-lime"
-                : ""
+            className={`ml-2 transition-all duration-200 active:scale-90 ${
+              currentTheme === "glass"
+                ? `px-2 py-1.5 rounded-lg ${
+                    showFilters || hasActiveFilters
+                      ? "bg-blue-500/25 border border-blue-400/50 text-blue-300 shadow-[0_0_12px_rgba(96,165,250,0.20)]"
+                      : "bg-white/6 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                  }`
+                : `brutal-btn px-2 py-1.5 ${showFilters || hasActiveFilters ? "!border-brutal-lime !shadow-brutal-lime !text-brutal-lime" : ""}`
             }`}
             id="filter-toggle"
             aria-label="Toggle filters"
@@ -233,7 +319,11 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           {onSurpriseMe && (
             <button
               onClick={onSurpriseMe}
-              className="ml-2 hidden sm:flex brutal-btn px-2 py-1.5 !bg-brutal-yellow !text-black !border-brutal-yellow hover:scale-105 active:scale-95 transition-transform group"
+              className={`ml-2 hidden sm:flex px-2 py-1.5 active:scale-90 transition-all group ${
+                currentTheme === "glass"
+                  ? "rounded-lg bg-orange-500/18 border border-orange-400/30 text-orange-300 hover:bg-orange-500/28 hover:border-orange-400/50"
+                  : "brutal-btn !bg-brutal-yellow !text-black !border-brutal-yellow hover:scale-105"
+              }`}
               title="Surprise Me!"
             >
               <Dices className="w-4 h-4 group-hover:rotate-12 transition-transform" strokeWidth={2.5} />
@@ -263,7 +353,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             </button>
 
             {/* Side panel overlay */}
-            {browseOpen && (
+            {browseOpen && mounted && createPortal(
               <div
                 role="button"
                 aria-label="Close side panel"
@@ -276,66 +366,243 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                     browseButtonRef.current?.focus();
                   }
                 }}
-              />
+              />, document.body
             )}
-            <div
-              ref={browsePanelRef}
-              id="browse-panel"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Browse navigation"
-              className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
-            >
-              <div className="flex items-center justify-between px-4 py-4 border-b-3 border-brutal-border">
-                <span className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore</span>
-                <button onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }} className="text-brutal-dim hover:text-brutal-white transition-colors">
-                  <X className="w-4 h-4" strokeWidth={2.5} />
-                </button>
-              </div>
-              <div className="flex flex-col flex-1 overflow-y-auto">
-                {[
-                  ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
-                  { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
-                  { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
-                  { href: "/collections",     icon: Box,        label: "FRANCHISE VAULT", color: "hover:text-brutal-violet hover:bg-brutal-violet/10" },
-                  { href: "/cineblocks",      icon: LayoutGrid, label: "CINEBLOCKS",      color: "hover:text-brutal-cyan hover:bg-brutal-cyan/10" },
-                  { href: "/blocks",          icon: Users,      label: "WATCH BLOCKS",    color: "hover:text-brutal-red hover:bg-brutal-red/10" },
-                  { href: "/news",            icon: Newspaper,  label: "NEWS",            color: "hover:text-brutal-orange hover:bg-brutal-orange/10" },
-                ].map(({ href, icon: Icon, label, color }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    onClick={() => setBrowseOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 last:border-0 ${color} transition-colors`}
+            {/* ── Explore panel ── */}
+            {mounted && createPortal(currentTheme === "glass" ? (
+              /* GLASS VERSION — premium frosted glass sidebar */
+              <div
+                ref={browsePanelRef}
+                id="browse-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Browse navigation"
+                className={`fixed right-0 top-0 h-full w-72 z-50 flex flex-col transition-transform duration-300 ease-out ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
+                style={{
+                  background: "rgba(4, 10, 30, 0.92)",
+                  backdropFilter: "blur(40px) saturate(180%)",
+                  WebkitBackdropFilter: "blur(40px) saturate(180%)",
+                  borderLeft: "1px solid rgba(96,165,250,0.25)",
+                  boxShadow: "-32px 0 80px rgba(0,0,0,0.8), inset 1px 0 0 rgba(255,255,255,0.08)",
+                }}
+              >
+                {/* Top accent line */}
+                <div style={{ height: "2px", background: "linear-gradient(90deg, transparent, #60A5FA, #F97316, transparent)" }} />
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.35)", boxShadow: "0 0 16px rgba(96,165,250,0.3)" }}>
+                      <Box className="w-4 h-4" style={{ color: "#60A5FA" }} strokeWidth={2} />
+                    </div>
+                    <div>
+                      <div className="text-xs font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(96,165,250,0.7)" }}>Navigation</div>
+                      <div className="text-sm font-bold text-white leading-none mt-0.5">Explore</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }}
+                    className="w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all duration-150"
+                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                    }}
                   >
-                    <Icon className="w-4 h-4 shrink-0" strokeWidth={2.5} />
-                    {label}
+                    <X className="w-4 h-4" strokeWidth={2} />
+                  </button>
+                </div>
+
+                {/* Nav list */}
+                <div className="flex flex-col flex-1 overflow-y-auto px-3 py-3 gap-0.5">
+
+                  {/* Section label */}
+                  <div className="px-3 pb-1 pt-1">
+                    <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Discover</span>
+                  </div>
+
+                  {[
+                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2,        label: "Streaming",       sub: "Stream anywhere",    iconColor: "#60A5FA", glow: "rgba(96,165,250,0.25)" }] : []),
+                    { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover",  iconColor: "#F472B6", glow: "rgba(244,114,182,0.25)" },
+                    { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks", iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
+                    { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits",   iconColor: "#A3E635", glow: "rgba(163,230,53,0.25)" },
+                    { href: "/collections",     icon: Box,        label: "Franchise Vault", sub: "Series & universes", iconColor: "#A78BFA", glow: "rgba(167,139,250,0.25)" },
+                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setBrowseOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
+                      style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = `${iconColor}18`;
+                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
+                        e.currentTarget.style.paddingLeft = "10px";
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderLeft = "none";
+                        e.currentTarget.style.paddingLeft = "12px";
+                      }}
+                    >
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
+                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
+                        <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</span>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* Divider */}
+                  <div className="mx-3 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
+
+                  {/* Section label */}
+                  <div className="px-3 pb-1">
+                    <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Community</span>
+                  </div>
+
+                  {[
+                    { href: "/cineblocks", icon: LayoutGrid, label: "CineBlocks",   sub: "Curated lists",     iconColor: "#22D3EE", glow: "rgba(34,211,238,0.25)" },
+                    { href: "/blocks",     icon: Users,      label: "Watch Blocks", sub: "Group watchlists",  iconColor: "#F87171", glow: "rgba(248,113,113,0.25)" },
+                    { href: "/news",       icon: Newspaper,  label: "Film News",    sub: "Latest updates",    iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
+                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setBrowseOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
+                      style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = `${iconColor}18`;
+                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
+                        e.currentTarget.style.paddingLeft = "10px";
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.borderLeft = "none";
+                        e.currentTarget.style.paddingLeft = "12px";
+                      }}
+                    >
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
+                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
+                        <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</span>
+                      </div>
+                    </Link>
+                  ))}
+
+                  {/* Divider */}
+                  <div className="mx-3 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
+
+                  {/* Stamp a Film */}
+                  <button
+                    onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left w-full"
+                    style={{ color: "rgba(255,255,255,0.85)" }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "rgba(255,225,86,0.12)";
+                      e.currentTarget.style.borderLeft = "2px solid #FFE156";
+                      e.currentTarget.style.paddingLeft = "10px";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderLeft = "none";
+                      e.currentTarget.style.paddingLeft = "12px";
+                    }}
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,225,86,0.15)", border: "1px solid rgba(255,225,86,0.4)", boxShadow: "0 0 12px rgba(255,225,86,0.2)" }}>
+                      <CheckCircle className="w-[18px] h-[18px] text-yellow-300" strokeWidth={2} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[13px] font-semibold leading-tight text-white">Stamp a Film</span>
+                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Mark as watched</span>
+                    </div>
+                  </button>
+
+                  {/* Release Radar */}
+                  <Link
+                    href="/radar"
+                    onClick={() => setBrowseOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
+                    style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = "rgba(34,211,238,0.12)";
+                      e.currentTarget.style.borderLeft = "2px solid #22D3EE";
+                      e.currentTarget.style.paddingLeft = "10px";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderLeft = "none";
+                      e.currentTarget.style.paddingLeft = "12px";
+                    }}
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative" style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.4)", boxShadow: "0 0 12px rgba(34,211,238,0.25)" }}>
+                      <Radio className="w-[18px] h-[18px] text-cyan-400" strokeWidth={2} />
+                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(34,211,238,1)" }} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[13px] font-semibold leading-tight text-white">Release Radar</span>
+                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(34,211,238,0.7)" }}>Live updates</span>
+                    </div>
                   </Link>
-                ))}
-                
-                {/* Additional actions that open modals */}
-                <button
-                  onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
-                  className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-yellow hover:bg-brutal-yellow/10 transition-colors text-left"
-                >
-                  <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />
-                  STAMP A FILM
-                </button>
+                </div>
 
-                {/* RELEASE RADAR */}
-                <Link
-                  href="/radar"
-                  onClick={() => setBrowseOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-cyan hover:bg-brutal-cyan/10 transition-colors text-left relative group"
-                >
-                  <Radio className="w-4 h-4 shrink-0 group-hover:animate-pulse" strokeWidth={2.5} />
-                  RELEASE RADAR
-                  <div className="absolute top-1/2 -translate-y-1/2 right-4 w-2 h-2 bg-brutal-cyan rounded-full shadow-[0_0_8px_rgba(87,255,245,0.5)]" />
-                </Link>
+                {/* Footer glow strip */}
+                <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent)" }} />
               </div>
-            </div>
+            ) : (
+              /* BRUTALIST VERSION — unchanged */
+              <div
+                ref={browsePanelRef}
+                id="browse-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Browse navigation"
+                className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
+              >
+                <div className="flex items-center justify-between px-4 py-4 border-b-3 border-brutal-border">
+                  <span className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore</span>
+                  <button onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }} className="text-brutal-dim hover:text-brutal-white transition-colors">
+                    <X className="w-4 h-4" strokeWidth={2.5} />
+                  </button>
+                </div>
+                <div className="flex flex-col flex-1 overflow-y-auto">
+                  {[
+                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
+                    { href: "/swipe",           icon: Sparkles,   label: "CINESWIPE",       color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
+                    { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
+                    { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
+                    { href: "/collections",     icon: Box,        label: "FRANCHISE VAULT", color: "hover:text-brutal-violet hover:bg-brutal-violet/10" },
+                    { href: "/cineblocks",      icon: LayoutGrid, label: "CINEBLOCKS",      color: "hover:text-brutal-cyan hover:bg-brutal-cyan/10" },
+                    { href: "/blocks",          icon: Users,      label: "WATCH BLOCKS",    color: "hover:text-brutal-red hover:bg-brutal-red/10" },
+                    { href: "/news",            icon: Newspaper,  label: "NEWS",            color: "hover:text-brutal-orange hover:bg-brutal-orange/10" },
+                  ].map(({ href, icon: Icon, label, color }) => (
+                    <Link key={href} href={href} onClick={() => setBrowseOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 last:border-0 ${color} transition-colors`}>
+                      <Icon className="w-4 h-4 shrink-0" strokeWidth={2.5} />{label}
+                    </Link>
+                  ))}
+                  <button onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                    className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-yellow hover:bg-brutal-yellow/10 transition-colors text-left">
+                    <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />STAMP A FILM
+                  </button>
+                  <Link href="/radar" onClick={() => setBrowseOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-cyan hover:bg-brutal-cyan/10 transition-colors text-left relative group">
+                    <Radio className="w-4 h-4 shrink-0 group-hover:animate-pulse" strokeWidth={2.5} />RELEASE RADAR
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 w-2 h-2 bg-brutal-cyan rounded-full shadow-[0_0_8px_rgba(87,255,245,0.5)]" />
+                  </Link>
+                </div>
+              </div>
+            ), document.body)}
           </div>
-
 
           {/* FIND MOVIE — primary CTA */}
           <button
@@ -351,14 +618,18 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           <button
             onClick={toggleTheme}
             className={`hidden lg:flex brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest items-center gap-1.5 transition-all ${
-              isNetflixTheme
+              currentTheme === "netflix"
                 ? "bg-[#E50914] text-white border-[#E50914] hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
+                : currentTheme === "glass"
+                ? "bg-blue-500/20 text-blue-300 border-blue-500/40 hover:bg-blue-500/30 hover:border-blue-400"
                 : "bg-surface border-brutal-border hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
             }`}
-            title="Toggle Theme"
+            title={`Theme: ${currentTheme} — click to cycle`}
           >
             <Palette className="w-4 h-4" strokeWidth={2.5} />
-            <span className="hidden sm:inline-block">THEME</span>
+            <span className="hidden sm:inline-block">
+              {currentTheme === "default" ? "THEME" : currentTheme === "netflix" ? "NETFLIX" : "GLASS"}
+            </span>
           </button>
 
           <div className="hidden lg:block">
@@ -369,9 +640,65 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
 
       {/* Filter Panel — only renders when open */}
       {showFilters && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-4">
-          <div className="bg-surface border-3 border-brutal-border p-4 shadow-brutal animate-pop-in">
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 xl:grid-cols-8 gap-4">
+        <div className={`max-w-6xl mx-auto pb-3 sm:pb-4 animate-pop-in ${currentTheme === "glass" ? "px-0 sm:px-2 flex items-center gap-3" : "px-3 sm:px-6"}`}>
+
+          {/* Left arc reactor — glass only */}
+          {currentTheme === "glass" && (
+            <div className="relative shrink-0 hidden sm:flex flex-col items-center gap-1 group">
+              <button
+                onClick={fireLeftReactor}
+                title="Clear all filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                style={{ width: 40, height: 40 }}
+              >
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style={{ filter: leftReactorFiring ? "drop-shadow(0 0 8px rgba(96,165,250,0.9))" : undefined }}
+              >
+                {/* Outer ring */}
+                <circle cx="20" cy="20" r="18" stroke="rgba(96,165,250,0.25)" strokeWidth="1"/>
+                {/* Mid ring */}
+                <circle cx="20" cy="20" r="13" stroke="rgba(96,165,250,0.45)" strokeWidth="1">
+                  <animate attributeName="opacity" values="0.45;0.9;0.45" dur="2s" repeatCount="indefinite"/>
+                </circle>
+                {/* Rotating dashes */}
+                <circle cx="20" cy="20" r="10" stroke="rgba(96,165,250,0.35)" strokeWidth="1" strokeDasharray="6 4">
+                  <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur={leftReactorFiring ? "0.4s" : "6s"} repeatCount="indefinite"/>
+                </circle>
+                {/* Inner glow ring */}
+                <circle cx="20" cy="20" r="6" fill="rgba(96,165,250,0.12)" stroke="rgba(96,165,250,0.7)" strokeWidth="1.2">
+                  <animate attributeName="opacity" values="0.7;1;0.7" dur="1.6s" repeatCount="indefinite"/>
+                </circle>
+                {/* Core */}
+                <circle cx="20" cy="20" r="3" fill="rgba(96,165,250,1)">
+                  <animate attributeName="opacity" values="1;0.5;1" dur={leftReactorFiring ? "0.1s" : "1.6s"} repeatCount="indefinite"/>
+                </circle>
+                {/* Core glow */}
+                <circle cx="20" cy="20" r="3" fill="rgba(96,165,250,0.6)" filter="url(#glow-l)"/>
+                <defs>
+                  <filter id="glow-l" x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+              </svg>
+              </button>
+              <span className="text-[9px] font-display tracking-widest uppercase opacity-0 group-hover:opacity-60 transition-opacity duration-200" style={{ color: "#93C5FD" }}>RESET</span>
+            </div>
+          )}
+
+          <div className={`${currentTheme === "glass" ? "flex-1 min-w-0 rounded-2xl" : ""}`}
+            style={currentTheme === "glass" ? {
+              background: "rgba(4,12,36,0.80)",
+              backdropFilter: "blur(20px) saturate(150%)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+              padding: "10px 14px",
+            } : undefined}
+          >
+            <div className={currentTheme === "glass"
+              ? "flex gap-2"
+              : "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 xl:grid-cols-8 gap-4"
+            }>
               <FilterSelect
                 label="GENRE"
                 value={genre}
@@ -420,6 +747,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 ]}
                 placeholder="Any"
               />
+              {/* KEYWORD */}
               <FilterSelect
                 label="KEYWORD"
                 value={keyword}
@@ -472,10 +800,90 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               </div>
             )}
           </div>
+
+          {/* Right arc reactor — glass only */}
+          {currentTheme === "glass" && (
+            <div className="relative shrink-0 hidden sm:flex flex-col items-center gap-1 group">
+              <button
+                onClick={fireRightReactor}
+                title="Randomize filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                style={{ width: 40, height: 40 }}
+              >
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
+                  style={{ filter: rightReactorFiring ? "drop-shadow(0 0 8px rgba(249,115,22,0.9))" : undefined }}
+                >
+                  <circle cx="20" cy="20" r="18" stroke="rgba(249,115,22,0.25)" strokeWidth="1"/>
+                  <circle cx="20" cy="20" r="13" stroke="rgba(249,115,22,0.45)" strokeWidth="1">
+                    <animate attributeName="opacity" values="0.45;0.9;0.45" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="20" cy="20" r="10" stroke="rgba(249,115,22,0.35)" strokeWidth="1" strokeDasharray="6 4">
+                    <animateTransform attributeName="transform" type="rotate" from="360 20 20" to="0 20 20" dur={rightReactorFiring ? "0.4s" : "6s"} repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="20" cy="20" r="6" fill="rgba(249,115,22,0.12)" stroke="rgba(249,115,22,0.7)" strokeWidth="1.2">
+                    <animate attributeName="opacity" values="0.7;1;0.7" dur="1.6s" begin="0.4s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="20" cy="20" r="3" fill="rgba(249,115,22,1)">
+                    <animate attributeName="opacity" values="1;0.5;1" dur={rightReactorFiring ? "0.1s" : "1.6s"} begin="0.4s" repeatCount="indefinite"/>
+                  </circle>
+                  <circle cx="20" cy="20" r="3" fill="rgba(249,115,22,0.6)" filter="url(#glow-r)"/>
+                  <defs>
+                    <filter id="glow-r" x="-100%" y="-100%" width="300%" height="300%">
+                      <feGaussianBlur stdDeviation="3" result="blur"/>
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+                </svg>
+              </button>
+              <span className="text-[9px] font-display tracking-widest uppercase opacity-0 group-hover:opacity-60 transition-opacity duration-200" style={{ color: "#FB923C" }}>RANDOM</span>
+            </div>
+          )}
         </div>
       )}
 
 
+
+      {/* ── Keyword picker popup (mobile only) ── */}
+      {keywordPopupOpen && mounted && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[70] bg-black/60"
+            onClick={() => setKeywordPopupOpen(false)}
+          />
+          {/* Bottom sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-[71] bg-bg border-t-3 border-brutal-border rounded-t-2xl max-h-[75svh] flex flex-col animate-slide-up">
+            <div className="flex items-center justify-between px-4 py-3 border-b-2 border-brutal-border shrink-0">
+              <span className="text-[11px] font-mono font-black tracking-[0.2em] uppercase text-brutal-dim">Keyword / Vibe</span>
+              <button onClick={() => setKeywordPopupOpen(false)} className="text-brutal-dim hover:text-brutal-white transition-colors">
+                <X className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 flex flex-wrap gap-2">
+              {/* Clear chip */}
+              <button
+                onClick={() => { handleFilterChange("keyword", ""); setKeywordPopupOpen(false); }}
+                className={`brutal-chip text-xs font-mono font-bold transition-colors ${!keyword ? "bg-brutal-yellow text-black border-brutal-yellow" : "text-brutal-dim border-brutal-border hover:text-brutal-white"}`}
+              >
+                ANY
+              </button>
+              {KEYWORD_CHIPS.map((k) => {
+                const active = keyword === k.id.toString();
+                return (
+                  <button
+                    key={k.id}
+                    onClick={() => { handleFilterChange("keyword", active ? "" : k.id.toString()); setKeywordPopupOpen(false); }}
+                    className={`brutal-chip text-xs font-mono font-bold transition-colors ${active ? "bg-brutal-lime text-black border-brutal-lime" : "text-brutal-white border-brutal-border hover:border-brutal-lime hover:text-brutal-lime"}`}
+                  >
+                    {k.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
       {stampSearchOpen && (
@@ -503,25 +911,119 @@ function FilterSelect({
   options: { value: string; label: string }[];
   placeholder: string;
 }) {
+  const theme = useThemeMode();
+  const isGlass = theme === "glass";
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder;
+
+  if (isGlass) {
+    return (
+      <div ref={ref} className="flex-1 min-w-0">
+        <label className="block text-[10px] font-display font-bold uppercase tracking-[0.15em] mb-1.5 text-slate-500">
+          {label}
+        </label>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-xl transition-all duration-200 focus:outline-none whitespace-nowrap"
+            style={{
+              background: value ? "rgba(96,165,250,0.12)" : "rgba(255,255,255,0.06)",
+              border: value ? "1px solid rgba(96,165,250,0.38)" : "1px solid rgba(255,255,255,0.10)",
+              color: value ? "#93C5FD" : "rgba(148,163,184,0.75)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <span className="font-display">{selectedLabel}</span>
+            <ChevronDown
+              className="ml-1 shrink-0 w-3.5 h-3.5 transition-transform duration-200"
+              style={{
+                color: value ? "#93C5FD" : "rgba(100,116,139,0.8)",
+                transform: open ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+              strokeWidth={2}
+            />
+          </button>
+
+          {open && (
+            <div
+              className="absolute z-50 top-[calc(100%+6px)] left-0 right-0 rounded-xl overflow-hidden"
+              style={{
+                background: "rgba(4,12,36,0.95)",
+                border: "1px solid rgba(96,165,250,0.18)",
+                backdropFilter: "blur(24px) saturate(160%)",
+                boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)",
+              }}
+            >
+              <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin">
+                <button
+                  type="button"
+                  onClick={() => { onChange(""); setOpen(false); }}
+                  className="w-full text-left px-3 py-2 text-xs font-display transition-colors duration-100"
+                  style={{
+                    color: !value ? "#93C5FD" : "rgba(148,163,184,0.7)",
+                    background: !value ? "rgba(96,165,250,0.10)" : "transparent",
+                  }}
+                  onMouseEnter={(e) => { if (value) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+                  onMouseLeave={(e) => { if (value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  {placeholder}
+                </button>
+                {options.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { onChange(opt.value); setOpen(false); }}
+                    className="w-full text-left px-3 py-2 text-xs font-display transition-colors duration-100"
+                    style={{
+                      color: value === opt.value ? "#93C5FD" : "rgba(148,163,184,0.7)",
+                      background: value === opt.value ? "rgba(96,165,250,0.10)" : "transparent",
+                    }}
+                    onMouseEnter={(e) => { if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
+                    onMouseLeave={(e) => { if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <label className="block text-[10px] font-mono font-bold text-brutal-muted uppercase tracking-[0.15em] mb-1.5">
+      <label className="block text-[10px] font-mono font-bold uppercase tracking-[0.15em] mb-1.5 text-brutal-muted">
         {label}
       </label>
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="brutal-select w-full px-3 py-2 pr-8 text-sm font-mono"
+          className="brutal-select font-mono w-full px-3 py-2 pr-8 text-xs sm:text-sm"
         >
           <option value="">{placeholder}</option>
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
-        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-dim pointer-events-none" strokeWidth={3} />
+        <ChevronDown
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-brutal-dim"
+          strokeWidth={3}
+        />
       </div>
     </div>
   );

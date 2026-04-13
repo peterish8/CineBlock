@@ -195,6 +195,32 @@ const schema = defineSchema({
     .index("by_userId_tmdbId", ["userId", "tmdbId"])
     .index("by_userId_releaseDate", ["userId", "releaseDate"])
     .index("by_releaseDate", ["releaseDate"]),
+
+  // ─── CineSwipe ──────────────────────────────────────────────────────────────
+
+  // Individual swipe records — used for "never show this movie again" filtering
+  swipe_history: defineTable({
+    userId: v.id("users"),
+    movieId: v.number(),
+    action: v.union(
+      v.literal("liked"),
+      v.literal("watchlist"),
+      v.literal("watched"),
+      v.literal("block"),
+      v.literal("skip")
+    ),
+    swipedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_movieId", ["userId", "movieId"]),
+
+  // Daily swipe counter — lightweight ledger for enforcing the 200/day limit
+  swipe_daily: defineTable({
+    userId: v.id("users"),
+    date: v.string(), // ISO date e.g. "2026-04-10"
+    count: v.number(),
+  })
+    .index("by_userId_date", ["userId", "date"]),
 });
 
 export default schema;

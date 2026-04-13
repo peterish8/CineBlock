@@ -3,6 +3,8 @@ import { v } from "convex/values";
 
 const NEWS_RETENTION_DAYS = 3;
 const THROTTLE_RETENTION_DAYS = 1;
+const SWIPE_DAILY_RETENTION_DAYS = 7;
+const SWIPE_HISTORY_RETENTION_DAYS = 30;
 const BATCH_SIZE = 100;
 const USER_BATCH_SIZE = 50;
 
@@ -12,6 +14,10 @@ export const purgeOldData = internalMutation({
     const now = Date.now();
     const newsCutoff = now - NEWS_RETENTION_DAYS * 24 * 60 * 60 * 1000;
     const throttleCutoff = now - THROTTLE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const swipeDailyCutoff = new Date(now - SWIPE_DAILY_RETENTION_DAYS * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+    const swipeHistoryCutoff = now - SWIPE_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
     // Only fetch expired news rows using the by_createdAt index
     const newsRows = await ctx.db
@@ -29,6 +35,27 @@ export const purgeOldData = internalMutation({
       .take(BATCH_SIZE);
     for (const row of throttles) {
       await ctx.db.delete(row._id);
+    }
+
+    // Purge old swipe_daily rows (older than 7 days)
+    const oldDailyRows = await ctx.db
+      .query("swipe_daily")
+      .take(BATCH_SIZE);
+    for (const row of oldDailyRows) {
+      if (row.date < swipeDailyCutoff) {
+        await ctx.db.delete(row._id);
+      }
+    }
+
+    // Purge old swipe_history rows (older than 30 days)
+    // This allows movies to resurface after a month so users can re-discover them
+    const oldSwipeRows = await ctx.db
+      .query("swipe_history")
+      .take(BATCH_SIZE);
+    for (const row of oldSwipeRows) {
+      if (row.swipedAt < swipeHistoryCutoff) {
+        await ctx.db.delete(row._id);
+      }
     }
   },
 });

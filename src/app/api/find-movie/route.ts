@@ -95,15 +95,16 @@ async function fetchDiscoverBatch(
     yearLevel: number;
     languageMode: "strict" | "any";
     sortBy: "vote_average.desc" | "popularity.desc";
-    pageAttempts: number;
+    pages: number[];
     minVoteAverage?: string;
+    voteCountMin?: string;
   },
   excludeSet: Set<number>
 ) {
   const collected: any[] = [];
   const seen = new Set<number>();
 
-  for (let i = 0; i < opts.pageAttempts; i++) {
+  for (const page of opts.pages) {
     const relaxedYears = getRelaxedYears(state.yearFrom, state.yearTo, opts.yearLevel);
     const params = buildTMDBParams(state, {
       includeKeyword: opts.includeKeyword,
@@ -111,8 +112,9 @@ async function fetchDiscoverBatch(
       yearTo: relaxedYears.yearTo,
       languageMode: opts.languageMode,
       sortBy: opts.sortBy,
-      page: randomPage(opts.sortBy === "popularity.desc" ? 12 : 8),
+      page,
       minVoteAverage: opts.minVoteAverage,
+      voteCountMin: opts.voteCountMin,
     });
 
     const searchParams = new URLSearchParams(params);
@@ -242,20 +244,22 @@ export async function POST(req: NextRequest) {
 
     // Each yearLevel expands ±N years around the user's chosen range.
     // Level 0 = exact range, level 1 = ±1 yr (e.g. 2016-2017 → 2015-2018), etc.
+    const hasStrictLanguage = state.languages.some((lang) => lang !== "any");
+
     const stages = hasKeyword
       ? [
-          { includeKeyword: true,  yearLevel: 0, languageMode: "strict" as const, sortBy: "vote_average.desc" as const, pageAttempts: 3, minVoteAverage: "7.0" },
-          { includeKeyword: true,  yearLevel: 1, languageMode: "strict" as const, sortBy: "vote_average.desc" as const, pageAttempts: 3, minVoteAverage: "6.9" },
-          { includeKeyword: true,  yearLevel: 2, languageMode: "strict" as const, sortBy: "popularity.desc" as const, pageAttempts: 4, minVoteAverage: "6.7" },
-          { includeKeyword: true,  yearLevel: 3, languageMode: "strict" as const, sortBy: "popularity.desc" as const, pageAttempts: 4, minVoteAverage: "6.5" },
-          { includeKeyword: true,  yearLevel: 4, languageMode: "any"    as const, sortBy: "popularity.desc" as const, pageAttempts: 5, minVoteAverage: "6.3" },
+          { includeKeyword: true, yearLevel: 0, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2], minVoteAverage: "0", voteCountMin: "0" },
+          { includeKeyword: true, yearLevel: 1, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3], minVoteAverage: "0", voteCountMin: "0" },
+          { includeKeyword: true, yearLevel: 2, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "vote_average.desc" as const, pages: [1, 2], minVoteAverage: "5.0", voteCountMin: "3" },
+          { includeKeyword: true, yearLevel: 4, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3, 4], minVoteAverage: "0", voteCountMin: "0" },
+          { includeKeyword: true, yearLevel: 8, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3, 4, 5], minVoteAverage: "0", voteCountMin: "0" },
         ]
       : [
-          { includeKeyword: false, yearLevel: 0, languageMode: "strict" as const, sortBy: "vote_average.desc" as const, pageAttempts: 3, minVoteAverage: "7.0" },
-          { includeKeyword: false, yearLevel: 1, languageMode: "strict" as const, sortBy: "vote_average.desc" as const, pageAttempts: 3, minVoteAverage: "6.9" },
-          { includeKeyword: false, yearLevel: 2, languageMode: "strict" as const, sortBy: "popularity.desc" as const, pageAttempts: 4, minVoteAverage: "6.7" },
-          { includeKeyword: false, yearLevel: 3, languageMode: "strict" as const, sortBy: "popularity.desc" as const, pageAttempts: 4, minVoteAverage: "6.5" },
-          { includeKeyword: false, yearLevel: 4, languageMode: "any"    as const, sortBy: "popularity.desc" as const, pageAttempts: 5, minVoteAverage: "6.3" },
+          { includeKeyword: false, yearLevel: 0, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2], minVoteAverage: "6.0", voteCountMin: hasStrictLanguage ? "10" : "25" },
+          { includeKeyword: false, yearLevel: 1, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "vote_average.desc" as const, pages: [1, 2], minVoteAverage: "6.2", voteCountMin: hasStrictLanguage ? "8" : "20" },
+          { includeKeyword: false, yearLevel: 2, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3], minVoteAverage: "5.8", voteCountMin: hasStrictLanguage ? "5" : "15" },
+          { includeKeyword: false, yearLevel: 4, languageMode: hasStrictLanguage ? "strict" as const : "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3, 4], minVoteAverage: "5.5", voteCountMin: hasStrictLanguage ? "2" : "10" },
+          { includeKeyword: false, yearLevel: 6, languageMode: "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3, 4], minVoteAverage: "5.3", voteCountMin: "8" },
         ];
 
     const strictPool: any[] = [];
@@ -309,18 +313,23 @@ export async function POST(req: NextRequest) {
       if (final.length >= TARGET_RESULTS) break;
     }
 
-    // Last-resort: completely open pool, any year/language
+    // Last-resort: preserve the user's specific intent when they gave language and/or keyword.
     if (final.length < TARGET_RESULTS) {
       const fallbackBatch = await fetchDiscoverBatch(
-        { ...state, keywordId: null, languages: ["any"], yearFrom: 1950, yearTo: new Date().getFullYear() },
+        {
+          ...state,
+          yearFrom: hasKeyword ? Math.max(1950, state.yearFrom - 12) : 1950,
+          yearTo: new Date().getFullYear(),
+        },
         apiKey,
         {
-          includeKeyword: false,
+          includeKeyword: hasKeyword,
           yearLevel: 0,
-          languageMode: "any",
+          languageMode: hasStrictLanguage ? "strict" : "any",
           sortBy: "popularity.desc",
-          pageAttempts: 4,
-          minVoteAverage: "6.2",
+          pages: [1, 2, 3, 4, 5],
+          minVoteAverage: "0",
+          voteCountMin: "0",
         },
         excludeSet
       );
