@@ -5,10 +5,18 @@ import { motion } from "framer-motion";
 import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import PosterCard from "./PosterCard";
 import SkeletonCard from "./SkeletonCard";
-import { Loader2, Film, SearchX, Clapperboard, Ghost } from "lucide-react";
+import { Loader2, Film, SearchX, Clapperboard, Ghost, Sparkles } from "lucide-react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as [number, number, number, number];
+
+const FETCH_MESSAGES = [
+  "Scanning the archive…",
+  "Curating your cinema…",
+  "Hold tight, fetching films…",
+  "Searching across the reel…",
+  "Loading your collection…",
+];
 
 const posterVariant = {
   hidden: { opacity: 0, y: 18, scale: 0.95, filter: "blur(5px)" },
@@ -51,6 +59,8 @@ export default function PosterGrid({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchMsgIdx, setFetchMsgIdx] = useState(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const theme = useThemeMode();
@@ -101,13 +111,16 @@ export default function PosterGrid({
         });
         setTotalPages(data.total_pages);
         setPage(pageNum);
+        setLoading(false);
+        setLoadingMore(false);
+        setHasLoaded(true);
       } catch (err: unknown) {
         if (err instanceof Error && err.name === "AbortError") return;
         setError("Failed to load movies. Check your API key.");
         console.error(err);
-      } finally {
         setLoading(false);
         setLoadingMore(false);
+        setHasLoaded(true);
       }
     },
     [filters]
@@ -116,8 +129,15 @@ export default function PosterGrid({
   useEffect(() => {
     setMovies([]);
     setPage(1);
+    setHasLoaded(false);
     fetchMovies(1, false);
   }, [fetchMovies]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => setFetchMsgIdx((p) => (p + 1) % FETCH_MESSAGES.length), 2200);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -173,6 +193,114 @@ export default function PosterGrid({
   }
 
   if (loading) {
+    if (isGlass) {
+      return (
+        <div className="flex w-full flex-col items-center justify-center px-4 py-20 text-center sm:py-28">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col items-center gap-8"
+          >
+            {/* Cinema reel SVG + orbital rings */}
+            <div className="relative flex h-40 w-40 items-center justify-center">
+              {/* Outer glow pulse */}
+              <div className="absolute inset-0 rounded-full animate-pulse" style={{ background: "radial-gradient(circle, rgba(96,165,250,0.18) 0%, transparent 70%)", filter: "blur(20px)", animationDuration: "2.5s" }} />
+
+              {/* Slow outer ring */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 18, ease: "linear" }}
+                className="absolute inset-0 rounded-full"
+                style={{ border: "1.5px dashed rgba(96,165,250,0.25)" }}
+              />
+
+              {/* Fast inner ring */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
+                className="absolute inset-[18px] rounded-full"
+                style={{ border: "1.5px dashed rgba(249,115,22,0.30)" }}
+              />
+
+              {/* Orbital dot — blue */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 3.5, ease: "linear" }}
+                className="absolute inset-0"
+              >
+                <div className="absolute top-1 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full bg-blue-400" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.8)" }} />
+              </motion.div>
+
+              {/* Orbital dot — orange */}
+              <motion.div
+                animate={{ rotate: -360 }}
+                transition={{ repeat: Infinity, duration: 5, ease: "linear" }}
+                className="absolute inset-[18px]"
+              >
+                <div className="absolute bottom-0 right-2 h-1.5 w-1.5 rounded-full bg-orange-400" style={{ boxShadow: "0 0 6px rgba(249,115,22,0.8)" }} />
+              </motion.div>
+
+              {/* Center film icon */}
+              <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: "rgba(8,15,40,0.80)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 0 30px rgba(96,165,250,0.20), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
+                <motion.div
+                  animate={{ scale: [1, 1.08, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                >
+                  <Film className="h-7 w-7 text-blue-300" strokeWidth={1.5} />
+                </motion.div>
+              </div>
+
+              {/* Floating clapperboard */}
+              <motion.div
+                animate={{ y: [-5, 5, -5], rotate: [-10, 10, -10], opacity: [0.6, 1, 0.6] }}
+                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                className="absolute -right-3 -bottom-1 z-20"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "rgba(8,15,40,0.90)", border: "1px solid rgba(249,115,22,0.40)", boxShadow: "0 0 14px rgba(249,115,22,0.30)" }}>
+                  <Clapperboard className="h-4.5 w-4.5 text-orange-400" strokeWidth={1.5} />
+                </div>
+              </motion.div>
+
+              {/* Floating sparkle */}
+              <motion.div
+                animate={{ y: [4, -4, 4], x: [-3, 3, -3], opacity: [0.4, 0.9, 0.4] }}
+                transition={{ repeat: Infinity, duration: 2.8, ease: "easeInOut", delay: 0.6 }}
+                className="absolute -left-2 top-3 z-20"
+              >
+                <Sparkles className="h-4 w-4 text-blue-400/70" strokeWidth={1.5} />
+              </motion.div>
+            </div>
+
+            {/* Cycling text */}
+            <div className="space-y-2">
+              <motion.p
+                key={fetchMsgIdx}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="text-base font-display font-medium tracking-tight text-white"
+              >
+                {FETCH_MESSAGES[fetchMsgIdx]}
+              </motion.p>
+              <p className="text-xs font-mono text-slate-500">This won&apos;t take long</p>
+            </div>
+
+            {/* Animated progress bar */}
+            <div className="h-px w-48 overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.08)" }}>
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, rgba(96,165,250,0.8), rgba(249,115,22,0.8))" }}
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+              />
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
+
     return (
       <div className={gridClassName}>
         {Array.from({ length: skeletonCount }).map((_, i) => (
@@ -182,38 +310,77 @@ export default function PosterGrid({
     );
   }
 
-  if (movies.length === 0) {
+  if (movies.length === 0 && hasLoaded) {
     return (
       <div className="flex w-full flex-col items-center justify-center px-4 py-20 text-center sm:py-32">
         {isGlass ? (
           <motion.div
-            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="flex max-w-sm flex-col items-center"
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="flex max-w-sm flex-col items-center gap-7"
           >
-            <div className="relative mb-8 flex h-32 w-32 items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-blue-500/10 blur-[40px] animate-pulse" style={{ animationDuration: "3s" }} />
+            {/* Icon cluster */}
+            <div className="relative flex h-36 w-36 items-center justify-center">
+              {/* Red ambient glow */}
+              <div className="absolute inset-0 rounded-full animate-pulse" style={{ background: "radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%)", filter: "blur(24px)", animationDuration: "3s" }} />
+
+              {/* Static broken ring */}
+              <svg className="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 144 144" fill="none">
+                <circle cx="72" cy="72" r="68" stroke="rgba(239,68,68,0.5)" strokeWidth="1.5" strokeDasharray="8 6" />
+              </svg>
+
+              {/* Slow wobble outer ring */}
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 16, ease: "linear" }}
-                className="absolute inset-0 rounded-full border-[2px] border-dashed border-blue-400/20"
+                animate={{ rotate: [0, 8, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+                className="absolute inset-[16px] rounded-full"
+                style={{ border: "1.5px dashed rgba(239,68,68,0.25)" }}
               />
-              <div className="relative z-10 flex items-center justify-center">
-                <SearchX className="h-12 w-12 text-blue-300/80 drop-shadow-[0_0_12px_rgba(96,165,250,0.4)]" strokeWidth={1.5} />
+
+              {/* Center card */}
+              <div className="relative z-10 flex h-[68px] w-[68px] items-center justify-center rounded-2xl" style={{ background: "rgba(20,6,10,0.85)", border: "1px solid rgba(239,68,68,0.30)", boxShadow: "0 0 30px rgba(239,68,68,0.15), inset 0 1px 0 rgba(255,255,255,0.06)" }}>
                 <motion.div
-                  animate={{ y: [-4, 4, -4], rotate: [-8, 8, -8] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute -bottom-3 -right-5"
+                  animate={{ scale: [1, 0.92, 1], rotate: [0, -6, 6, 0] }}
+                  transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }}
                 >
-                  <Clapperboard className="h-8 w-8 rounded-md bg-[#020817] text-orange-400/90 drop-shadow-[0_0_12px_rgba(249,115,22,0.5)]" strokeWidth={1.5} />
+                  <SearchX className="h-8 w-8 text-red-400/90" strokeWidth={1.5} />
                 </motion.div>
               </div>
+
+              {/* Floating clapperboard */}
+              <motion.div
+                animate={{ y: [-4, 4, -4], rotate: [-12, 12, -12], opacity: [0.7, 1, 0.7] }}
+                transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }}
+                className="absolute -right-2 -bottom-1 z-20"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "rgba(8,15,40,0.90)", border: "1px solid rgba(249,115,22,0.35)", boxShadow: "0 0 12px rgba(249,115,22,0.25)" }}>
+                  <Clapperboard className="h-4 w-4 text-orange-400" strokeWidth={1.5} />
+                </div>
+              </motion.div>
+
+              {/* Tiny x-dot */}
+              <motion.div
+                animate={{ opacity: [0.3, 0.9, 0.3], scale: [0.8, 1.2, 0.8] }}
+                transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut", delay: 1 }}
+                className="absolute top-3 left-5"
+              >
+                <div className="h-1.5 w-1.5 rounded-full bg-red-400" style={{ boxShadow: "0 0 6px rgba(239,68,68,0.8)" }} />
+              </motion.div>
             </div>
-            <h3 className="mb-2 text-xl font-medium tracking-tight text-white md:text-2xl">No Movies Found</h3>
-            <p className="max-w-[280px] text-xs leading-relaxed text-slate-400 md:text-sm">
-              We couldn&apos;t find any titles matching your search. Try tweaking your filters or explore our trending collection!
-            </p>
+
+            {/* Text */}
+            <div className="space-y-2.5 text-center">
+              <h3 className="text-xl font-display font-semibold tracking-tight text-white md:text-2xl">No Movies Found</h3>
+              <p className="max-w-[260px] text-xs leading-relaxed text-slate-400 md:text-sm">
+                Nothing matched your search. Try tweaking your filters or explore our trending collection.
+              </p>
+            </div>
+
+            {/* Hint pill */}
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-mono text-slate-400 uppercase tracking-widest" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}>
+              <span style={{ color: "#60A5FA" }}>↑</span> try different filters
+            </div>
           </motion.div>
         ) : isNetflix ? (
           <div className="flex max-w-md flex-col items-center rounded-md border border-white/10 bg-[#181818] px-8 py-10 shadow-[0_22px_55px_rgba(0,0,0,0.45)]">

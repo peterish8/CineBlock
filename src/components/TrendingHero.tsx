@@ -6,7 +6,7 @@ import { Star, Bookmark, Play, ChevronLeft, ChevronRight, TrendingUp, Info } fro
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { TMDBMovie } from "@/lib/types";
 import { backdropUrl, logoUrl } from "@/lib/constants";
-import { useWatchlist } from "@/hooks/useWatchlist";
+import { useMovieLists } from "@/hooks/useMovieLists";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 function LogoGlow({ src, alt, imgClassName, wrapClassName }: {
@@ -77,7 +77,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   const [loading, setLoading] = useState(true);
   const theme = useThemeMode();
   const heroRef = useRef<HTMLElement>(null);
-  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+  const { isInWatchlist, toggleWatchlist } = useMovieLists();
 
   const isGlass = theme === "glass";
   const isNetflix = theme === "netflix";
@@ -262,11 +262,11 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
           ) : (
             <div className="h-full w-full bg-surface" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/10" />
-          <div className="absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/20 to-transparent" />
-          <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-bg/60 to-transparent sm:hidden" />
-          <div className="absolute inset-0 flex items-end">
-            <div className="mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6 sm:pb-8">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg via-bg/70 to-bg/10" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-bg/90 via-bg/20 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-bg/60 to-transparent sm:hidden" />
+          <div className="pointer-events-none absolute inset-0 flex items-end">
+            <div className="pointer-events-auto mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6 sm:pb-8">
               {movie.logo_path ? (
                 <LogoGlow
                   key={`logo-${movie.id}`}
@@ -303,12 +303,20 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
               </div>
             </div>
           </div>
-          <div className="absolute left-3 top-1/2 z-10 -translate-y-1/2">
-            <button onClick={goPrev} className="brutal-btn p-2 opacity-60 hover:opacity-100"><ChevronLeft className="h-5 w-5" strokeWidth={3} /></button>
-          </div>
-          <div className="absolute right-3 top-1/2 z-10 -translate-y-1/2">
-            <button onClick={goNext} className="brutal-btn p-2 opacity-60 hover:opacity-100"><ChevronRight className="h-5 w-5" strokeWidth={3} /></button>
-          </div>
+          <button
+            onClick={goPrev}
+            className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center opacity-60 hover:opacity-100 active:opacity-30 transition-opacity duration-100"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={3} />
+          </button>
+          <button
+            onClick={goNext}
+            className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center opacity-60 hover:opacity-100 active:opacity-30 transition-opacity duration-100"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+          >
+            <ChevronRight className="h-5 w-5" strokeWidth={3} />
+          </button>
           <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-brutal-border sm:hidden">
             <div key={current} className="h-full animate-progress bg-brutal-yellow" style={{ animationDuration: "6s" }} />
           </div>
@@ -330,7 +338,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
         <AnimatePresence mode="sync">
           <motion.div
             key={movie.id}
-            className="absolute inset-0"
+            className="pointer-events-none absolute inset-0"
             initial={{ opacity: 0, scale: 1.08, filter: "brightness(0.2) blur(8px)" }}
             animate={{ opacity: 1, scale: 1, filter: "brightness(0.6) blur(0px)" }}
             exit={{ opacity: 0, scale: 1.04, filter: "brightness(0.2) blur(8px)" }}
@@ -350,8 +358,8 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
         <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#020817]/50 to-transparent sm:hidden" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#020817] to-transparent" />
 
-        <motion.div className="absolute inset-0 flex items-end" style={{ opacity: contentOpacity }}>
-          <div className="mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6 sm:pb-10 lg:px-8 lg:pb-12">
+        <motion.div className="pointer-events-none absolute inset-0 flex items-end" style={{ opacity: contentOpacity }}>
+          <div className="pointer-events-auto mx-auto w-full max-w-6xl px-4 pb-6 sm:px-6 sm:pb-10 lg:px-8 lg:pb-12">
             <AnimatePresence mode="wait">
               <motion.div key={`content-${movie.id}`} variants={contentVariants} initial="hidden" animate="visible" className="max-w-xl lg:max-w-2xl">
                 {movie.logo_path ? (
@@ -426,15 +434,15 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
 
         <button
           onClick={goPrev}
-          className="tap-target absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-all duration-200 hover:opacity-100 active:scale-90 sm:left-4 sm:h-10 sm:w-10"
-          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
+          className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-opacity duration-100 hover:opacity-100 active:opacity-25 sm:left-4 sm:h-12 sm:w-12"
+          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
         >
           <ChevronLeft className="h-4 w-4 text-white sm:h-5 sm:w-5" strokeWidth={2.5} />
         </button>
         <button
           onClick={goNext}
-          className="tap-target absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-all duration-200 hover:opacity-100 active:scale-90 sm:right-4 sm:h-10 sm:w-10"
-          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)" }}
+          className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-opacity duration-100 hover:opacity-100 active:opacity-25 sm:right-4 sm:h-12 sm:w-12"
+          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
         >
           <ChevronRight className="h-4 w-4 text-white sm:h-5 sm:w-5" strokeWidth={2.5} />
         </button>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
+import { useState, useEffect } from "react";
+import { AnimatePresence, motion, useAnimate } from "framer-motion";
 import { useConvexAuth } from "convex/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -29,10 +29,10 @@ export default function MobileBottomNav() {
   const [browseOpen, setBrowseOpen] = useState(false);
   const [listsOpen, setListsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [launched, setLaunched] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [smoke, setSmoke] = useState<{ x: number; y: number } | null>(null);
-  const rocketControls = useAnimationControls();
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const [btnRef, animateBtn] = useAnimate<HTMLButtonElement>();
   const theme = useThemeMode();
   const isGlass = theme === "glass";
   const isNetflix = theme === "netflix";
@@ -43,15 +43,10 @@ export default function MobileBottomNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Trigger entrance animation whenever the button becomes visible
+  // Reset launched flag when the user scrolls back up (so button re-appears next scroll-down)
   useEffect(() => {
-    if (showScrollTop && !listsOpen && !browseOpen) {
-      // Reset controls to initial state first — if they previously ended at
-      // opacity:1, start() would be a no-op and the button would stay hidden
-      rocketControls.set({ opacity: 0, y: 12, scale: 0.88, scaleX: 1, scaleY: 1 });
-      rocketControls.start({ opacity: 1, y: 0, scale: 1, scaleX: 1, scaleY: 1, transition: navSpring });
-    }
-  }, [showScrollTop, listsOpen, browseOpen]);
+    if (!showScrollTop) setLaunched(false);
+  }, [showScrollTop]);
 
   const totalCount = liked.length + watchlist.length + watched.length;
 
@@ -120,29 +115,27 @@ export default function MobileBottomNav() {
     <>
       {/* ── Scroll to top ── */}
       <AnimatePresence>
-        {showScrollTop && !listsOpen && !browseOpen && (
+        {showScrollTop && !listsOpen && !browseOpen && !launched && (
           <motion.button
             ref={btnRef}
             onClick={async () => {
               if (launching) return;
               setLaunching(true);
-              const rect = btnRef.current?.getBoundingClientRect();
-              if (rect) setSmoke({ x: rect.left + rect.width / 2, y: rect.bottom });
-              // squish then blast off
-              await rocketControls.start({
-                y: [0, 6, -window.innerHeight],
-                scaleX: [1, 1.18, 0.75],
-                scaleY: [1, 0.82, 1.1],
-                transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], times: [0, 0.12, 1] },
-              });
-              window.scrollTo({ top: 0, behavior: "smooth" });
-              setTimeout(() => setSmoke(null), 900);
-              rocketControls.set({ y: window.innerHeight, scaleX: 1, scaleY: 1 });
-              await rocketControls.start({
-                y: 0,
-                transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.15 },
-              });
-              setLaunching(false);
+              try {
+                const rect = btnRef.current?.getBoundingClientRect();
+                if (rect) setSmoke({ x: rect.left + rect.width / 2, y: rect.bottom });
+                // squish then blast off
+                await animateBtn(btnRef.current, {
+                  y: [0, 6, -window.innerHeight],
+                  scaleX: [1, 1.18, 0.75],
+                  scaleY: [1, 0.82, 1.1],
+                }, { duration: 0.55, ease: [0.22, 1, 0.36, 1], times: [0, 0.12, 1] });
+                setLaunched(true); // hide before it can snap back
+                window.scrollTo({ top: 0, behavior: "smooth" });
+                setTimeout(() => setSmoke(null), 900);
+              } finally {
+                setLaunching(false);
+              }
             }}
             aria-label="Scroll to top"
             className={`fixed bottom-20 right-4 z-[59] w-10 h-10 flex items-center justify-center ${
@@ -162,9 +155,9 @@ export default function MobileBottomNav() {
               color: "#FFFFFF",
               boxShadow: "0 10px 24px rgba(0,0,0,0.45)",
             } : undefined}
-            animate={rocketControls}
             initial={{ opacity: 0, y: 12, scale: 0.88 }}
-            exit={{ opacity: 0, y: 12, scale: 0.88 }}
+            animate={{ opacity: 1, y: 0, scale: 1, transition: navSpring }}
+            exit={{ opacity: 0, y: 12, scale: 0.88, transition: { duration: 0.18 } }}
           >
             <ArrowUp className="w-4 h-4" strokeWidth={isGlass ? 2 : 3} />
           </motion.button>

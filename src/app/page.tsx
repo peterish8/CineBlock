@@ -148,9 +148,15 @@ function HomeContent() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
+  const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
+
   const handleFilterChange = useCallback(
     (newFilters: typeof filters) => {
       setFilters(newFilters);
+      // Auto-switch to TV tab for TV-first virtual genres
+      if (newFilters.genre && TV_FIRST_GENRES.has(newFilters.genre)) {
+        setMediaTab("tv");
+      }
     },
     []
   );

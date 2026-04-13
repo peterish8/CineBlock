@@ -97,17 +97,20 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const fireRightReactor = useCallback(() => {
     setRightReactorFiring(true);
     setTimeout(() => setRightReactorFiring(false), 700);
-    // Pick random filters
+    // Only randomize: genre, keyword, sort, rating — nothing else touched
     const randomGenre = GENRES[Math.floor(Math.random() * GENRES.length)];
-    const randomYear = String(2010 + Math.floor(Math.random() * 15));
-    const sortOptions = ["popularity.desc", "vote_average.desc", "release_date.desc", "revenue.desc"];
-    const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+    const randomSort = SORT_OPTIONS[Math.floor(Math.random() * SORT_OPTIONS.length)].value;
+    const ratingOptions = ["", "7", "8"];
+    const randomRating = ratingOptions[Math.floor(Math.random() * ratingOptions.length)];
+    const randomKeyword = Math.random() < 0.5
+      ? KEYWORD_CHIPS[Math.floor(Math.random() * KEYWORD_CHIPS.length)].id.toString()
+      : "";
     setGenre(randomGenre.id.toString());
-    setYear(randomYear);
     setSort(randomSort);
-    setRating(""); setRuntime(""); setKeyword("");
-    emitFilters("", randomGenre.id.toString(), randomYear, "", randomSort, "", "", "");
-  }, [emitFilters]);
+    setRating(randomRating);
+    setKeyword(randomKeyword);
+    emitFilters(query, randomGenre.id.toString(), year, language, randomSort, randomRating, runtime, randomKeyword);
+  }, [emitFilters, query, year, language, runtime]);
 
   useEffect(() => {
     const saved = readStoredTheme();
@@ -686,7 +689,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
             </div>
           )}
 
-          <div className={`${currentTheme === "glass" ? "flex-1 min-w-0 rounded-2xl" : ""}`}
+          <div className={`${currentTheme === "glass" ? "flex-1 min-w-0 rounded-2xl" : "flex-1 min-w-0"}`}
             style={currentTheme === "glass" ? {
               background: "rgba(4,12,36,0.80)",
               backdropFilter: "blur(20px) saturate(150%)",
@@ -695,10 +698,28 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               padding: "10px 14px",
             } : undefined}
           >
-            <div className={currentTheme === "glass"
-              ? "flex gap-2"
-              : "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 xl:grid-cols-8 gap-4"
-            }>
+            {/* ── Mobile: 3D wheel spinner ── */}
+            <div className="sm:hidden">
+              <MobileFilterWheel
+                theme={currentTheme}
+                defs={[
+                  { key: "genre",    label: "GENRE",    value: genre,    options: GENRES.map((g) => ({ value: g.id.toString(), label: g.name })),       placeholder: "All Genres"    },
+                  { key: "sort",     label: "SORT BY",  value: sort,     options: SORT_OPTIONS.map((s) => ({ value: s.value, label: s.label })),         placeholder: "Popular"       },
+                  { key: "year",     label: "YEAR",     value: year,     options: years.map((y) => ({ value: y, label: y })),                            placeholder: "All Years"     },
+                  { key: "language", label: "LANGUAGE", value: language, options: LANGUAGES.map((l) => ({ value: l.code, label: l.name })),              placeholder: "All Languages" },
+                  { key: "rating",   label: "RATING",   value: rating,   options: [{ value: "7", label: "7+ Good" }, { value: "8", label: "8+ Great" }], placeholder: "Any Rating"    },
+                  { key: "keyword",  label: "KEYWORD",  value: keyword,  options: KEYWORD_CHIPS.map((k) => ({ value: k.id.toString(), label: k.label })), placeholder: "Any Vibe"     },
+                  { key: "runtime",  label: "RUNTIME",  value: runtime,  options: [{ value: "90", label: "< 90 min" }, { value: "120", label: "< 120 min" }], placeholder: "Any Length" },
+                ]}
+                onSelect={(key, value) => handleFilterChange(key, value)}
+              />
+            </div>
+
+            {/* ── Desktop: grid / flex ── */}
+            <div className={`hidden sm:${currentTheme === "glass" ? "flex" : "grid"} ${currentTheme === "glass"
+              ? "gap-2"
+              : "grid-cols-2 sm:grid-cols-4 md:grid-cols-7 xl:grid-cols-8 gap-4"
+            }`}>
               <FilterSelect
                 label="GENRE"
                 value={genre}
@@ -747,7 +768,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 ]}
                 placeholder="Any"
               />
-              {/* KEYWORD */}
               <FilterSelect
                 label="KEYWORD"
                 value={keyword}
@@ -898,6 +918,209 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
 
 /* ─── Sub-components ──────────────────────────────── */
 
+// ─── Mobile Filter Wheel ─────────────────────────────────────────────────────
+type FilterKey = "genre" | "year" | "language" | "sort" | "rating" | "runtime" | "keyword";
+
+interface WheelFilterDef {
+  key: FilterKey;
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  placeholder: string;
+}
+
+function MobileFilterWheel({
+  defs,
+  theme,
+  onSelect,
+}: {
+  defs: WheelFilterDef[];
+  theme: string;
+  onSelect: (key: FilterKey, value: string) => void;
+}) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartTime = useRef(0);
+  const total = defs.length;
+  const isGlass = theme === "glass";
+
+  const go = (delta: number) =>
+    setActiveIdx((prev) => ((prev + delta) % total + total) % total);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartTime.current = Date.now();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    setDragX(dx);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const velocity = Math.abs(dx) / Math.max(1, Date.now() - touchStartTime.current); // px/ms
+    setDragX(0);
+    if (Math.abs(dx) > 44 || velocity > 0.28) go(dx < 0 ? 1 : -1);
+    touchStartX.current = null;
+  };
+
+  const isDragging = dragX !== 0;
+  // How much to physically shift cards during drag (damped so they don't fly too far)
+  const shift = dragX * 0.52;
+
+  const active = defs[activeIdx];
+  const prevDef = defs[((activeIdx - 1) + total) % total];
+  const nextDef = defs[(activeIdx + 1) % total];
+
+  const edgeBg = isGlass ? "4,12,36" : "10,10,10";
+
+  const cardStyle = (isActive: boolean, hasValue: boolean): React.CSSProperties => ({
+    borderRadius: 14,
+    padding: "10px 14px",
+    textAlign: "center",
+    background: isActive
+      ? (isGlass
+          ? (hasValue ? "rgba(18,40,90,0.92)" : "rgba(12,25,60,0.88)")
+          : (hasValue ? "#1c1c1c" : "#181818"))
+      : (isGlass ? "rgba(8,16,40,0.70)" : "#131313"),
+    border: isActive
+      ? (hasValue
+          ? (isGlass ? "1px solid rgba(96,165,250,0.55)" : "2px solid #FFE156")
+          : (isGlass ? "1px solid rgba(255,255,255,0.22)" : "2px solid #444"))
+      : (isGlass ? "1px solid rgba(255,255,255,0.09)" : "1px solid #2a2a2a"),
+    backdropFilter: isActive && isGlass ? "blur(20px) saturate(180%)" : "none",
+    WebkitBackdropFilter: isActive && isGlass ? "blur(20px) saturate(180%)" : "none",
+    boxShadow: isActive
+      ? (isGlass
+          ? "0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.10)"
+          : "0 4px 16px rgba(0,0,0,0.6)")
+      : "none",
+  });
+
+  const renderCardContent = (def: WheelFilterDef, isActive: boolean) => {
+    const displayValue = def.value
+      ? (def.options.find((o) => o.value === def.value)?.label ?? def.value)
+      : "Any";
+    return (
+      <>
+        <div style={{
+          fontSize: 8, letterSpacing: "0.20em", textTransform: "uppercase",
+          fontFamily: "monospace", marginBottom: 5,
+          color: isActive
+            ? (isGlass ? "rgba(148,163,184,0.7)" : "rgba(255,255,255,0.45)")
+            : (isGlass ? "rgba(148,163,184,0.35)" : "rgba(255,255,255,0.2)"),
+        }}>
+          {def.label}
+        </div>
+        <div style={{
+          fontSize: 12, fontWeight: 700, fontFamily: "monospace",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          color: isActive
+            ? (def.value
+                ? (isGlass ? "#93C5FD" : "#FFE156")
+                : (isGlass ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.85)"))
+            : (isGlass ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.3)"),
+        }}>
+          {displayValue}
+        </div>
+      </>
+    );
+  };
+
+  return (
+    <div>
+      {/* ── Wheel row ── */}
+      <div
+        className="relative select-none"
+        style={{ height: 76, touchAction: "pan-y" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Outer clip wrapper — separate from 3D context so overflow:hidden doesn't flatten transforms */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 20 }}>
+          {/* Left curved shadow */}
+          <div className="absolute inset-y-0 left-0" style={{
+            width: "32%",
+            background: `radial-gradient(ellipse 130% 120% at 0% 50%, rgba(${edgeBg},1) 0%, rgba(${edgeBg},0.75) 40%, transparent 72%)`,
+          }} />
+          {/* Right curved shadow */}
+          <div className="absolute inset-y-0 right-0" style={{
+            width: "32%",
+            background: `radial-gradient(ellipse 130% 120% at 100% 50%, rgba(${edgeBg},1) 0%, rgba(${edgeBg},0.75) 40%, transparent 72%)`,
+          }} />
+        </div>
+
+        {/* 3D row — flex, no overflow clipping so 3D transforms are preserved */}
+        <div className="absolute inset-0 flex items-center justify-center gap-2 px-2">
+
+          {/* Prev — curves INTO left, brightens when swiping right */}
+          <button
+            type="button"
+            onClick={() => !isDragging && go(-1)}
+            style={{
+              flex: "0 0 100px", height: 58,
+              transformOrigin: "right center",
+              transform: `perspective(500px) rotateY(${42 - (dragX > 0 ? Math.min(dragX / 4, 38) : 0)}deg) scale(${0.82 + (dragX > 0 ? Math.min(dragX / 600, 0.16) : 0)}) translateX(${shift}px)`,
+              transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.34,1.2,0.64,1), opacity 0.25s ease",
+              opacity: Math.min(1, 0.55 + (dragX > 0 ? dragX / 140 : 0)),
+              cursor: "pointer",
+              ...cardStyle(false, !!prevDef.value),
+            }}
+          >
+            {renderCardContent(prevDef, false)}
+          </button>
+
+          {/* Center — active, flat-facing, follows finger */}
+          <div
+            style={{
+              flex: "1", maxWidth: 180, height: 62,
+              transform: `translateX(${shift}px)`,
+              transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.34,1.2,0.64,1), box-shadow 0.25s ease",
+              zIndex: 10,
+              ...cardStyle(true, !!active.value),
+            }}
+          >
+            {renderCardContent(active, true)}
+          </div>
+
+          {/* Next — curves INTO right, brightens when swiping left */}
+          <button
+            type="button"
+            onClick={() => !isDragging && go(1)}
+            style={{
+              flex: "0 0 100px", height: 58,
+              transformOrigin: "left center",
+              transform: `perspective(500px) rotateY(${-42 + (dragX < 0 ? Math.min(-dragX / 4, 38) : 0)}deg) scale(${0.82 + (dragX < 0 ? Math.min(-dragX / 600, 0.16) : 0)}) translateX(${shift}px)`,
+              transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.34,1.2,0.64,1), opacity 0.25s ease",
+              opacity: Math.min(1, 0.55 + (dragX < 0 ? -dragX / 140 : 0)),
+              cursor: "pointer",
+              ...cardStyle(false, !!nextDef.value),
+            }}
+          >
+            {renderCardContent(nextDef, false)}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Active filter selector below wheel ── */}
+      <div style={{ marginTop: 10, padding: "0 2px" }}>
+        <FilterSelect
+          label={active.label}
+          value={active.value}
+          onChange={(v) => onSelect(active.key, v)}
+          options={active.options}
+          placeholder={active.placeholder}
+        />
+      </div>
+    </div>
+  );
+}
+
 function FilterSelect({
   label,
   value,
@@ -914,92 +1137,119 @@ function FilterSelect({
   const theme = useThemeMode();
   const isGlass = theme === "glass";
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 180 });
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (ref.current && !ref.current.contains(target)) setOpen(false);
     };
+    const scrollHandler = () => setOpen(false);
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    window.addEventListener("scroll", scrollHandler, { passive: true, capture: true });
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      window.removeEventListener("scroll", scrollHandler, { capture: true });
+    };
   }, [open]);
+
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const dropW = Math.max(rect.width, 200);
+      // keep dropdown within viewport
+      const left = Math.min(rect.left, window.innerWidth - dropW - 8);
+      setDropdownPos({ top: rect.bottom + 6, left: Math.max(8, left), width: dropW });
+    }
+    setOpen(v => !v);
+  };
 
   const selectedLabel = options.find((o) => o.value === value)?.label ?? placeholder;
 
   if (isGlass) {
+    const dropdownEl = open && mounted ? createPortal(
+      <div
+        ref={ref}
+        style={{
+          position: "fixed",
+          top: dropdownPos.top,
+          left: dropdownPos.left,
+          width: dropdownPos.width,
+          zIndex: 9999,
+          background: "rgba(4,12,36,0.97)",
+          border: "1px solid rgba(96,165,250,0.20)",
+          backdropFilter: "blur(28px) saturate(180%)",
+          WebkitBackdropFilter: "blur(28px) saturate(180%)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)",
+          borderRadius: 14,
+          overflow: "hidden",
+        }}
+      >
+        <div className="max-h-60 overflow-y-auto py-1 scrollbar-thin">
+          <button
+            type="button"
+            onClick={() => { onChange(""); setOpen(false); }}
+            className="w-full text-left px-3 py-2.5 text-xs font-display transition-colors duration-100"
+            style={{
+              color: !value ? "#93C5FD" : "rgba(148,163,184,0.7)",
+              background: !value ? "rgba(96,165,250,0.10)" : "transparent",
+            }}
+          >
+            {placeholder}
+          </button>
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className="w-full text-left px-3 py-2.5 text-xs font-display transition-colors duration-100"
+              style={{
+                color: value === opt.value ? "#93C5FD" : "rgba(148,163,184,0.7)",
+                background: value === opt.value ? "rgba(96,165,250,0.10)" : "transparent",
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>,
+      document.body
+    ) : null;
+
     return (
-      <div ref={ref} className="flex-1 min-w-0">
+      <div className="w-full">
         <label className="block text-[10px] font-display font-bold uppercase tracking-[0.15em] mb-1.5 text-slate-500">
           {label}
         </label>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="w-full flex items-center justify-between gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-xl transition-all duration-200 focus:outline-none whitespace-nowrap"
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={handleToggle}
+          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-xs rounded-xl transition-all duration-200 focus:outline-none"
+          style={{
+            background: value ? "rgba(96,165,250,0.12)" : "rgba(255,255,255,0.06)",
+            border: value ? "1px solid rgba(96,165,250,0.38)" : "1px solid rgba(255,255,255,0.10)",
+            color: value ? "#93C5FD" : "rgba(148,163,184,0.75)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <span className="font-display truncate">{selectedLabel}</span>
+          <ChevronDown
+            className="ml-1 shrink-0 w-3.5 h-3.5 transition-transform duration-200"
             style={{
-              background: value ? "rgba(96,165,250,0.12)" : "rgba(255,255,255,0.06)",
-              border: value ? "1px solid rgba(96,165,250,0.38)" : "1px solid rgba(255,255,255,0.10)",
-              color: value ? "#93C5FD" : "rgba(148,163,184,0.75)",
-              backdropFilter: "blur(8px)",
+              color: value ? "#93C5FD" : "rgba(100,116,139,0.8)",
+              transform: open ? "rotate(180deg)" : "rotate(0deg)",
             }}
-          >
-            <span className="font-display">{selectedLabel}</span>
-            <ChevronDown
-              className="ml-1 shrink-0 w-3.5 h-3.5 transition-transform duration-200"
-              style={{
-                color: value ? "#93C5FD" : "rgba(100,116,139,0.8)",
-                transform: open ? "rotate(180deg)" : "rotate(0deg)",
-              }}
-              strokeWidth={2}
-            />
-          </button>
-
-          {open && (
-            <div
-              className="absolute z-50 top-[calc(100%+6px)] left-0 right-0 rounded-xl overflow-hidden"
-              style={{
-                background: "rgba(4,12,36,0.95)",
-                border: "1px solid rgba(96,165,250,0.18)",
-                backdropFilter: "blur(24px) saturate(160%)",
-                boxShadow: "0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)",
-              }}
-            >
-              <div className="max-h-52 overflow-y-auto py-1 scrollbar-thin">
-                <button
-                  type="button"
-                  onClick={() => { onChange(""); setOpen(false); }}
-                  className="w-full text-left px-3 py-2 text-xs font-display transition-colors duration-100"
-                  style={{
-                    color: !value ? "#93C5FD" : "rgba(148,163,184,0.7)",
-                    background: !value ? "rgba(96,165,250,0.10)" : "transparent",
-                  }}
-                  onMouseEnter={(e) => { if (value) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
-                  onMouseLeave={(e) => { if (value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                >
-                  {placeholder}
-                </button>
-                {options.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => { onChange(opt.value); setOpen(false); }}
-                    className="w-full text-left px-3 py-2 text-xs font-display transition-colors duration-100"
-                    style={{
-                      color: value === opt.value ? "#93C5FD" : "rgba(148,163,184,0.7)",
-                      background: value === opt.value ? "rgba(96,165,250,0.10)" : "transparent",
-                    }}
-                    onMouseEnter={(e) => { if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)"; }}
-                    onMouseLeave={(e) => { if (value !== opt.value) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+            strokeWidth={2}
+          />
+        </button>
+        {dropdownEl}
       </div>
     );
   }

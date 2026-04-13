@@ -12,8 +12,13 @@ export function detectThemeFromBody(): ThemeName {
 }
 
 export function readStoredTheme(): ThemeName {
-  if (typeof window === "undefined") return "default";
-  return sanitizeTheme(window.localStorage.getItem("theme"));
+  if (typeof window === "undefined") return "glass";
+  const stored = window.localStorage.getItem("theme");
+  if (!stored) {
+    window.localStorage.setItem("theme", "glass");
+    return "glass";
+  }
+  return sanitizeTheme(stored);
 }
 
 export function applyThemeToDocument(theme: ThemeName) {

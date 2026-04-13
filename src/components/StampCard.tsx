@@ -22,6 +22,7 @@ type Stamp = {
 type StampCardProps = {
   stamp: Stamp;
   isOwner: boolean;
+  isGlass?: boolean;
   onDelete?: (stampId: Id<"stamps">) => void;
   onToggleVisibility?: (stampId: Id<"stamps">, isPublic: boolean) => void;
   onContinue?: (stamp: Stamp) => void;
@@ -317,7 +318,7 @@ function EnvelopeModal({
 }
 
 /* ── Grid Card ─────────────────────────────────────────────────────────────── */
-export default function StampCard({ stamp, isOwner, onDelete, onToggleVisibility, onContinue }: StampCardProps) {
+export default function StampCard({ stamp, isOwner, isGlass = false, onDelete, onToggleVisibility, onContinue }: StampCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const isDraft = stamp.isDraft === true;
@@ -352,22 +353,42 @@ export default function StampCard({ stamp, isOwner, onDelete, onToggleVisibility
         onClick={() => setModalOpen(true)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setModalOpen(true); }}
         className="relative cursor-pointer select-none overflow-hidden"
-        style={{
+        style={isGlass ? {
+          aspectRatio: "3/2",
+          background: isDraft ? "rgba(15,20,40,0.55)" : "rgba(12,16,36,0.60)",
+          backdropFilter: "blur(20px) saturate(150%)",
+          WebkitBackdropFilter: "blur(20px) saturate(150%)",
+          border: `1px solid ${isDraft ? "rgba(255,255,255,0.08)" : "rgba(251,191,36,0.35)"}`,
+          boxShadow: isDraft
+            ? "0 8px 32px rgba(0,0,0,0.5)"
+            : "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(251,191,36,0.12), inset 0 1px 0 rgba(255,255,255,0.06)",
+          opacity: isDraft ? 0.7 : 1,
+        } : {
           aspectRatio: "3/2",
           border: `4px solid ${isDraft ? "#3A3A3A" : "#FFE156"}`,
           boxShadow: isDraft ? "5px 5px 0 #2a2a2a" : "5px 5px 0 #7a6800",
           opacity: isDraft ? 0.8 : 1,
           background: isDraft ? "#181818" : "#1a1700",
         }}
-        whileHover={{ x: -3, y: -3, boxShadow: isDraft ? "8px 8px 0 #2a2a2a" : "8px 8px 0 #FFE156" }}
+        whileHover={isGlass ? {
+          scale: 1.02,
+          boxShadow: isDraft
+            ? "0 12px 40px rgba(0,0,0,0.6)"
+            : "0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(251,191,36,0.5), inset 0 1px 0 rgba(255,255,255,0.10)",
+        } : { x: -3, y: -3, boxShadow: isDraft ? "8px 8px 0 #2a2a2a" : "8px 8px 0 #FFE156" }}
         whileTap={{ scale: 0.97 }}
-        transition={{ 
+        transition={{
           layout: { type: "tween", duration: 0.35, ease: [0.25, 1, 0.5, 1] },
           default: { type: "spring", stiffness: 400, damping: 20 }
         }}
       >
         {/* top flap */}
-        <div className="absolute inset-0 pointer-events-none" style={{ clipPath: "polygon(0 0,100% 0,50% 52%)", background: isDraft ? "#242424" : "#252008" }} />
+        <div className="absolute inset-0 pointer-events-none" style={{
+          clipPath: "polygon(0 0,100% 0,50% 52%)",
+          background: isGlass
+            ? (isDraft ? "rgba(255,255,255,0.03)" : "rgba(251,191,36,0.08)")
+            : (isDraft ? "#242424" : "#252008"),
+        }} />
 
         {/* seal */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
@@ -390,16 +411,17 @@ export default function StampCard({ stamp, isOwner, onDelete, onToggleVisibility
                 : <div style={{ width: "100%", height: "100%", background: isDraft ? "#222" : "#1f1c00" }} />}
             </div>
           </div>
-          <span className="font-mono text-[6px] uppercase tracking-wider" style={{ color: isDraft ? "#333" : "#6a5800" }}>CINEBLOCK</span>
+          <span className="font-mono text-[6px] uppercase tracking-wider" style={{ color: isGlass ? (isDraft ? "rgba(255,255,255,0.25)" : "rgba(251,191,36,0.6)") : (isDraft ? "#333" : "#6a5800") }}>CINEBLOCK</span>
         </div>
 
         {/* title */}
         <div className="absolute bottom-3 left-3 z-10 pr-14">
-          <p className="font-mono font-black text-[9px] uppercase tracking-wider line-clamp-2 leading-tight" style={{ color: isDraft ? "#444" : "#6a5800" }}>
+          <p className="font-mono font-black text-[9px] uppercase tracking-wider line-clamp-2 leading-tight" style={{ color: isGlass ? (isDraft ? "rgba(255,255,255,0.3)" : "rgba(251,191,36,0.75)") : (isDraft ? "#444" : "#6a5800") }}>
             {stamp.movieTitle}
           </p>
           {isDraft && (
-            <span className="mt-1 inline-block border border-[#3A3A3A] px-1.5 py-px font-mono text-[7px] font-black uppercase tracking-widest text-[#444]">DRAFT</span>
+            <span className="mt-1 inline-block px-1.5 py-px font-mono text-[7px] font-black uppercase tracking-widest"
+              style={{ border: isGlass ? "1px solid rgba(255,255,255,0.15)" : "1px solid #3A3A3A", color: isGlass ? "rgba(255,255,255,0.3)" : "#444" }}>DRAFT</span>
           )}
         </div>
       </motion.div>

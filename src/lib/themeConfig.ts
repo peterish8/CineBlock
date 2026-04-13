@@ -9,7 +9,8 @@ export const AVAILABLE_THEMES: ThemeName[] = ENABLE_NETFLIX_THEME
 export function sanitizeTheme(theme: string | null | undefined): ThemeName {
   if (theme === "glass") return "glass";
   if (theme === "netflix" && ENABLE_NETFLIX_THEME) return "netflix";
-  return "default";
+  if (theme === "default") return "default";
+  return "glass"; // glass is the default for new users
 }
 
 export function getNextTheme(theme: ThemeName): ThemeName {

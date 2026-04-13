@@ -358,7 +358,7 @@ export async function GET(request: NextRequest) {
 
         // Handle virtual genres
         if (genre === "9901") { genre = "18"; lang = "ko"; } // K-Drama (Drama + Korean)
-        else if (genre === "9902") { genre = "18"; lang = "zh"; } // C-Drama (Drama + Chinese)
+        else if (genre === "9902") { genre = "18"; lang = "zh,cn"; } // C-Drama (Drama + Chinese Mandarin/Cantonese)
         else if (genre === "9903") { genre = "16"; lang = "ja"; } // Anime (Animation + Japanese)
 
         if (genre) params.set("with_genres", genre);
@@ -428,7 +428,7 @@ export async function GET(request: NextRequest) {
         let lang = searchParams.get("lang");
 
         if (genre === "9901") { genre = "18"; lang = "ko"; }
-        else if (genre === "9902") { genre = "18"; lang = "zh"; }
+        else if (genre === "9902") { genre = "18"; lang = "zh,cn"; }
         else if (genre === "9903") { genre = "16"; lang = "ja"; }
 
         if (genre) params.set("with_genres", genre);
@@ -457,7 +457,7 @@ export async function GET(request: NextRequest) {
 
         // Handle virtual genres
         if (genre === "9901") { genre = "18"; lang = "ko"; } // K-Drama (Drama + Korean)
-        else if (genre === "9902") { genre = "18"; lang = "zh"; } // C-Drama (Drama + Chinese)
+        else if (genre === "9902") { genre = "18"; lang = "zh,cn"; } // C-Drama (Drama + Chinese Mandarin/Cantonese)
         else if (genre === "9903") { genre = "16"; lang = "ja"; } // Anime (Animation + Japanese)
 
         if (genre) params.set("with_genres", genre);

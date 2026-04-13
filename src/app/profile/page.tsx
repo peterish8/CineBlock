@@ -238,16 +238,16 @@ export default function ProfilePage() {
 
   // ── Glass style helpers ──────────────────────────────────────────────────────
   const glassCard = {
-    background: "rgba(255,255,255,0.05)",
-    backdropFilter: "blur(20px) saturate(160%)",
-    WebkitBackdropFilter: "blur(20px) saturate(160%)",
-    border: "1px solid rgba(255,255,255,0.10)",
-    boxShadow: "0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
+    background: "rgba(8,15,40,0.72)",
+    backdropFilter: "blur(28px) saturate(200%)",
+    WebkitBackdropFilter: "blur(28px) saturate(200%)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    boxShadow: "0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10)",
   };
 
   const glassRow = {
     background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.09)",
   };
 
   const glassInput = {
@@ -298,8 +298,9 @@ export default function ProfilePage() {
       {/* Glass: ambient depth orbs */}
       {isGlass && (
         <>
-          <div className="pointer-events-none fixed left-[-15%] top-[-10%] aspect-square w-[65vw] rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(96,165,250,0.18) 0%, transparent 70%)", filter: "blur(80px)", zIndex: 0 }} />
-          <div className="pointer-events-none fixed bottom-[-15%] right-[-10%] aspect-square w-[70vw] rounded-full opacity-25" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.14) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed left-[-20%] top-[-15%] aspect-square w-[75vw] rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(96,165,250,0.28) 0%, transparent 70%)", filter: "blur(90px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed bottom-[-20%] right-[-15%] aspect-square w-[75vw] rounded-full opacity-35" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)", filter: "blur(110px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed top-[40%] left-[40%] aspect-square w-[40vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)", filter: "blur(80px)", zIndex: 0 }} />
         </>
       )}
 
@@ -349,7 +350,7 @@ export default function ProfilePage() {
         >
           {/* Accent strip — brutalist yellow / glass blue gradient */}
           {isGlass ? (
-            <div className="h-px w-full" style={{ background: "linear-gradient(90deg, rgba(96,165,250,0.8), rgba(249,115,22,0.6), rgba(96,165,250,0.3))" }} />
+            <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, rgba(96,165,250,0.9) 0%, rgba(139,92,246,0.7) 40%, rgba(249,115,22,0.8) 70%, rgba(96,165,250,0.4) 100%)", boxShadow: "0 0 12px rgba(96,165,250,0.5)" }} />
           ) : (
             <div className="h-3 w-full bg-brutal-yellow" />
           )}
@@ -361,9 +362,9 @@ export default function ProfilePage() {
                 ? "w-24 h-24 shrink-0 rounded-2xl overflow-hidden flex items-center justify-center"
                 : "w-24 h-24 shrink-0 bg-brutal-yellow border-4 border-brutal-border shadow-brutal flex items-center justify-center overflow-hidden"}
               style={isGlass ? {
-                background: "rgba(96,165,250,0.15)",
-                border: "2px solid rgba(96,165,250,0.35)",
-                boxShadow: "0 0 24px rgba(96,165,250,0.20)",
+                background: "rgba(96,165,250,0.12)",
+                border: "2px solid rgba(96,165,250,0.45)",
+                boxShadow: "0 0 32px rgba(96,165,250,0.30), 0 0 8px rgba(96,165,250,0.20)",
               } : undefined}
             >
               {user?.image ? (
@@ -447,18 +448,18 @@ export default function ProfilePage() {
           ].map(({ label, value, icon: Icon, brutalColor, brutalBg, brutalAccent, glassColor, glassBorder, glassText }) => (
             isGlass ? (
               <div key={label} className="overflow-hidden rounded-2xl" style={{
-                background: "rgba(255,255,255,0.05)",
-                backdropFilter: "blur(16px)",
-                WebkitBackdropFilter: "blur(16px)",
+                background: "rgba(8,15,40,0.78)",
+                backdropFilter: "blur(24px) saturate(200%)",
+                WebkitBackdropFilter: "blur(24px) saturate(200%)",
                 border: `1px solid ${glassBorder}`,
-                boxShadow: `0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08)`,
+                boxShadow: `0 4px 28px rgba(0,0,0,0.45), 0 0 30px ${glassBorder.replace('0.35)', '0.12)')}, inset 0 1px 0 rgba(255,255,255,0.10)`,
               }}>
-                <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: `1px solid ${glassBorder}`, background: "rgba(255,255,255,0.03)" }}>
+                <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: `1px solid ${glassBorder}`, background: `${glassBorder.replace('0.35)', '0.08)')}` }}>
                   <Icon className="w-4 h-4" style={{ color: glassColor }} strokeWidth={2} />
                   <span className="font-display font-semibold text-[10px] tracking-widest uppercase" style={{ color: glassColor }}>{label}</span>
                 </div>
-                <div className="px-4 py-4 text-center">
-                  <span className={`font-display font-black text-2xl sm:text-4xl ${glassText}`}>{value}</span>
+                <div className="px-4 py-5 text-center">
+                  <span className={`font-display font-black text-2xl sm:text-4xl ${glassText}`} style={{ textShadow: `0 0 20px currentColor` }}>{value}</span>
                   <p className="text-slate-500 text-[10px] font-mono mt-1">{value === 1 ? "movie" : "movies"}</p>
                 </div>
               </div>
@@ -482,16 +483,19 @@ export default function ProfilePage() {
           className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4"}
           style={isGlass ? glassCard : undefined}
         >
-          <h2 className={isGlass
-            ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]"
-            : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}>
-            Account Details
-          </h2>
+          <div className="flex items-center gap-2">
+            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(96,165,250,0.9), rgba(139,92,246,0.6))" }} />}
+            <h2 className={isGlass
+              ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]"
+              : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}>
+              Account Details
+            </h2>
+          </div>
 
           <div className="space-y-3">
             {/* Name row */}
             <div
-              className={isGlass ? "flex items-center justify-between p-3 rounded-xl" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex items-center justify-between p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
@@ -517,7 +521,7 @@ export default function ProfilePage() {
 
             {/* Username row */}
             <div
-              className={isGlass ? "flex items-center justify-between p-3 rounded-xl" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex items-center justify-between p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -603,7 +607,7 @@ export default function ProfilePage() {
 
             {/* Email row */}
             <div
-              className={isGlass ? "flex items-center gap-3 p-3 rounded-xl" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <Mail className={`w-4 h-4 shrink-0 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
@@ -615,7 +619,7 @@ export default function ProfilePage() {
 
             {/* Member since row */}
             <div
-              className={isGlass ? "flex items-center gap-3 p-3 rounded-xl" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <Calendar className={`w-4 h-4 shrink-0 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`} strokeWidth={2.5} />
@@ -627,7 +631,7 @@ export default function ProfilePage() {
 
             {/* Theme row */}
             <div
-              className={isGlass ? "flex items-center justify-between p-3 rounded-xl" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex items-center justify-between p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
@@ -657,7 +661,7 @@ export default function ProfilePage() {
 
             {/* Preferred Languages */}
             <div
-              className={isGlass ? "flex flex-col gap-3 p-3 rounded-xl" : "flex flex-col gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
+              className={isGlass ? "flex flex-col gap-3 p-3 rounded-xl transition-all duration-200" : "flex flex-col gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
@@ -746,15 +750,15 @@ export default function ProfilePage() {
               key={href}
               href={href}
               className={isGlass
-                ? "py-3 text-xs font-display font-semibold tracking-wider text-center block rounded-xl transition-all duration-200 hover:scale-[1.02]"
+                ? "py-3.5 text-xs font-display font-semibold tracking-wider text-center block rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110"
                 : `brutal-btn py-3 text-xs font-mono font-black tracking-widest text-center block ${brutalColor}`}
               style={isGlass ? {
                 background: glassColor,
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
+                backdropFilter: "blur(16px) saturate(180%)",
+                WebkitBackdropFilter: "blur(16px) saturate(180%)",
                 border: `1px solid ${glassBorder}`,
                 color: glassText,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.10)",
+                boxShadow: `0 4px 20px rgba(0,0,0,0.35), 0 0 20px ${glassBorder.replace('0.35)', '0.12)')}, inset 0 1px 0 rgba(255,255,255,0.12)`,
               } : undefined}
             >
               {label}
@@ -767,7 +771,8 @@ export default function ProfilePage() {
           className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4"}
           style={isGlass ? glassCard : undefined}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(251,191,36,0.9), rgba(249,115,22,0.6))" }} />}
             <Stamp className={`w-4 h-4 ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
             <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Stamps</h2>
             {myStamps && myStamps.length > 0 && (
@@ -796,6 +801,7 @@ export default function ProfilePage() {
                   key={stamp._id}
                   stamp={stamp}
                   isOwner={true}
+                  isGlass={isGlass}
                   onDelete={(stampId) => void deleteStamp({ stampId })}
                   onToggleVisibility={(stampId, isPublic) => void setStampVisibility({ stampId, isPublic })}
                   onContinue={(s) => openStampModal({ id: s.movieId, title: s.movieTitle, posterPath: s.posterPath })}
@@ -819,11 +825,13 @@ export default function ProfilePage() {
               className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4 border-2 border-brutal-yellow"}
               style={isGlass ? {
                 ...glassCard,
-                border: "1px solid rgba(96,165,250,0.30)",
-                boxShadow: "0 4px 32px rgba(0,0,0,0.4), 0 0 40px rgba(96,165,250,0.08), inset 0 1px 0 rgba(255,255,255,0.08)",
+                background: "rgba(4,12,36,0.82)",
+                border: "1px solid rgba(96,165,250,0.35)",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(96,165,250,0.10), inset 0 1px 0 rgba(96,165,250,0.12)",
               } : undefined}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(96,165,250,0.9), rgba(139,92,246,0.6))" }} />}
                 <span className={`text-lg ${isGlass ? "" : "text-brutal-yellow"}`} style={isGlass ? { color: "#60A5FA" } : undefined}>⌨</span>
                 <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>CineBlock Terminal</h2>
                 <span
@@ -846,18 +854,18 @@ export default function ProfilePage() {
 
               <div
                 className={isGlass ? "p-3 rounded-xl font-mono text-[10px] space-y-1" : "p-3 bg-black/40 border border-brutal-border font-mono text-[10px] text-brutal-dim space-y-1"}
-                style={isGlass ? { background: "rgba(0,0,0,0.40)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px" } : undefined}
+                style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(96,165,250,0.15)", borderRadius: "12px", boxShadow: "inset 0 1px 0 rgba(96,165,250,0.08)" } : undefined}
               >
-                <p className={isGlass ? "text-slate-400" : "text-brutal-muted"}>$ npx cineblock</p>
+                <p className={isGlass ? "text-blue-400/80" : "text-brutal-muted"}><span className="text-slate-500">$</span> npx cineblock</p>
                 <p className={isGlass ? "text-slate-600" : "text-brutal-dim"}>or set env var manually:</p>
-                <p className={isGlass ? "text-slate-400" : "text-brutal-muted"}>$ CINEBLOCK_TOKEN=cb_... npx cineblock</p>
+                <p className={isGlass ? "text-blue-400/80" : "text-brutal-muted"}><span className="text-slate-500">$</span> CINEBLOCK_TOKEN=cb_... npx cineblock</p>
               </div>
 
               {user?.cliToken ? (
                 <div className="space-y-3">
                   <div
                     className={isGlass ? "flex items-center gap-2 p-3 rounded-xl font-mono text-sm" : "flex items-center gap-2 p-3 bg-surface-2 border-2 border-brutal-border font-mono text-sm"}
-                    style={isGlass ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: "12px" } : undefined}
+                    style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(96,165,250,0.20)", borderRadius: "12px", boxShadow: "inset 0 1px 0 rgba(96,165,250,0.08)" } : undefined}
                   >
                     <span className={`flex-1 truncate transition-all select-all ${isGlass ? "text-slate-300" : "text-brutal-white"} ${cliTokenVisible ? "" : "blur-sm select-none"}`}>
                       {user.cliToken}
@@ -917,7 +925,8 @@ export default function ProfilePage() {
           className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4"}
           style={isGlass ? glassCard : undefined}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(34,211,238,0.9), rgba(52,211,153,0.6))" }} />}
             <Download className={`w-4 h-4 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
             <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Data &amp; Privacy</h2>
           </div>
@@ -929,12 +938,13 @@ export default function ProfilePage() {
             <button
               onClick={() => setShowExportModal(true)}
               className={isGlass
-                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] text-left group"
+                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 text-left group"
                 : "brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-cyan hover:bg-brutal-cyan/5 transition-all text-left group"}
               style={isGlass ? {
-                background: "rgba(34,211,238,0.06)",
-                border: "1px solid rgba(34,211,238,0.18)",
+                background: "rgba(8,30,40,0.70)",
+                border: "1px solid rgba(34,211,238,0.22)",
                 borderRadius: "12px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.35), 0 0 20px rgba(34,211,238,0.06), inset 0 1px 0 rgba(34,211,238,0.08)",
               } : undefined}
             >
               <div
@@ -951,12 +961,13 @@ export default function ProfilePage() {
 
             <label
               className={isGlass
-                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] text-left group cursor-pointer"
+                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 text-left group cursor-pointer"
                 : "brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-lime hover:bg-brutal-lime/5 transition-all text-left group cursor-pointer"}
               style={isGlass ? {
-                background: "rgba(52,211,153,0.06)",
-                border: "1px solid rgba(52,211,153,0.18)",
+                background: "rgba(8,35,25,0.70)",
+                border: "1px solid rgba(52,211,153,0.22)",
                 borderRadius: "12px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.35), 0 0 20px rgba(52,211,153,0.06), inset 0 1px 0 rgba(52,211,153,0.08)",
               } : undefined}
             >
               <input type="file" accept=".json" className="hidden" onChange={handleFileChange} />
@@ -979,11 +990,15 @@ export default function ProfilePage() {
           className={isGlass ? "rounded-2xl p-6" : "brutal-card p-6 border-2 border-brutal-red"}
           style={isGlass ? {
             ...glassCard,
-            border: "1px solid rgba(239,68,68,0.30)",
-            boxShadow: "0 4px 32px rgba(0,0,0,0.4), 0 0 40px rgba(239,68,68,0.06), inset 0 1px 0 rgba(255,255,255,0.06)",
+            background: "rgba(20,6,10,0.78)",
+            border: "1px solid rgba(239,68,68,0.35)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(239,68,68,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
           } : undefined}
         >
-          <h2 className={`text-[10px] font-mono font-black uppercase tracking-[0.2em] mb-4 ${isGlass ? "text-red-400" : "text-brutal-red"}`}>Danger Zone</h2>
+          <div className="flex items-center gap-2 mb-4">
+            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(239,68,68,0.9), rgba(239,68,68,0.4))", boxShadow: "0 0 8px rgba(239,68,68,0.5)" }} />}
+            <h2 className={`text-[10px] font-mono font-black uppercase tracking-[0.2em] ${isGlass ? "text-red-400" : "text-brutal-red"}`}>Danger Zone</h2>
+          </div>
           <div className="flex items-center justify-between">
             <div>
               <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>Delete Account</p>
@@ -1006,7 +1021,7 @@ export default function ProfilePage() {
         {showDeleteModal && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            style={{ background: isGlass ? "rgba(2,6,23,0.75)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(8px)" : undefined }}
+            style={{ background: isGlass ? "rgba(1,4,16,0.85)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(12px) saturate(180%)" : undefined }}
           >
             <div
               className={isGlass ? "w-full max-w-sm p-6 space-y-4 rounded-2xl" : "brutal-card w-full max-w-sm p-6 space-y-4 animate-fade-in"}
@@ -1090,7 +1105,7 @@ export default function ProfilePage() {
         {showExportModal && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            style={{ background: isGlass ? "rgba(2,6,23,0.75)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(8px)" : undefined }}
+            style={{ background: isGlass ? "rgba(1,4,16,0.85)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(12px) saturate(180%)" : undefined }}
           >
             <div
               className={isGlass ? "w-full max-w-sm p-6 space-y-5 rounded-2xl" : "brutal-card w-full max-w-sm p-6 space-y-5 animate-fade-in"}
@@ -1172,7 +1187,7 @@ export default function ProfilePage() {
         {showImportModal && (
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center px-4"
-            style={{ background: isGlass ? "rgba(2,6,23,0.75)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(8px)" : undefined }}
+            style={{ background: isGlass ? "rgba(1,4,16,0.85)" : "rgba(0,0,0,0.70)", backdropFilter: isGlass ? "blur(12px) saturate(180%)" : undefined }}
           >
             <div
               className={isGlass ? "w-full max-w-sm p-6 space-y-5 rounded-2xl relative overflow-hidden" : "brutal-card w-full max-w-sm p-6 space-y-5 animate-fade-in relative overflow-hidden"}
