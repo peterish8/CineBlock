@@ -78,7 +78,7 @@ export default function SearchUsersPage() {
                   {/* Avatar */}
                   <div className="w-10 h-10 shrink-0 bg-brutal-yellow border-2 border-brutal-border flex items-center justify-center overflow-hidden">
                     {user.image ? (
-                      <Image src={user.image} alt={displayName} width={40} height={40} className="w-full h-full object-cover" />
+                      <Image src={user.image} alt={displayName} width={40} height={40} className="w-full h-full object-cover" unoptimized />
                     ) : (
                       <span className="font-display font-black text-sm text-black">{initials}</span>
                     )}

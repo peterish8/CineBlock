@@ -34,6 +34,8 @@ export function useRadar() {
   const isSyncing = useRef(false);
   const syncFailed = useRef(false);
   const lastAttemptedRegion = useRef<string | null>(null);
+  const hasFetched = useRef(false);
+  const fetchedRegion = useRef<string | null>(null);
 
   const region = useMemo(() => getRegion(), []);
 
@@ -79,8 +81,10 @@ export function useRadar() {
 
   // 3. Guest mode — pass region, server detects from IP or falls back to query param
   useEffect(() => {
-    if (user === null) {
-      setLoadingGuest(true);
+    if (user === null && (!hasFetched.current || fetchedRegion.current !== region)) {
+      setLoadingGuest((prev) => (prev ? prev : true));
+      hasFetched.current = true;
+      fetchedRegion.current = region;
       const params = new URLSearchParams({ region });
 
       fetch(`/api/radar?${params.toString()}`)

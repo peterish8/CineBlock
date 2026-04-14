@@ -62,7 +62,7 @@ export function useRegion() {
   useEffect(() => {
     const stored = localStorage.getItem("cineblock_region");
     if (stored) {
-      setRegionState(stored);
+      if (stored !== region) setRegionState(stored);
       return;
     }
 

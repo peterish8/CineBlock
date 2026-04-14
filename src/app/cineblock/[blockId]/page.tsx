@@ -18,6 +18,7 @@ import {
   Plus, Loader2, Star, ChevronRight, User,
 } from "lucide-react";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type MovieResult = {
@@ -529,21 +530,33 @@ export default function CineBlockViewPage() {
   const dragMovieRef = useRef<MovieResult | null>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
 
+  const isGlass = useThemeMode() === "glass";
+
   if (blockDetails === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="w-10 h-10 border-4 border-brutal-violet border-t-transparent animate-spin" />
+      <div
+        className={`min-h-screen flex items-center justify-center ${isGlass ? "" : "bg-bg"}`}
+        style={isGlass ? { background: "#020817" } : undefined}
+      >
+        <div className={`w-10 h-10 border-4 border-t-transparent animate-spin ${isGlass ? "rounded-full border-violet-400" : "border-brutal-violet"}`} />
       </div>
     );
   }
 
   if (blockDetails === null) {
     return (
-      <main className="min-h-screen bg-bg flex flex-col items-center justify-center gap-6 p-6">
-        <Film className="w-14 h-14 text-brutal-dim" strokeWidth={1} />
-        <p className="font-display font-bold text-xl uppercase tracking-wider text-center">CineBlock not found</p>
-        <Link href="/cineblocks" className="brutal-btn px-6 py-3 text-sm font-mono uppercase">
-          <ArrowLeft className="w-4 h-4 inline mr-1" />My Blocks
+      <main
+        className={`min-h-screen flex flex-col items-center justify-center gap-6 p-6 ${isGlass ? "" : "bg-bg"}`}
+        style={isGlass ? { background: "#020817" } : undefined}
+      >
+        <Film className={`w-14 h-14 ${isGlass ? "text-slate-600" : "text-brutal-dim"}`} strokeWidth={1} />
+        <p className={`font-bold text-xl text-center ${isGlass ? "text-white" : "font-display uppercase tracking-wider"}`}>CineBlock not found</p>
+        <Link
+          href="/cineblocks"
+          className={`flex items-center gap-2 px-6 py-3 text-sm font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-xl" : "brutal-btn font-mono uppercase"}`}
+          style={isGlass ? { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(148,163,184,0.9)" } : undefined}
+        >
+          <ArrowLeft className="w-4 h-4" />My Blocks
         </Link>
       </main>
     );
@@ -613,7 +626,7 @@ export default function CineBlockViewPage() {
     try {
       const res = await fetch(`/api/movies?action=details&id=${movie.movieId}`);
       if (res.ok) setSelectedMovie(await res.json());
-    } catch { /* keep stub */ }
+    } catch (e) { console.error("Failed to fetch movie details:", e); }
   };
 
   const handleRemoveMovie = async (movieId: number) => {
@@ -678,24 +691,53 @@ export default function CineBlockViewPage() {
     onDragStart: handleDragStart,
   };
 
+  const glassBtn = (active = false) => isGlass ? ({
+    background: active ? "rgba(139,92,246,0.20)" : "rgba(255,255,255,0.06)",
+    border: `1px solid ${active ? "rgba(139,92,246,0.45)" : "rgba(255,255,255,0.12)"}`,
+    color: active ? "#A78BFA" : "rgba(148,163,184,0.8)",
+  }) : undefined;
+
   return (
-    <main className="min-h-screen bg-bg flex flex-col pb-20 lg:pb-0">
+    <main
+      className={`min-h-screen flex flex-col pb-20 lg:pb-0 ${isGlass ? "relative overflow-x-hidden" : "bg-bg"}`}
+      style={isGlass ? { background: "#020817" } : undefined}
+    >
+      {/* Glass depth orbs */}
+      {isGlass && (
+        <>
+          <div className="pointer-events-none fixed left-[-15%] top-[-10%] aspect-square w-[55vw] rounded-full opacity-20" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed bottom-[-15%] right-[-10%] aspect-square w-[45vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(34,211,238,0.15) 0%, transparent 70%)", filter: "blur(110px)", zIndex: 0 }} />
+        </>
+      )}
 
       {/* ── Header ── */}
-      <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <Link href="/cineblocks" className="brutal-btn p-2.5 flex-shrink-0">
+      <div
+        className={`sticky top-0 z-50 ${isGlass ? "" : "bg-bg border-b-3 border-brutal-border"}`}
+        style={isGlass ? {
+          background: "rgba(2,8,23,0.80)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        } : undefined}
+      >
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 flex items-center gap-3 relative z-10">
+          <Link
+            href="/cineblocks"
+            className={`flex-shrink-0 flex items-center justify-center transition-colors ${isGlass ? "w-9 h-9 rounded-xl hover:bg-white/10" : "brutal-btn p-2.5"}`}
+            style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}
+          >
             <ArrowLeft className="w-4 h-4" strokeWidth={3} />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="font-display font-bold text-base sm:text-xl text-brutal-white uppercase tracking-tight truncate">{block.title}</h1>
-            <p className="font-mono text-[10px] text-brutal-dim uppercase tracking-wider">by @{block.ownerName} · {movies.length} / 50 movies</p>
+            <h1 className={`font-bold text-base sm:text-xl tracking-tight truncate ${isGlass ? "text-white" : "font-display text-brutal-white uppercase"}`}>{block.title}</h1>
+            <p className={`text-[10px] uppercase tracking-wider ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>by @{block.ownerName} · {movies.length} / 50 movies</p>
           </div>
           <div className="flex items-center gap-2">
             {isOwner && (
               <button
                 onClick={() => { setShowMobileSearch(true); }}
-                className="lg:hidden brutal-btn flex items-center gap-1.5 px-3 py-2 text-[10px] font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"
+                className={`lg:hidden flex items-center gap-1.5 px-3 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-xl" : "brutal-btn font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"}`}
+                style={isGlass ? glassBtn(false) : undefined}
               >
                 <Search className="w-3.5 h-3.5" />
                 ADD
@@ -703,38 +745,48 @@ export default function CineBlockViewPage() {
             )}
             <button
               onClick={handleCopyLink}
-              className={`brutal-btn hidden sm:flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase transition-colors ${copied ? "!bg-brutal-lime !text-black !border-brutal-lime" : ""}`}
+              className={`hidden sm:flex items-center gap-2 px-3 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-xl" : `brutal-btn font-mono uppercase ${copied ? "!bg-brutal-lime !text-black !border-brutal-lime" : ""}`}`}
+              style={isGlass ? (copied
+                ? { background: "rgba(52,211,153,0.18)", border: "1px solid rgba(52,211,153,0.40)", color: "#6EE7B7" }
+                : glassBtn(false)
+              ) : undefined}
             >
               <Share2 className="w-3.5 h-3.5" />
-              {copied ? "COPIED!" : "SHARE"}
+              {copied ? "Copied!" : "Share"}
             </button>
             {!isOwner && (
               <button
                 onClick={handleToggleSave}
                 disabled={isAuthenticated && savingBlock}
-                className={`brutal-btn flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase transition-colors ${isAuthenticated && isSaved ? "!bg-brutal-cyan !text-black !border-brutal-cyan" : "hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"}`}
+                className={`flex items-center gap-2 px-3 py-2 text-[10px] font-bold transition-all active:scale-[0.97] disabled:opacity-50 ${isGlass ? "rounded-xl" : `brutal-btn font-mono uppercase ${isAuthenticated && isSaved ? "!bg-brutal-cyan !text-black !border-brutal-cyan" : "hover:!bg-brutal-cyan hover:!text-black hover:!border-brutal-cyan"}`}`}
+                style={isGlass ? (isAuthenticated && isSaved
+                  ? { background: "rgba(34,211,238,0.18)", border: "1px solid rgba(34,211,238,0.40)", color: "#67E8F9" }
+                  : glassBtn(false)
+                ) : undefined}
               >
                 {isAuthenticated && isSaved ? <BookMarked className="w-3.5 h-3.5" /> : <BookmarkPlus className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{isAuthenticated && isSaved ? "SAVED" : "SAVE BLOCK"}</span>
+                <span className="hidden sm:inline">{isAuthenticated && isSaved ? "Saved" : "Save Block"}</span>
               </button>
             )}
             {!isOwner && isAuthenticated && (
               <button
                 onClick={handleImportBlock}
                 disabled={importingBlock}
-                className="brutal-btn flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet disabled:opacity-50"
+                className={`flex items-center gap-2 px-3 py-2 text-[10px] font-bold transition-all active:scale-[0.97] disabled:opacity-50 ${isGlass ? "rounded-xl" : "brutal-btn font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"}`}
+                style={isGlass ? glassBtn(false) : undefined}
               >
                 <Plus className="w-3.5 h-3.5" strokeWidth={3} />
-                <span className="hidden sm:inline">{importingBlock ? "IMPORTING..." : "IMPORT"}</span>
+                <span className="hidden sm:inline">{importingBlock ? "Importing..." : "Import"}</span>
               </button>
             )}
             {isOwner && (
               <button
                 onClick={openSettings}
-                className="brutal-btn flex items-center gap-2 px-3 py-2 text-[10px] font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"
+                className={`flex items-center gap-2 px-3 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-xl" : "brutal-btn font-mono uppercase hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"}`}
+                style={isGlass ? glassBtn(false) : undefined}
               >
                 <Settings2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">SETTINGS</span>
+                <span className="hidden sm:inline">Settings</span>
               </button>
             )}
           </div>
@@ -752,44 +804,57 @@ export default function CineBlockViewPage() {
 
           {/* Progress */}
           {isAuthenticated && movies.length > 0 && (
-            <div className="brutal-card p-5 flex flex-col gap-4 bg-surface">
+            <div
+              className={isGlass ? "p-5 flex flex-col gap-4 rounded-2xl" : "brutal-card p-5 flex flex-col gap-4 bg-surface"}
+              style={isGlass ? { background: "rgba(8,15,40,0.72)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-brutal-cyan" strokeWidth={2.5} />
-                  <span className="font-display font-bold text-sm uppercase tracking-wider">Your Progress</span>
+                  <CheckCircle2 className={`w-4 h-4 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
+                  <span className={`font-bold text-sm ${isGlass ? "text-white" : "font-display uppercase tracking-wider"}`}>Your Progress</span>
                 </div>
-                <span className="font-mono font-bold text-sm text-brutal-cyan">{progress.watched} / {progress.total}</span>
+                <span className={`font-bold text-sm ${isGlass ? "text-cyan-400" : "font-mono text-brutal-cyan"}`}>{progress.watched} / {progress.total}</span>
               </div>
-              <div className="relative h-6 border-3 border-brutal-border bg-bg overflow-hidden">
-                <div className="h-full bg-brutal-cyan transition-all duration-700 ease-out" style={{ width: `${progressPct}%` }} />
+              <div
+                className={`relative h-6 overflow-hidden ${isGlass ? "rounded-full" : "border-3 border-brutal-border bg-bg"}`}
+                style={isGlass ? { background: "rgba(255,255,255,0.06)" } : undefined}
+              >
+                <div
+                  className={`h-full transition-all duration-700 ease-out ${isGlass ? "rounded-full" : "bg-brutal-cyan"}`}
+                  style={{ width: `${progressPct}%`, ...(isGlass ? { background: "linear-gradient(90deg, #22D3EE, #67E8F9)" } : {}) }}
+                />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono font-bold text-[11px] mix-blend-difference text-white">{progressPct}% WATCHED</span>
+                  <span className={`font-bold text-[11px] mix-blend-difference text-white ${isGlass ? "" : "font-mono"}`}>{progressPct}% WATCHED</span>
                 </div>
               </div>
               {progress.watched === progress.total && progress.total > 0 && (
-                <p className="font-display font-bold text-xs uppercase tracking-widest text-brutal-cyan text-center animate-fade-in">
-                  🎬 BLOCK COMPLETE — YOU'VE SEEN THEM ALL!
+                <p className={`font-bold text-xs text-center animate-fade-in ${isGlass ? "text-cyan-400" : "font-display uppercase tracking-widest text-brutal-cyan"}`}>
+                  🎬 {isGlass ? "Block complete — you've seen them all!" : "BLOCK COMPLETE — YOU'VE SEEN THEM ALL!"}
                 </p>
               )}
             </div>
           )}
           {!isAuthenticated && movies.length > 0 && (
-            <div className="brutal-card p-5 flex flex-col gap-4 bg-surface border-dashed">
+            <div
+              className={isGlass ? "p-5 flex flex-col gap-4 rounded-2xl" : "brutal-card p-5 flex flex-col gap-4 bg-surface border-dashed"}
+              style={isGlass ? { background: "rgba(8,15,40,0.60)", border: "1px dashed rgba(255,255,255,0.10)" } : undefined}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-brutal-yellow" strokeWidth={2.5} />
-                  <span className="font-display font-bold text-sm uppercase tracking-wider">Track Your Progress</span>
+                  <Lock className={`w-4 h-4 ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
+                  <span className={`font-bold text-sm ${isGlass ? "text-white" : "font-display uppercase tracking-wider"}`}>Track Your Progress</span>
                 </div>
-                <span className="font-mono font-bold text-xs text-brutal-dim">SIGN IN REQUIRED</span>
+                <span className={`font-bold text-xs ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>{isGlass ? "Sign in required" : "SIGN IN REQUIRED"}</span>
               </div>
-              <p className="font-mono text-xs text-brutal-dim">
+              <p className={`text-xs ${isGlass ? "text-slate-400" : "font-mono text-brutal-dim"}`}>
                 View this shared playlist freely. Sign in to mark watched movies and sync your progress.
               </p>
               <button
                 onClick={() => setShowSignInPrompt(true)}
-                className="brutal-btn self-start px-4 py-2 text-[10px] font-mono uppercase !bg-brutal-yellow !text-black !border-brutal-yellow hover:!bg-white"
+                className={`self-start px-4 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-xl" : "brutal-btn font-mono uppercase !bg-brutal-yellow !text-black !border-brutal-yellow hover:!bg-white"}`}
+                style={isGlass ? { background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.40)", color: "#FCD34D" } : undefined}
               >
-                SIGN IN TO TRACK
+                {isGlass ? "Sign In to Track" : "SIGN IN TO TRACK"}
               </button>
             </div>
           )}
@@ -809,11 +874,14 @@ export default function CineBlockViewPage() {
             className={`transition-all duration-150 ${dragOver ? "ring-3 ring-brutal-violet ring-offset-2 ring-offset-bg" : ""}`}
           >
             {movies.length === 0 ? (
-              <div className="brutal-card p-14 flex flex-col items-center gap-4 border-dashed">
-                <LayoutGrid className="w-12 h-12 text-brutal-dim" strokeWidth={1} />
-                <p className="font-display font-bold uppercase text-brutal-dim">No movies yet</p>
+              <div
+                className={isGlass ? "p-14 flex flex-col items-center gap-4 rounded-2xl" : "brutal-card p-14 flex flex-col items-center gap-4 border-dashed"}
+                style={isGlass ? { background: "rgba(8,15,40,0.60)", border: "1px dashed rgba(255,255,255,0.08)" } : undefined}
+              >
+                <LayoutGrid className={`w-12 h-12 ${isGlass ? "text-slate-600" : "text-brutal-dim"}`} strokeWidth={1} />
+                <p className={`font-bold uppercase ${isGlass ? "text-slate-500" : "font-display text-brutal-dim"}`}>No movies yet</p>
                 {isOwner && (
-                  <p className="font-mono text-xs text-brutal-dim text-center max-w-xs">
+                  <p className={`text-xs text-center max-w-xs ${isGlass ? "text-slate-600" : "font-mono text-brutal-dim"}`}>
                     Search movies on the right and drag them here, or click <strong>+</strong>.
                   </p>
                 )}
@@ -885,7 +953,13 @@ export default function CineBlockViewPage() {
 
         {/* Right: search panel — desktop, owner only */}
         {isOwner && (
-          <div className="hidden lg:flex flex-col w-[min(36vw,28rem)] min-w-[22rem] xl:min-w-[24rem] flex-shrink-0 sticky top-[73px] border-3 border-brutal-border bg-bg overflow-hidden" style={{ height: "calc(100vh - 90px)" }}>
+          <div
+            className={`hidden lg:flex flex-col w-[min(36vw,28rem)] min-w-[22rem] xl:min-w-[24rem] flex-shrink-0 sticky top-[73px] overflow-hidden ${isGlass ? "rounded-2xl" : "border-3 border-brutal-border bg-bg"}`}
+            style={isGlass
+              ? { height: "calc(100vh - 90px)", background: "rgba(8,15,40,0.72)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.10)" }
+              : { height: "calc(100vh - 90px)" }
+            }
+          >
             <SearchPanel {...searchPanelProps} />
           </div>
         )}
@@ -894,11 +968,24 @@ export default function CineBlockViewPage() {
       {/* ── Mobile search sheet ── */}
       {isOwner && showMobileSearch && (
         <div className="fixed inset-0 z-[900] lg:hidden flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowMobileSearch(false)} />
-          <div className="relative w-full bg-bg border-t-3 border-brutal-border flex flex-col animate-slide-up overflow-hidden" style={{ maxHeight: "90vh" }}>
-            <div className="flex items-center justify-between px-4 py-2 border-b border-brutal-border/30 flex-shrink-0">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-brutal-dim">Add Movies</span>
-              <button onClick={() => setShowMobileSearch(false)} className="p-1 text-brutal-dim hover:text-brutal-white">
+          <div
+            className="absolute inset-0"
+            style={isGlass ? { background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" } : { background: "rgba(0,0,0,0.70)" }}
+            onClick={() => setShowMobileSearch(false)}
+          />
+          <div
+            className={`relative w-full flex flex-col animate-slide-up overflow-hidden ${isGlass ? "rounded-t-2xl" : "bg-bg border-t-3 border-brutal-border"}`}
+            style={isGlass
+              ? { maxHeight: "90vh", background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.12)", borderBottom: "none" }
+              : { maxHeight: "90vh" }
+            }
+          >
+            <div
+              className={`flex items-center justify-between px-4 py-2 flex-shrink-0 ${isGlass ? "" : "border-b border-brutal-border/30"}`}
+              style={isGlass ? { borderBottom: "1px solid rgba(255,255,255,0.08)" } : undefined}
+            >
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>Add Movies</span>
+              <button onClick={() => setShowMobileSearch(false)} className={isGlass ? "p-1 text-slate-500 hover:text-slate-300" : "p-1 text-brutal-dim hover:text-brutal-white"}>
                 <X className="w-4 h-4" strokeWidth={2.5} />
               </button>
             </div>
@@ -915,32 +1002,47 @@ export default function CineBlockViewPage() {
       />
 
       {showSignInPrompt && (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/70 p-4 animate-fade-in">
-          <div className="w-full max-w-md border-4 border-brutal-border bg-bg brutal-shadow animate-slide-up">
-            <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-yellow p-4">
-              <h2 className="font-display text-lg font-bold uppercase tracking-wider text-black">Sign In Required</h2>
-              <button
-                onClick={() => setShowSignInPrompt(false)}
-                className="p-1 text-black hover:bg-black/10"
-                aria-label="Close sign in prompt"
-              >
-                <X className="w-5 h-5" strokeWidth={2.5} />
-              </button>
-            </div>
+        <div
+          className="fixed inset-0 z-[1200] flex items-center justify-center p-4 animate-fade-in"
+          style={isGlass ? { background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" } : { background: "rgba(0,0,0,0.70)" }}
+        >
+          <div
+            className={`w-full max-w-md animate-slide-up overflow-hidden ${isGlass ? "rounded-2xl" : "border-4 border-brutal-border bg-bg brutal-shadow"}`}
+            style={isGlass ? { background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" } : undefined}
+          >
+            {isGlass
+              ? <div style={{ height: 3, background: "linear-gradient(90deg, #F59E0B, #FBBF24)" }} />
+              : <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-yellow p-4">
+                  <h2 className="font-display text-lg font-bold uppercase tracking-wider text-black">Sign In Required</h2>
+                  <button onClick={() => setShowSignInPrompt(false)} className="p-1 text-black hover:bg-black/10" aria-label="Close">
+                    <X className="w-5 h-5" strokeWidth={2.5} />
+                  </button>
+                </div>
+            }
             <div className="p-4 flex flex-col gap-4">
-              <p className="font-mono text-xs text-brutal-dim leading-relaxed">
+              {isGlass && (
+                <div className="flex items-center justify-between">
+                  <h2 className="font-bold text-base text-white">Sign In Required</h2>
+                  <button onClick={() => setShowSignInPrompt(false)} className="p-1 text-slate-500 hover:text-slate-300">
+                    <X className="w-4 h-4" strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
+              <p className={`text-xs leading-relaxed ${isGlass ? "text-slate-400" : "font-mono text-brutal-dim"}`}>
                 You can view this shared CineBlock without signing in. To save it, mark watched, and track progress, please sign in.
               </p>
               <div className="flex items-center justify-end gap-2">
                 <button
                   onClick={() => setShowSignInPrompt(false)}
-                  className="brutal-btn px-4 py-2 text-[10px] font-mono uppercase"
+                  className={`px-4 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-lg" : "brutal-btn font-mono uppercase"}`}
+                  style={isGlass ? glassBtn(false) : undefined}
                 >
                   Not Now
                 </button>
                 <Link
                   href="/sign-in"
-                  className="brutal-btn px-4 py-2 text-[10px] font-mono uppercase !bg-brutal-yellow !text-black !border-brutal-yellow"
+                  className={`px-4 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-lg" : "brutal-btn font-mono uppercase !bg-brutal-yellow !text-black !border-brutal-yellow"}`}
+                  style={isGlass ? { background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.40)", color: "#FCD34D" } : undefined}
                 >
                   Sign In
                 </Link>
@@ -952,43 +1054,96 @@ export default function CineBlockViewPage() {
 
       {/* ── Settings modal ── */}
       {showSettings && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/70 p-4 animate-fade-in">
-          <div className="w-full max-w-lg border-4 border-brutal-border bg-bg brutal-shadow animate-slide-up">
-            <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-violet p-4">
-              <h2 className="font-display text-lg font-bold uppercase tracking-wider text-black">Block Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="p-1 text-black hover:bg-black/10" aria-label="Close settings">
-                <X className="w-5 h-5" strokeWidth={2.5} />
-              </button>
-            </div>
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 animate-fade-in"
+          style={isGlass ? { background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" } : { background: "rgba(0,0,0,0.70)" }}
+        >
+          <div
+            className={`w-full max-w-lg animate-slide-up overflow-hidden ${isGlass ? "rounded-2xl" : "border-4 border-brutal-border bg-bg brutal-shadow"}`}
+            style={isGlass ? { background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 24px 64px rgba(0,0,0,0.6)" } : undefined}
+          >
+            {isGlass
+              ? <div style={{ height: 3, background: "linear-gradient(90deg, #8B5CF6, #A78BFA)" }} />
+              : <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-violet p-4">
+                  <h2 className="font-display text-lg font-bold uppercase tracking-wider text-black">Block Settings</h2>
+                  <button onClick={() => setShowSettings(false)} className="p-1 text-black hover:bg-black/10" aria-label="Close settings">
+                    <X className="w-5 h-5" strokeWidth={2.5} />
+                  </button>
+                </div>
+            }
             <div className="flex flex-col gap-4 p-4">
+              {isGlass && (
+                <div className="flex items-center justify-between mb-1">
+                  <h2 className="font-bold text-base text-white">Block Settings</h2>
+                  <button onClick={() => setShowSettings(false)} className="p-1 text-slate-500 hover:text-slate-300">
+                    <X className="w-4 h-4" strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
               <label className="flex flex-col gap-1">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-brutal-dim">Title</span>
-                <input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} maxLength={60}
-                  className="border-2 border-brutal-border bg-surface px-3 py-2 text-sm focus:border-brutal-violet focus:outline-none" />
+                <span className={`text-[10px] uppercase tracking-wider ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>Title</span>
+                <input
+                  value={editingTitle}
+                  onChange={(e) => setEditingTitle(e.target.value)}
+                  maxLength={60}
+                  className={isGlass ? "px-3 py-2 text-sm rounded-lg" : "border-2 border-brutal-border bg-surface px-3 py-2 text-sm focus:border-brutal-violet focus:outline-none"}
+                  style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", outline: "none" } : undefined}
+                />
               </label>
               <label className="flex flex-col gap-1">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-brutal-dim">Description</span>
-                <textarea value={editingDescription} onChange={(e) => setEditingDescription(e.target.value)} maxLength={280} rows={4}
-                  className="border-2 border-brutal-border bg-surface px-3 py-2 text-sm focus:border-brutal-violet focus:outline-none" />
+                <span className={`text-[10px] uppercase tracking-wider ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>Description</span>
+                <textarea
+                  value={editingDescription}
+                  onChange={(e) => setEditingDescription(e.target.value)}
+                  maxLength={280}
+                  rows={4}
+                  className={isGlass ? "px-3 py-2 text-sm rounded-lg resize-none" : "border-2 border-brutal-border bg-surface px-3 py-2 text-sm focus:border-brutal-violet focus:outline-none"}
+                  style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", outline: "none" } : undefined}
+                />
               </label>
-              <div className="flex items-center justify-between border-2 border-brutal-border bg-surface p-3">
+              <div
+                className={`flex items-center justify-between p-3 ${isGlass ? "rounded-xl" : "border-2 border-brutal-border bg-surface"}`}
+                style={isGlass ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
+              >
                 <div className="flex items-center gap-2">
-                  {editingPublic ? <Globe className="h-4 w-4 text-brutal-cyan" /> : <Lock className="h-4 w-4 text-brutal-orange" />}
+                  {editingPublic
+                    ? <Globe className={`h-4 w-4 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} />
+                    : <Lock className={`h-4 w-4 ${isGlass ? "text-orange-400" : "text-brutal-orange"}`} />
+                  }
                   <div className="flex flex-col">
-                    <span className="font-display text-xs font-bold uppercase">{editingPublic ? "Public Block" : "Private Block"}</span>
-                    <span className="font-mono text-[10px] text-brutal-dim">{editingPublic ? "Anyone with the link can view/save" : "Only you can access this block"}</span>
+                    <span className={`text-xs font-bold ${isGlass ? "text-white" : "font-display uppercase"}`}>{editingPublic ? "Public Block" : "Private Block"}</span>
+                    <span className={`text-[10px] ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>{editingPublic ? "Anyone with the link can view/save" : "Only you can access this block"}</span>
                   </div>
                 </div>
-                <button onClick={() => setEditingPublic((p) => !p)}
-                  className={`brutal-btn px-3 py-1.5 text-[10px] font-mono uppercase ${editingPublic ? "!bg-brutal-cyan !text-black !border-brutal-cyan" : "hover:!bg-brutal-orange hover:!text-black hover:!border-brutal-orange"}`}>
-                  {editingPublic ? "PUBLIC" : "PRIVATE"}
+                <button
+                  onClick={() => setEditingPublic((p) => !p)}
+                  className={`px-3 py-1.5 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-lg" : `brutal-btn font-mono uppercase ${editingPublic ? "!bg-brutal-cyan !text-black !border-brutal-cyan" : "hover:!bg-brutal-orange hover:!text-black hover:!border-brutal-orange"}`}`}
+                  style={isGlass ? (editingPublic
+                    ? { background: "rgba(34,211,238,0.18)", border: "1px solid rgba(34,211,238,0.40)", color: "#67E8F9" }
+                    : { background: "rgba(249,115,22,0.14)", border: "1px solid rgba(249,115,22,0.35)", color: "#FB923C" }
+                  ) : undefined}
+                >
+                  {editingPublic ? "Public" : "Private"}
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 border-t-4 border-brutal-border p-4">
-              <button onClick={() => setShowSettings(false)} className="brutal-btn px-4 py-2 text-[10px] font-mono uppercase">Cancel</button>
-              <button onClick={saveSettings} disabled={savingSettings}
-                className="brutal-btn px-4 py-2 text-[10px] font-mono uppercase !bg-brutal-violet !text-black !border-brutal-violet disabled:opacity-50">
+            <div
+              className={`flex items-center justify-end gap-2 p-4 ${isGlass ? "" : "border-t-4 border-brutal-border"}`}
+              style={isGlass ? { borderTop: "1px solid rgba(255,255,255,0.08)" } : undefined}
+            >
+              <button
+                onClick={() => setShowSettings(false)}
+                className={`px-4 py-2 text-[10px] font-bold transition-all active:scale-[0.97] ${isGlass ? "rounded-lg" : "brutal-btn font-mono uppercase"}`}
+                style={isGlass ? glassBtn(false) : undefined}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveSettings}
+                disabled={savingSettings}
+                className={`px-4 py-2 text-[10px] font-bold transition-all active:scale-[0.97] disabled:opacity-50 ${isGlass ? "rounded-lg" : "brutal-btn font-mono uppercase !bg-brutal-violet !text-black !border-brutal-violet"}`}
+                style={isGlass ? { background: "rgba(139,92,246,0.20)", border: "1px solid rgba(139,92,246,0.45)", color: "#A78BFA" } : undefined}
+              >
                 {savingSettings ? "Saving..." : "Save Settings"}
               </button>
             </div>

@@ -1,17 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { TMDBMovie } from "@/lib/types";
-import { useMovieLists } from "@/hooks/useMovieLists";
+
 import { useBlockModal } from "@/components/BlockModalProvider";
 import { saveMovieMeta } from "@/lib/movieMetaCache";
-import { useToast } from "@/components/ToastProvider";
+
 
 const BATCH_SIZE = 20;
 const PREFETCH_THRESHOLD = 5;
-const TUTORIAL_KEY = "cb_swipe_tutorial_dismissed";
 
 type SwipeDirection = "left" | "right" | "up" | "down";
 
@@ -21,7 +20,7 @@ export interface SessionSwipe {
 }
 
 export function useCineSwipeEngine() {
-  const { pushToast } = useToast();
+
 
   // ── Convex ──
   const swipeState = useQuery(api.cineswipe.getSwipeState);
@@ -33,8 +32,9 @@ export function useCineSwipeEngine() {
   const [deck, setDeck] = useState<TMDBMovie[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [tutorialDismissed, setTutorialDismissed] = useState(true);
-  
+  // Tutorial shows every time the deck mounts
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
+
   // ── Session state ──
   const [sessionSwipes, setSessionSwipes] = useState<SessionSwipe[]>([]);
   const [isReviewing, setIsReviewing] = useState(false);
@@ -46,20 +46,8 @@ export function useCineSwipeEngine() {
   const initialised = useRef(false);
   const batchCounter = useRef(0);
 
-  // ── Tutorial ──
-  useEffect(() => {
-    try {
-      setTutorialDismissed(localStorage.getItem(TUTORIAL_KEY) === "1");
-    } catch {
-      setTutorialDismissed(true);
-    }
-  }, []);
-
   const dismissTutorial = useCallback(() => {
     setTutorialDismissed(true);
-    try {
-      localStorage.setItem(TUTORIAL_KEY, "1");
-    } catch {}
   }, []);
 
   // ── Fetch a batch of movies from TMDB via the existing /api/movies proxy ──
@@ -211,7 +199,7 @@ export function useCineSwipeEngine() {
         });
       }
 
-      setDeck((prev) => prev.slice(1));
+      setDeck((prev) => prev.filter((m) => m.id !== movie.id));
       setTodayCount((prev) => prev + 1);
       batchCounter.current += 1;
       seenIds.current.add(movie.id);
@@ -228,7 +216,7 @@ export function useCineSwipeEngine() {
     positiveSwipes.current.unshift(movie);
 
     setSessionSwipes((prev) => [...prev, { movie, action: "liked" }]);
-    setDeck((prev) => prev.slice(1));
+    setDeck((prev) => prev.filter((m) => m.id !== movie.id));
     setTodayCount((prev) => prev + 1);
     seenIds.current.add(movie.id);
   }, [deck]);
@@ -239,9 +227,8 @@ export function useCineSwipeEngine() {
       if (prev.length === 0) return prev;
       const last = prev[prev.length - 1];
       
-      setDeck((d) => [last.movie, ...d]);
+      setDeck((d) => [last.movie, ...d.filter((m) => m.id !== last.movie.id)]);
       setTodayCount((c) => Math.max(0, c - 1));
-      seenIds.current.delete(last.movie.id);
 
       return prev.slice(0, -1);
     });

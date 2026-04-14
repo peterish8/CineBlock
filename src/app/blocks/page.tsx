@@ -42,9 +42,9 @@ function CreateBlockModal({ onClose }: { onClose: () => void }) {
   if (isGlass) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" }}>
-        <div className="w-full max-w-sm animate-pop-in" style={{ background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px) saturate(160%)", WebkitBackdropFilter: "blur(28px) saturate(160%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+        <div className="w-full max-w-sm animate-pop-in" style={{ background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px) saturate(160%)", WebkitBackdropFilter: "blur(28px) saturate(160%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
           {/* Accent bar */}
-          <div style={{ height: 3, background: "linear-gradient(90deg, #4ADE80, #34D399)", borderRadius: "20px 20px 0 0" }} />
+          <div style={{ height: 3, background: "linear-gradient(90deg, #4ADE80, #34D399)" }} />
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-semibold text-base text-white tracking-tight">
@@ -203,8 +203,8 @@ function JoinBlockModal({ onClose }: { onClose: () => void }) {
   if (isGlass) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" }}>
-        <div className="w-full max-w-sm animate-pop-in" style={{ background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px) saturate(160%)", WebkitBackdropFilter: "blur(28px) saturate(160%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
-          <div style={{ height: 3, background: "linear-gradient(90deg, #22D3EE, #67E8F9)", borderRadius: "20px 20px 0 0" }} />
+        <div className="w-full max-w-sm animate-pop-in" style={{ background: "rgba(8,15,40,0.96)", backdropFilter: "blur(28px) saturate(160%)", WebkitBackdropFilter: "blur(28px) saturate(160%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "20px", overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+          <div style={{ height: 3, background: "linear-gradient(90deg, #22D3EE, #67E8F9)" }} />
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-semibold text-base text-white tracking-tight">Join Block</h2>

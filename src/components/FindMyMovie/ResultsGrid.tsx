@@ -94,8 +94,8 @@ export default function ResultsGrid({
         {movies.map((movie, i) => (
           <motion.div
             key={movie.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 12, backgroundColor: "rgba(0,0,0,0)" }}
+            animate={{ opacity: 1, y: 0, backgroundColor: "rgba(0,0,0,0)" }}
             transition={{ delay: i * 0.07, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className={`flex gap-3 p-3 transition-all duration-200 cursor-pointer group ${isGlass ? "rounded-[22px]" : ""}`}
             style={isGlass ? {

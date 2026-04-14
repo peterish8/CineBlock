@@ -43,17 +43,32 @@ export default function MovieActionRail({
   const netflixBase = "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-[rgba(42,42,42,0.92)] text-white/88 transition-colors hover:border-white";
 
   const glassBase = "min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors duration-150 border-b-3 border-r-3 border-brutal-border";
+  const glassInactiveStyle = {
+    background: "rgba(10,15,30,0.72)",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+    backdropFilter: "blur(12px)",
+  };
+  const glassLikeStyle = liked
+    ? {
+        background: "linear-gradient(135deg, rgba(244,63,94,0.28), rgba(190,18,60,0.14))",
+        boxShadow: "0 10px 24px rgba(244,63,94,0.22), inset 0 1px 0 rgba(255,255,255,0.12)",
+        backdropFilter: "blur(16px)",
+      }
+    : glassInactiveStyle;
+  const glassWatchlistStyle = inWatchlist
+    ? {
+        background: "linear-gradient(135deg, rgba(251,146,60,0.28), rgba(194,65,12,0.14))",
+        boxShadow: "0 10px 24px rgba(251,146,60,0.22), inset 0 1px 0 rgba(255,255,255,0.12)",
+        backdropFilter: "blur(16px)",
+      }
+    : glassInactiveStyle;
   const glassWatchedStyle = watched
     ? {
         background: "linear-gradient(135deg, rgba(16,185,129,0.28), rgba(5,150,105,0.14))",
         boxShadow: "0 10px 24px rgba(5,150,105,0.18), inset 0 1px 0 rgba(255,255,255,0.12)",
         backdropFilter: "blur(16px)",
       }
-    : {
-        background: "rgba(10,15,30,0.72)",
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
-        backdropFilter: "blur(12px)",
-      };
+    : glassInactiveStyle;
 
   const triggerAnim = (setter: (v: boolean) => void) => {
     setter(true);
@@ -81,10 +96,7 @@ export default function MovieActionRail({
               }
             }}
             className={`${glassBase} px-2 py-2 active:brightness-75 ${liked ? "text-rose-400" : "text-white/50 hover:text-rose-400"}`}
-            style={{
-              background: "rgba(10,15,30,0.72)",
-              backdropFilter: "blur(10px)",
-            }}
+            style={glassLikeStyle}
             aria-label={liked ? "Unlike" : "Like"}
             aria-pressed={liked}
             title="Like"
@@ -119,10 +131,7 @@ export default function MovieActionRail({
               }
             }}
             className={`${glassBase} px-2 py-2 active:brightness-75 ${inWatchlist ? "text-orange-400" : "text-white/50 hover:text-orange-400"}`}
-            style={{
-              background: "rgba(10,15,30,0.72)",
-              backdropFilter: "blur(10px)",
-            }}
+            style={glassWatchlistStyle}
             aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
             aria-pressed={inWatchlist}
             title="Watchlist"

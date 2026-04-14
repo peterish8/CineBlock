@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { WizardState } from "@/lib/tmdbQueryBuilder";
 import StepKeywords from "./StepKeywords";
 import StepTime from "./StepTime";
@@ -36,6 +37,13 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
     );
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
+  }, []);
+
+  // Lock background scroll while wizard is mounted
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   const [state, setState] = useState<WizardState>({
@@ -118,7 +126,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
 
   const progress = (step / TOTAL_STEPS) * 100;
 
-  return (
+  return createPortal(
     <>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
 
@@ -130,33 +138,14 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
           transition={{ duration: 0.3 }}
           className="absolute inset-0"
           style={{
-            backdropFilter: "blur(28px) saturate(160%)",
-            WebkitBackdropFilter: "blur(28px) saturate(160%)",
-            background: "rgba(2, 5, 18, 0.72)",
+            backdropFilter: "blur(20px) saturate(140%)",
+            WebkitBackdropFilter: "blur(20px) saturate(140%)",
+            background: "rgba(2, 5, 18, 0.88)",
           }}
           onClick={onClose}
         />
 
-        {/* ── Layer 2: Soft ambient glow halo behind the card ── */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.85 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="absolute pointer-events-none"
-          style={{
-            width: "560px",
-            height: "560px",
-            borderRadius: "50%",
-            background: isGlass
-              ? "radial-gradient(circle, rgba(96,165,250,0.12) 0%, rgba(236,72,153,0.07) 50%, transparent 75%)"
-              : "radial-gradient(circle, rgba(255,225,86,0.08) 0%, transparent 70%)",
-            filter: "blur(40px)",
-            zIndex: 1,
-          }}
-        />
-
-        {/* ── Layer 3: The modal card ── */}
+        {/* ── Layer 2: The modal card ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.93, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -166,25 +155,20 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
           style={{
             zIndex: 2,
             borderRadius: isGlass ? "22px" : "4px",
-            /* Semi-transparent frosted background — merges with the blurred scene */
             background: isGlass
               ? "linear-gradient(160deg, rgba(8,14,36,0.88) 0%, rgba(6,11,30,0.92) 100%)"
               : "var(--color-bg)",
             border: isGlass
               ? "1px solid rgba(255,255,255,0.10)"
               : "4px solid var(--color-brutal-border)",
-            /* Multi-layer shadow: structural depth + soft outer glow that FADES into the blurred bg */
             boxShadow: isGlass
               ? [
-                  "0 0 0 1px rgba(255,255,255,0.05)",           /* thin inner rim */
-                  "inset 0 1px 0 rgba(255,255,255,0.07)",       /* top sheen */
-                  "0 8px 32px rgba(0,0,0,0.6)",                 /* structural shadow */
-                  "0 24px 80px rgba(0,0,0,0.5)",                /* deep lift shadow */
-                  "0 0 80px rgba(96,165,250,0.08)",             /* blue ambient edge glow */
-                  "0 0 160px rgba(236,72,153,0.06)",            /* pink far glow — soft edges */
+                  "0 0 0 1px rgba(255,255,255,0.05)",
+                  "inset 0 1px 0 rgba(255,255,255,0.07)",
+                  "0 8px 32px rgba(0,0,0,0.7)",
+                  "0 32px 80px rgba(0,0,0,0.55)",
                 ].join(", ")
               : "8px 8px 0px 0px rgba(0,0,0,1)",
-            /* Slight backdrop blur on the card itself for extra depth melting */
             backdropFilter: isGlass ? "blur(12px)" : "none",
             WebkitBackdropFilter: isGlass ? "blur(12px)" : "none",
           }}
@@ -353,6 +337,7 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
       {selectedMovie && (
         <MovieModal movie={selectedMovie} onClose={onClose} onBack={() => setSelectedMovie(null)} />
       )}
-    </>
+    </>,
+    document.body
   );
 }

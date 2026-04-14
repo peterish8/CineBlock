@@ -458,7 +458,7 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
               className="tap-target relative h-1.5 overflow-hidden rounded-full"
               animate={{
                 width: i === current ? 24 : 6,
-                backgroundColor: i === current ? "transparent" : "rgba(255,255,255,0.22)",
+                backgroundColor: i === current ? "rgba(0,0,0,0)" : "rgba(255,255,255,0.22)",
               }}
               transition={{
                 width: { type: "spring", stiffness: 480, damping: 36 },

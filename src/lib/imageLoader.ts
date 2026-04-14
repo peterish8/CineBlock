@@ -32,5 +32,7 @@ export default function tmdbImageLoader({
     ? nearestTmdbSize(width, TMDB_BACKDROP_SIZES)
     : nearestTmdbSize(width, TMDB_POSTER_SIZES);
 
-  return `https://image.tmdb.org/t/p/${tmdbSize}${filePath}`;
+  // Append ?w= so Next.js's loader validation sees the width in the URL.
+  // TMDB's CDN ignores query params — images serve correctly regardless.
+  return `https://image.tmdb.org/t/p/${tmdbSize}${filePath}?w=${width}`;
 }

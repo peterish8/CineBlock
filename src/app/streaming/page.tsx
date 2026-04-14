@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { useThemeMode } from "@/hooks/useThemeMode";
 import NetflixLayout from "@/components/streaming/NetflixLayout";
 import PrimeVideoLayout from "@/components/streaming/PrimeVideoLayout";
 import DisneyLayout from "@/components/streaming/DisneyLayout";

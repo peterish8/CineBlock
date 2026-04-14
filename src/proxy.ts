@@ -1,5 +1,5 @@
+import { NextResponse } from "next/server";
 import { convexAuthNextjsMiddleware } from "@convex-dev/auth/nextjs/server";
-import { NextResponse, type NextRequest } from "next/server";
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Frame-Options", "DENY");
@@ -20,7 +20,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob: https://image.tmdb.org https://lh3.googleusercontent.com https://avatars.githubusercontent.com",
+      "img-src 'self' data: blob: https:",
       "media-src 'self'",
       "frame-src https://www.youtube.com https://youtube.com",
       "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site wss://*.convex.site https://api.themoviedb.org https://fonts.googleapis.com",
@@ -35,7 +35,7 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
 
 // Proxy wraps auth token into requests + applies security headers
 // (client-side guards handle redirects to avoid auth race conditions)
-export default convexAuthNextjsMiddleware((_request: NextRequest) => {
+export default convexAuthNextjsMiddleware(() => {
   return withSecurityHeaders(NextResponse.next());
 });
 

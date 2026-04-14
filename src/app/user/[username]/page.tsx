@@ -153,7 +153,7 @@ export default function UserProfilePage({ params }: { params: Promise<{ username
           <div className="p-6 sm:p-8 flex items-center gap-6">
             <div className="w-20 h-20 shrink-0 bg-brutal-yellow border-4 border-brutal-border flex items-center justify-center overflow-hidden">
               {profile.image ? (
-                <Image src={profile.image} alt={displayName} width={80} height={80} className="w-full h-full object-cover" />
+                <Image src={profile.image} alt={displayName} width={80} height={80} className="w-full h-full object-cover" unoptimized />
               ) : (
                 <span className="font-display font-black text-2xl text-black">{initials}</span>
               )}

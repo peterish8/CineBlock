@@ -1,23 +1,128 @@
-# CineBlock — Neo-Brutalist Cinematic Discovery
+---
+name: CineBlock
+version: 0.1.0
+---
 
-CineBlock is a high-energy movie discovery platform built with a bold Neo-Brutalist aesthetic. Explore, search, and manage your favourite movies and TV shows — with a cloud backend, daily news, AI-assisted discovery, and shared Watch Blocks for friends.
+# CineBlock
+
+A **next-gen movie discovery & collection app** built with **Next.js**, **React**, **Tailwind CSS**, **Convex**, and **Framer Motion**. Browse trending movies, swipe through a discovery deck, manage watchlists and liked collections, build shared rooms with friends, and back up your data locally — all wrapped in a premium glass-dark UI.
+
+Live: **https://cineblock.in**
 
 ---
 
 ## Features
 
-- **Smart Search & Filter** — Filter by genre, year, rating, and language.
-- **Find My Movie Wizard** — 5-step interactive wizard that picks movies based on your mood, time available, intensity, and dealbreakers.
-- **Daily News Feed** — Latest movie news from Variety, Deadline, Collider, and Reddit. Images are sourced from RSS media, og:image scraping, or TMDB backdrops. Results are cached in Convex and refreshed daily via cron.
-- **User Accounts** — Sign up / sign in with email + password (Convex Auth). Lists sync to the cloud; anonymous users get localStorage.
-- **My Lists** — Liked, Watchlist, and Watched — each with a dedicated page.
-- **Watch Blocks** — Create a Block with friends, share a 6-character invite code, and discover which movies you all want to watch — without anyone seeing each other's full watchlist. Only overlapping movies are shown. Members who share the movie see each other's names; others see only the count.
-- **Let's Watch Votes** — Inside a Block, any member can flame-vote a matched movie to signal enthusiasm. Vote counts are shown to everyone in real-time.
-- **Collections** — Browse curated movie franchises (Marvel, John Wick, Harry Potter, etc.).
-- **Box Office & Streaming** — Dedicated pages for trending box office and what's streaming now.
-- **Profile Page** — Editable display name, live stat cards, quick-links to your lists.
-- **BROWSE Dropdown Nav** — Secondary pages (Streaming, Box Office, Collections, News) are grouped under a BROWSE dropdown to keep the nav clean.
-- **Neo-Brutalist UI** — High-contrast, bold design with thick borders and offset shadows.
+### Glass UI Theme (app-wide)
+A premium visual style using dark semi-transparent surfaces, backdrop-blur, animated depth orbs, and micro-interactions — inspired by visionOS, Linear, and Raycast.
+
+- Toggled globally via a theme switch; every component reads `useThemeMode()` and swaps class sets
+- Animated depth orbs (`globals.css`) pulse slowly behind all content in glass mode
+- Glass-aware components: `PosterCard`, `MovieModal`, `MobileBottomNav`, `CommandHub`, `TrendingHero`, `ToastProvider`, `MovieActionRail`, `UserListButtons`, `SkeletonCard`, `RadarSkeleton`
+- **Profile page** — all sections (stats, lists, CLI token panel, stamp grid) use glass surfaces
+- **Watch Blocks page** — `CreateBlockModal`, `JoinBlockModal`, room cards, invite panel, and empty state all switch to glass-dark cards with violet/green/cyan accents
+- Brutalist theme fully preserved for non-glass users
+
+### CineSwipe — Gesture-Based Discovery (`/swipe`)
+Full-screen swipe deck for discovering movies with gestures or keyboard:
+
+| Gesture | Action |
+|---|---|
+| Swipe Right / → | Add to Liked |
+| Swipe Left / ← | Skip |
+| Swipe Up / ↑ | Add to Watchlist |
+| Swipe Down / ↓ | Add to a CineBlock (with optional liked/watchlist prompt) |
+
+- **Rate limit:** 200 swipes/day enforced server-side (`/api/swipe/limit`); remaining count shown in UI
+- **Components:** `SwipeDeckView`, `SwipeCard`, `SwipeLimitScreen`, `SwipeSummaryScreen`, `SwipeTutorial`
+- **Hook:** `useCineSwipeEngine` — batch movie fetching, genre/language filters, limit handling
+- **Backend:** `convex/cineswipe.ts` stores swipe history and enforces the daily quota
+
+### List Pages — Filter, Multi-Select & Similar Rows
+The Liked, Watchlist, and Watched pages got a significant UX overhaul:
+
+- **`ListFilterBar`** — filter your collection by title search, genre, release year, or director/cast (people search with TMDB typeahead). Metadata is lazily fetched and cached via `movieMetaCache`
+- **`SelectionBar`** — long-press or tap the checkbox to enter multi-select mode; select any movies and bulk-add them to a new or existing CineBlock in one tap
+- **`SimilarRow`** — each movie detail opens a lazy-loaded row of similar titles, triggered by IntersectionObserver (fetches only when scrolled into view)
+
+### Personalized Recommendations (`usePersonalizedRecs`)
+Smart, persistent recommendation cards built from your watched + liked history:
+
+- Cached forever in `localStorage` — zero API calls on repeat visits
+- Fingerprint-based refresh: if new movies were added since the last build, a silent background re-fetch replaces the cache seamlessly
+- API cost: 1–2 TMDB discover calls per "new movies added" event
+
+### Offline JSON Import / Export
+Back up and restore your entire collection locally.
+
+**Python CLI (`cineblock-cli.py`)** — zero dependencies (stdlib only):
+```bash
+# Save token once
+CINEBLOCK_TOKEN=cb_... python cineblock-cli.py
+
+# Search movies from your terminal
+python cineblock-cli.py   # interactive menu
+```
+
+**API endpoint:** `POST /api/cli`
+- Validates Bearer token, parses JSON body, and runs the appropriate Convex mutations
+- Supports export (dumps Liked / Watchlist / Watched / CineBlocks) and import (restores a backup)
+
+### CLI Token Authentication
+Secure the CLI without exposing your password.
+
+- **Schema fields:** `cliToken`, `cliSearchesUsed`, `cliSearchesResetAt` (convex/schema.ts)
+- **Rate limit:** 15 CLI requests per day, enforced in `/api/cli`
+- **User flow:** Profile page → *Generate Token* → copy `cb_...` token → pass to CLI
+- Token is stored locally in `~/.cineblock_token` for subsequent runs
+
+### Watch Blocks (Collaborative Rooms)
+Create a named room, share a 6-character invite code with friends, and build a shared movie list together.
+
+- **`/blocks`** — room list with glass cards, invitation panel showing pending invites
+- **`/blocks/[roomId]`** — shared movie grid; any member can add/remove titles
+- `CreateBlockModal` and `JoinBlockModal` fully glass-aware with accent-color confirmation states
+
+### TrendingHero — Touch & Animation Fixes
+- All overlay/gradient `div`s marked `pointer-events-none` so iOS touch events reach underlying buttons
+- Nav arrows enlarged to 40×40 px with `touchAction: manipulation`; press feedback is opacity-only (no scale transform dead zones)
+- Watchlist bookmark now uses `useMovieLists` (`isInWatchlist`/`toggleWatchlist`) — was incorrectly syncing to the Liked list
+- Rocket scroll-to-top in `MobileBottomNav` rebuilt with `useAnimate`; declarative show/hide + imperative blast-off animation; `launched` flag prevents snap-back
+
+### CommandHub
+Global search and command palette — major rewrite with glass mode, improved keyboard navigation, and updated action shortcuts.
+
+### FindMyMovie Wizard
+Multi-step guided movie finder (mood → genre → language → time → keywords → dealbreakers → intensity):
+- All steps glass-aware
+- `ResultsGrid` uses the new server-side filter API for smaller payloads
+
+### API Filter Optimizations
+Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, and language filters applied at the database/TMDB query level rather than client-side. Reduces payload size and lowers latency on slower networks.
+
+---
+
+## Routes
+
+| Path | Description |
+|---|---|
+| `/` | Home — TrendingHero + PosterGrid |
+| `/swipe` | CineSwipe gesture deck |
+| `/liked` | Liked movies (filter + multi-select) |
+| `/watchlist` | Watchlist (filter + multi-select) |
+| `/watched` | Watched log (filter + multi-select) |
+| `/blocks` | Watch Blocks lobby |
+| `/blocks/[roomId]` | Shared room |
+| `/profile` | User profile, stats, CLI token |
+| `/radar` | Upcoming releases radar |
+| `/recommendations` | Personalized picks |
+| `/search` | Global movie/TV search |
+| `/movie/[id]` | Movie detail |
+| `/tv/[id]` | TV show detail |
+| `/u/[username]` | Public user profile |
+| `/box-office` | Box office charts |
+| `/news` | Movie news |
+| `/streaming` | Streaming availability |
 
 ---
 
@@ -25,174 +130,49 @@ CineBlock is a high-energy movie discovery platform built with a bold Neo-Brutal
 
 | Layer | Technology |
 |---|---|
-| Framework | [Next.js 16](https://nextjs.org/) — App Router, Turbopack |
-| Language | [TypeScript](https://www.typescriptlang.org/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) + custom Neo-Brutalist theme |
-| Icons | [Lucide React](https://lucide.dev/) |
-| Data | [TMDB API](https://www.themoviedb.org/documentation/api) |
-| Backend | [Convex](https://convex.dev/) — queries, mutations, actions, HTTP router, crons |
-| Auth | [@convex-dev/auth](https://labs.convex.dev/auth) — Password provider |
-| News parsing | [rss-parser](https://github.com/rbren/rss-parser) + native `fetch` for og:image scraping |
+| Framework | Next.js (App Router) |
+| UI | React, Tailwind CSS, Framer Motion 12 |
+| Backend / DB | Convex (schema in `convex/schema.ts`) |
+| Auth | `@convex-dev/auth` + `@auth/core` |
+| Data | TMDB API |
+| CLI | Python 3 (`cineblock-cli.py`, stdlib only) |
+| Analytics | Vercel Analytics |
 
 ---
 
 ## Getting Started
 
-### Prerequisites
-
-- [Node.js 18+](https://nodejs.org/)
-- A free [TMDB account](https://www.themoviedb.org/) — get a **v4 read-access token** (Bearer token, not the v3 key)
-- A free [Convex account](https://convex.dev/)
-
-### 1. Clone & Install
-
 ```bash
-git clone https://github.com/your-username/cineblock.git
-cd cineblock
+git clone <repo-url>
+cd movieX
 npm install
-```
-
-### 2. Environment Variables
-
-Create `.env.local` in the project root:
-
-```env
-# TMDB v4 Bearer token (used server-side only)
-TMDB_API_KEY=your_tmdb_bearer_token_here
-
-# Base URL — used by Convex cron to call /api/internal/fetch-news
-# Change to your production URL when deploying
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-> Convex will automatically add `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` in the next step.
-
-### 3. Start the Convex Backend
-
-```bash
-npx convex dev
-```
-
-This pushes your schema, functions, and `auth.config.ts` to your Convex dev deployment. Keep this terminal running.
-
-### 4. Start the Next.js Dev Server
-
-In a separate terminal:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`. Toggle **Glass** in settings to switch themes.
 
----
+### CLI Usage
 
-## Available Scripts
+```bash
+# Set your token (get it from /profile)
+export CINEBLOCK_TOKEN=cb_your_token_here
 
-| Command | Description |
-|---|---|
-| `npm run dev` | Next.js dev server (Turbopack) |
-| `npx convex dev` | Convex dev server — watches and pushes backend changes |
-| `npm run build` | Production build |
-| `npm run start` | Start the production server |
-| `npm run lint` | Run ESLint |
-| `npx convex dashboard` | Open the Convex database dashboard |
-
----
-
-## Project Structure
-
-```
-cineblock/
-├── convex/                  # Convex backend
-│   ├── schema.ts            # Database schema (lists, news_feed, rooms, room_members, room_votes, users)
-│   ├── auth.config.ts       # JWT issuer config for Convex Auth
-│   ├── auth.ts              # Auth setup (Password provider)
-│   ├── http.ts              # HTTP router — exposes auth discovery endpoint
-│   ├── crons.ts             # Daily news refresh cron (3 AM UTC)
-│   ├── lists.ts             # Liked / Watchlist / Watched mutations & queries
-│   ├── news.ts              # News feed queries, cache store/invalidate
-│   ├── rooms.ts             # Watch Blocks — create, join, leave, delete, match, vote
-│   └── users.ts             # User upsert & profile queries
-│
-├── src/
-│   ├── app/                 # Next.js App Router
-│   │   ├── page.tsx         # Home — hero + poster grid
-│   │   ├── blocks/          # Watch Blocks list page
-│   │   │   └── [blockId]/   # Individual Block — members, matches, votes
-│   │   ├── news/            # Daily news feed page
-│   │   ├── profile/         # Editable profile page
-│   │   ├── liked/           # Liked movies list
-│   │   ├── watchlist/       # Watchlist page
-│   │   ├── watched/         # Watched history page
-│   │   ├── collections/     # Movie franchise collections
-│   │   ├── box-office/      # Trending box office page
-│   │   ├── streaming/       # What's streaming now
-│   │   ├── recommendations/ # Personalised recommendations
-│   │   ├── sign-in/         # Auth page
-│   │   └── api/
-│   │       └── internal/
-│   │           └── fetch-news/  # RSS fetch + og:image scraping + TMDB fallback
-│   │
-│   ├── components/          # Reusable UI components
-│   │   ├── CommandHub.tsx   # Top nav — BROWSE dropdown, BLOCKS, FIND MOVIE, THEME, ACCOUNT
-│   │   ├── NewsFeed.tsx     # News grid — Convex cache-first, sort images-first
-│   │   ├── NewsArticleCard.tsx
-│   │   ├── PosterGrid.tsx
-│   │   ├── MovieModal.tsx
-│   │   ├── FindMyMovieWizard.tsx
-│   │   └── ...
-│   │
-│   ├── hooks/               # Custom React hooks (useMovieLists, etc.)
-│   ├── lib/                 # Utility functions and type definitions
-│   └── proxy.ts             # Next.js 16 middleware (auth route protection)
+# Run the interactive CLI
+python cineblock-cli.py
 ```
 
 ---
 
-## Watch Blocks — Privacy Model
+## Contributing
 
-Watch Blocks let friends compare watchlists without revealing everything:
-
-- A **Block** is a group identified by a 6-character invite code.
-- A **match** is any movie that **2 or more members** have in their Watchlist.
-- If **you have the movie**, you see the names of other members who also want to watch it.
-- If **you don't have the movie**, you only see the count (`3/4 want to watch`) — no names.
-- Members can cast a **Let's Watch** flame vote on any match to show enthusiasm. Vote counts are visible to everyone in real-time.
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/your-name`).
+3. Run `npm install` and `npm test`.
+4. Follow the **glass-theme** styling conventions — new modals and cards should be glass-aware.
+5. Open a Pull Request.
 
 ---
 
-## News Image Pipeline
+## License
 
-For each article the fetch-news API tries sources in order:
-
-1. **RSS media namespace** — `enclosure`, `media:content`, `media:thumbnail`, or `<img>` in `content:encoded`
-2. **og:image scraping** — streams the first 40 KB of the article with a Chrome User-Agent and extracts `og:image` / `twitter:image`
-3. **TMDB backdrop** — extracts a movie/show title from the headline and calls `search/multi` on TMDB
-
-Articles without images are sorted to the end of the news grid.
-
----
-
-## Auth Notes
-
-- Authentication uses `@convex-dev/auth` with the **Password** provider.
-- `convex/auth.config.ts` configures the JWT issuer domain (`CONVEX_SITE_URL`).
-- `convex/http.ts` exposes the auth discovery endpoint required by the Next.js client.
-- Route protection (`/watchlist`, `/blocks`, `/profile`) is handled in `src/proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`).
-
----
-
-## Deploying to Vercel
-
-1. Push to GitHub and import the repo in Vercel.
-2. Add environment variables: `TMDB_API_KEY` and (after first deploy) `NEXT_PUBLIC_APP_URL`.
-3. Run `npx convex deploy` to push the production Convex backend — Vercel will automatically pick up `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL` via the Convex Vercel integration.
-
-> **Note:** `NEXT_PUBLIC_APP_URL` is only used by the news cron — the app works without it on first deploy. Set it to your Vercel URL after the first deploy completes, then redeploy.
-
----
-
-## Attribution
-
-This product uses the TMDB API but is not endorsed or certified by TMDB.
+MIT © 2026 CineBlock contributors.

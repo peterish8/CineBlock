@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   X, Play, Plus, Check, ThumbsUp, ThumbsDown, ChevronDown,
-  Volume2, VolumeX, ChevronRight
+  Volume2, VolumeX
 } from "lucide-react";
 import { TMDBMovie, TMDBMovieDetail, TMDBVideo } from "@/lib/types";
 import { backdropUrl, posterUrl } from "@/lib/constants";
@@ -44,7 +44,7 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
       if (dRes.ok) setDetails(await dRes.json());
       if (sRes.ok) {
         const sd = await sRes.json();
-        setSimilar((sd.results || []).slice(0, 12).map((m: any) => ({ ...m, media_type: type })));
+        setSimilar((sd.results || []).slice(0, 12).map((m: TMDBMovie) => ({ ...m, media_type: type })));
       }
     } catch (e) {
       console.error(e);
@@ -72,13 +72,13 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, []);
+  }, [handleClose]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setNestedMovie(null);
     document.body.style.overflow = "";
     onClose();
-  };
+  }, [onClose]);
 
   if (!activeMov) return null;
 
@@ -312,7 +312,7 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
           {tab === "details" && (
             <div className="text-sm text-white/70 space-y-4">
               {details?.tagline && (
-                <p className="text-xl text-white/50 italic">"{details.tagline}"</p>
+                <p className="text-xl text-white/50 italic">&ldquo;{details.tagline}&rdquo;</p>
               )}
               {genres.length > 0 && (
                 <div>

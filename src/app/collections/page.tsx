@@ -8,6 +8,7 @@ import CollectionModal from "@/components/CollectionModal";
 import MovieModal from "@/components/MovieModal";
 import { TMDBMovie, TMDBCollection } from "@/lib/types";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 // Curated top-tier franchises for the landing page
 const CURATED_COLLECTIONS: (Partial<TMDBCollection> & { id: number; name: string; movieCount?: number; themeColor?: string })[] = [
@@ -222,12 +223,13 @@ const CURATED_COLLECTIONS: (Partial<TMDBCollection> & { id: number; name: string
 
 export default function CollectionsPage() {
   const router = useRouter();
+  const isGlass = useThemeMode() === "glass";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<TMDBCollection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
-  
+
   const { watched } = useMovieLists();
 
   // Handle Search
@@ -262,78 +264,127 @@ export default function CollectionsPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-bg text-brutal-white flex flex-col pt-24 pb-16 lg:pb-0">
-      {/* Background patterns */}
-      {/* 4. The Back Button UI */}
+    <main
+      className={`min-h-screen flex flex-col pt-24 pb-16 lg:pb-0 ${isGlass ? "relative overflow-x-hidden" : "bg-bg text-brutal-white"}`}
+      style={isGlass ? { background: "#020817" } : undefined}
+    >
+      {/* Glass depth orbs */}
+      {isGlass && (
+        <>
+          <div className="pointer-events-none fixed left-[-20%] top-[-15%] aspect-square w-[65vw] rounded-full opacity-20" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.22) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed bottom-[-15%] right-[-15%] aspect-square w-[50vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)", filter: "blur(110px)", zIndex: 0 }} />
+        </>
+      )}
+
+      {/* Background patterns (brutal only) */}
+      {!isGlass && (
+        <div className="fixed inset-0 pointer-events-none opacity-20 z-0 overflow-hidden hidden sm:block">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] border-[50px] border-brutal-border rounded-full -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[radial-gradient(circle,var(--brutal-violet)_0%,transparent_70%)] opacity-30" />
+        </div>
+      )}
+
+      {/* Back Button */}
       <div className="fixed top-6 left-6 z-50">
-        <button 
+        <button
           onClick={() => router.back()}
-          className="brutal-btn flex items-center gap-2 px-4 py-2 bg-bg hover:!bg-brutal-violet hover:!text-black transition-all active:translate-y-1 active:shadow-none"
+          className={`flex items-center gap-2 px-4 py-2 font-bold text-sm transition-all active:scale-[0.97] ${
+            isGlass ? "rounded-xl" : "brutal-btn bg-bg hover:!bg-brutal-violet hover:!text-black active:translate-y-1 active:shadow-none font-mono font-black uppercase"
+          }`}
+          style={isGlass ? { background: "rgba(8,15,40,0.80)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.9)" } : undefined}
         >
           <ChevronLeft className="w-5 h-5" />
-          <span className="font-mono font-black text-sm uppercase">Back</span>
+          <span>Back</span>
         </button>
-      </div>
-      <div className="fixed inset-0 pointer-events-none opacity-20 z-0 overflow-hidden hidden sm:block">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] border-[50px] border-brutal-border rounded-full -mr-24 -mt-24" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[radial-gradient(circle,var(--brutal-violet)_0%,transparent_70%)] opacity-30" />
       </div>
 
       {/* Hero Section */}
       <section className="relative z-10 max-w-[1400px] mx-auto w-full px-6 py-12 flex flex-col items-center text-center gap-6">
         <div className="flex flex-col items-center gap-2">
-            <div className="brutal-chip bg-brutal-violet text-black px-4 py-1 text-xs font-black uppercase tracking-[0.3em] shadow-brutal-sm">
-                COLLECTOR MODE
-            </div>
-            <h1 className="text-4xl sm:text-7xl font-display font-black uppercase leading-none tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
-                FRANCHISE <span className="text-brutal-violet">VAULT</span>
-            </h1>
-            <p className="max-w-xl text-brutal-muted text-sm sm:text-lg font-mono font-bold mt-4 uppercase leading-relaxed">
-                Track your progress through history's greatest cinematic empires. Complete the sagas. Earn your badges.
-            </p>
+          <div
+            className={`px-4 py-1 text-xs font-black uppercase tracking-[0.3em] ${isGlass ? "rounded-lg" : "brutal-chip bg-brutal-violet text-black shadow-brutal-sm"}`}
+            style={isGlass ? { background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.35)", color: "#A78BFA" } : undefined}
+          >
+            COLLECTOR MODE
+          </div>
+          <h1 className={`text-4xl sm:text-7xl font-display font-black uppercase leading-none tracking-tighter text-transparent bg-clip-text ${isGlass ? "bg-gradient-to-b from-white to-white/30" : "bg-gradient-to-b from-white to-white/40"}`}>
+            FRANCHISE <span className={isGlass ? "text-violet-400" : "text-brutal-violet"} style={isGlass ? { WebkitTextFillColor: "#A78BFA" } : undefined}>VAULT</span>
+          </h1>
+          <p className={`max-w-xl text-sm sm:text-lg font-bold mt-4 leading-relaxed ${isGlass ? "text-slate-400" : "text-brutal-muted font-mono uppercase"}`}>
+            Track your progress through history's greatest cinematic empires. Complete the sagas. Earn your badges.
+          </p>
         </div>
 
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="w-full max-w-2xl mt-8">
-            <div className="relative group">
-                <div className="absolute inset-0 bg-brutal-violet translate-x-2 translate-y-2 group-focus-within:translate-x-3 group-focus-within:translate-y-3 transition-transform duration-200" />
-                <div className="relative flex items-center bg-bg border-4 border-brutal-border p-1">
-                    <Search className="w-6 h-6 ml-4 text-brutal-dim" />
-                    <input 
-                        type="text"
-                        placeholder="SEARCH FOR A FRANCHISE (E.G. 'AVENGERS' OR 'BOND')..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="flex-1 bg-transparent px-4 py-3 outline-none font-mono font-black text-xs sm:text-sm uppercase placeholder:text-brutal-dim/50"
-                    />
-                    <button 
-                        type="submit"
-                        disabled={isLoading}
-                        className="brutal-btn bg-brutal-violet text-black border-none px-6 py-3 font-mono font-black text-sm hover:scale-105 active:scale-95 transition-all"
-                    >
-                        {isLoading ? "LOADING..." : "FETCH"}
-                    </button>
-                </div>
+          {isGlass ? (
+            <div
+              className="flex items-center gap-3 rounded-2xl px-4 py-3"
+              style={{ background: "rgba(8,15,40,0.72)", backdropFilter: "blur(20px)", border: "1px solid rgba(255,255,255,0.12)" }}
+            >
+              <Search className="w-5 h-5 text-slate-500 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search for a franchise (e.g. 'Avengers' or 'Bond')..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-sm font-medium text-white placeholder:text-slate-600"
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="shrink-0 px-4 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+                style={{ background: "rgba(139,92,246,0.20)", border: "1px solid rgba(139,92,246,0.40)", color: "#A78BFA" }}
+              >
+                {isLoading ? "Loading..." : "Search"}
+              </button>
             </div>
+          ) : (
+            <div className="relative group">
+              <div className="absolute inset-0 bg-brutal-violet translate-x-2 translate-y-2 group-focus-within:translate-x-3 group-focus-within:translate-y-3 transition-transform duration-200" />
+              <div className="relative flex items-center bg-bg border-4 border-brutal-border p-1">
+                <Search className="w-6 h-6 ml-4 text-brutal-dim" />
+                <input
+                  type="text"
+                  placeholder="SEARCH FOR A FRANCHISE (E.G. 'AVENGERS' OR 'BOND')..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent px-4 py-3 outline-none font-mono font-black text-xs sm:text-sm uppercase placeholder:text-brutal-dim/50"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="brutal-btn bg-brutal-violet text-black border-none px-6 py-3 font-mono font-black text-sm hover:scale-105 active:scale-95 transition-all"
+                >
+                  {isLoading ? "LOADING..." : "FETCH"}
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </section>
 
       {/* Main Content Area */}
       <section className="relative z-10 max-w-[1400px] mx-auto w-full px-6 py-16 flex flex-col gap-12">
-        
+
         {searchResults.length > 0 ? (
           <div>
             <div className="flex items-center gap-4 mb-8">
-                <Box className="w-6 h-6 text-brutal-cyan" />
-                <h2 className="text-xl font-display font-black uppercase tracking-widest">SEARCH RESULTS</h2>
-                <button onClick={() => setSearchResults([])} className="ml-auto text-xs font-mono font-bold text-brutal-dim hover:text-white uppercase">CLEAR RESULTS</button>
+              <Box className={`w-6 h-6 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} />
+              <h2 className={`text-xl font-black uppercase tracking-widest ${isGlass ? "text-white" : "font-display"}`}>Search Results</h2>
+              <button
+                onClick={() => setSearchResults([])}
+                className={`ml-auto text-xs font-bold transition-colors ${isGlass ? "text-slate-500 hover:text-slate-300" : "font-mono text-brutal-dim hover:text-white uppercase"}`}
+              >
+                {isGlass ? "Clear" : "CLEAR RESULTS"}
+              </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-12">
               {searchResults.map((collection) => (
-                <CollectionCard 
-                    key={collection.id} 
-                    collection={collection} 
-                    onClick={() => setSelectedCollectionId(collection.id)}
+                <CollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  onClick={() => setSelectedCollectionId(collection.id)}
                 />
               ))}
             </div>
@@ -342,51 +393,77 @@ export default function CollectionsPage() {
           <>
             {/* Curated Section */}
             <div>
-                <div className="flex items-center gap-4 mb-8">
-                    <Trophy className="w-6 h-6 text-brutal-yellow animate-pulse" />
-                    <h2 className="text-xl font-display font-black uppercase tracking-widest">LEGENDARY FRANCHISES</h2>
-                    <div className="h-[2px] flex-1 bg-brutal-border" />
-                    <div className="brutal-chip border-brutal-border text-xs px-2 py-1">{CURATED_COLLECTIONS.length} FRANCHISES</div>
+              <div className="flex items-center gap-4 mb-8">
+                <Trophy className={`w-6 h-6 animate-pulse ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} />
+                <h2 className={`text-xl font-black uppercase tracking-widest ${isGlass ? "text-white" : "font-display"}`}>Legendary Franchises</h2>
+                <div className={`h-px flex-1 ${isGlass ? "bg-white/08" : "h-[2px] bg-brutal-border"}`} style={isGlass ? { background: "rgba(255,255,255,0.08)" } : undefined} />
+                <div
+                  className={`text-xs px-2 py-1 font-bold ${isGlass ? "rounded-lg" : "brutal-chip border-brutal-border"}`}
+                  style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(148,163,184,0.6)" } : undefined}
+                >
+                  {CURATED_COLLECTIONS.length} {isGlass ? "franchises" : "FRANCHISES"}
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-10">
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-10">
                 {CURATED_COLLECTIONS.map((c) => (
-                    <CollectionCard 
-                        key={c.id} 
-                        collection={c as any} 
-                        onClick={() => setSelectedCollectionId(c.id)}
-                    />
+                  <CollectionCard
+                    key={c.id}
+                    collection={c as any}
+                    onClick={() => setSelectedCollectionId(c.id)}
+                  />
                 ))}
-                </div>
+              </div>
             </div>
 
-            {/* How it works info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 py-12 border-t-3 border-brutal-border border-dashed">
-                <div className="flex flex-col gap-4 p-6 bg-surface-2 border-3 border-brutal-border shadow-brutal">
-                    <div className="w-12 h-12 flex items-center justify-center bg-brutal-cyan text-black border-2 border-black font-black">01</div>
-                    <h3 className="font-display font-black uppercase text-lg">OPEN THE VAULT</h3>
-                    <p className="text-xs font-mono text-brutal-muted leading-relaxed uppercase font-bold">Search and find any movie series. We index thousands of franchises from MCU to cult classics.</p>
-                </div>
-                <div className="flex flex-col gap-4 p-6 bg-surface-2 border-3 border-brutal-border shadow-brutal">
-                    <div className="w-12 h-12 flex items-center justify-center bg-brutal-violet text-black border-2 border-black font-black">02</div>
-                    <h3 className="font-display font-black uppercase text-lg">TRACK PROGRESS</h3>
-                    <p className="text-xs font-mono text-brutal-muted leading-relaxed uppercase font-bold">Mark movies as watched. Our tracker automatically updates your franchise completion bars.</p>
-                </div>
-                <div className="flex flex-col gap-4 p-6 bg-surface-2 border-3 border-brutal-border shadow-brutal">
-                    <div className="w-12 h-12 flex items-center justify-center bg-brutal-yellow text-black border-2 border-black font-black">03</div>
-                    <h3 className="font-display font-black uppercase text-lg">BE A CINEPHILE</h3>
-                    <p className="text-xs font-mono text-brutal-muted leading-relaxed uppercase font-bold">Close the gaps in your knowledge. The franchise vault is for those who finish what they start.</p>
-                </div>
+            {/* How it works */}
+            <div
+              className={`grid grid-cols-1 md:grid-cols-3 gap-8 mt-12 py-12 ${isGlass ? "" : "border-t-3 border-brutal-border border-dashed"}`}
+              style={isGlass ? { borderTop: "1px dashed rgba(255,255,255,0.08)" } : undefined}
+            >
+              {[
+                { num: "01", title: "Open the Vault", body: "Search and find any movie series. We index thousands of franchises from MCU to cult classics.", color: isGlass ? "rgba(34,211,238,0.15)" : "bg-brutal-cyan", colorBorder: "rgba(34,211,238,0.35)", textColor: "#67E8F9" },
+                { num: "02", title: "Track Progress", body: "Mark movies as watched. Our tracker automatically updates your franchise completion bars.", color: isGlass ? "rgba(139,92,246,0.15)" : "bg-brutal-violet", colorBorder: "rgba(139,92,246,0.35)", textColor: "#A78BFA" },
+                { num: "03", title: "Be a Cinephile", body: "Close the gaps in your knowledge. The franchise vault is for those who finish what they start.", color: isGlass ? "rgba(251,191,36,0.15)" : "bg-brutal-yellow", colorBorder: "rgba(251,191,36,0.35)", textColor: "#FCD34D" },
+              ].map((item) => (
+                isGlass ? (
+                  <div
+                    key={item.num}
+                    className="flex flex-col gap-4 p-6 rounded-2xl"
+                    style={{ background: "rgba(8,15,40,0.60)", border: "1px solid rgba(255,255,255,0.08)" }}
+                  >
+                    <div
+                      className="w-12 h-12 flex items-center justify-center rounded-xl font-black text-sm"
+                      style={{ background: item.color, border: `1px solid ${item.colorBorder}`, color: item.textColor }}
+                    >
+                      {item.num}
+                    </div>
+                    <h3 className="font-bold text-lg text-white uppercase">{item.title}</h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">{item.body}</p>
+                  </div>
+                ) : (
+                  <div key={item.num} className="flex flex-col gap-4 p-6 bg-surface-2 border-3 border-brutal-border shadow-brutal">
+                    <div className={`w-12 h-12 flex items-center justify-center ${item.color} text-black border-2 border-black font-black`}>{item.num}</div>
+                    <h3 className="font-display font-black uppercase text-lg">{item.title.toUpperCase()}</h3>
+                    <p className="text-xs font-mono text-brutal-muted leading-relaxed uppercase font-bold">{item.body}</p>
+                  </div>
+                )
+              ))}
             </div>
           </>
         )}
       </section>
 
       {/* Footer Branding */}
-      <footer className="mt-auto px-6 py-12 border-t-4 border-brutal-border bg-black/40 flex flex-col items-center gap-4">
-          <div className="flex items-center gap-2 font-display font-black italic text-2xl uppercase tracking-tighter">
-              CINEBLOCK <span className="text-brutal-violet">FRANCHISE VAULT</span>
-          </div>
-          <div className="text-[10px] font-mono text-brutal-dim tracking-[0.5em] uppercase">Built for Completionists</div>
+      <footer
+        className={`mt-auto px-6 py-12 flex flex-col items-center gap-4 ${isGlass ? "" : "border-t-4 border-brutal-border bg-black/40"}`}
+        style={isGlass ? { borderTop: "1px solid rgba(255,255,255,0.07)" } : undefined}
+      >
+        <div className={`flex items-center gap-2 font-black italic text-2xl uppercase tracking-tighter ${isGlass ? "text-white/60" : "font-display"}`}>
+          CINEBLOCK <span className={isGlass ? "text-violet-400" : "text-brutal-violet"}>FRANCHISE VAULT</span>
+        </div>
+        <div className={`text-[10px] font-bold tracking-[0.5em] uppercase ${isGlass ? "text-slate-600" : "font-mono text-brutal-dim"}`}>
+          Built for Completionists
+        </div>
       </footer>
 
       {/* Popups */}

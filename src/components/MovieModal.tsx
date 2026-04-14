@@ -271,9 +271,8 @@ export default function MovieModal({
         backdropFilter: "blur(16px)",
       }
     : {
-        background: "rgba(255,255,255,0.10)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(12px)",
+        background: "transparent",
+        border: "1px solid transparent",
       };
 
   const REGIONS = [
@@ -333,8 +332,8 @@ export default function MovieModal({
         </div>
 
         {/* Top Header Controls Area */}
-        <div className="absolute top-0 left-0 right-0 z-50 h-32 pointer-events-none p-3 flex justify-between items-start">
-          <div className="flex flex-col gap-2 pointer-events-auto">
+        <div className={`absolute top-0 left-0 right-0 z-50 h-32 p-3 flex justify-between items-start ${playingTrailer ? "pointer-events-none" : "pointer-events-none"}`}>
+          <div className={`flex flex-col gap-2 ${playingTrailer ? "pointer-events-none opacity-0" : "pointer-events-auto"}`}>
             {(history.length > 1 || onBack) && (
               <button 
                 onClick={(e) => { e.stopPropagation(); if (history.length > 1) { setHistory(prev => prev.slice(0, -1)); } else { onBack?.(); } }} 
@@ -345,8 +344,8 @@ export default function MovieModal({
             )}
           </div>
 
-          <div className={`group/ctrl pointer-events-auto ${playingTrailer ? "p-6" : ""}`}>
-            <div className={`flex items-start gap-2 transition-opacity duration-150 ${playingTrailer ? "opacity-0 group-hover/ctrl:opacity-100" : ""}`}>
+          <div className={`group/ctrl ${playingTrailer ? "pointer-events-none" : "pointer-events-auto"}`}>
+            <div className={`flex items-start gap-2 transition-opacity duration-300 ${playingTrailer ? "opacity-0" : ""}`}>
               {showActions && (
                 <div className="flex flex-row-reverse gap-0.5 animate-slide-up-faint">
                   <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleLiked(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${liked ? "text-rose-400" : "text-white"}` : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${liked ? "text-[#E50914] border-[#E50914]/60" : "text-white hover:border-white"}` : `brutal-btn border-none p-2 transition-all ${liked ? "text-brutal-pink" : "text-white"}`} title="Like">
@@ -384,13 +383,24 @@ export default function MovieModal({
         {/* Hero Section */}
         <div className={`relative w-full aspect-video overflow-hidden ${isGlass ? "bg-[rgba(4,12,36,1)]" : isNetflix ? "bg-black border-b border-white/10" : "bg-black border-b-3 border-brutal-border"}`}>
           {playingTrailer && trailer ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0&modestbranding=1&showinfo=0`}
-              title={trailer.name}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
+            <>
+              <iframe
+                src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&controls=1&rel=0&modestbranding=1&showinfo=0`}
+                title={trailer.name}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+              {/* Stop trailer button — top-right corner, always clickable */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setPlayingTrailer(false); }}
+                className="absolute top-2 right-2 z-10 flex items-center justify-center w-8 h-8 rounded-full transition-all duration-150 opacity-60 hover:opacity-100"
+                style={{ background: "rgba(0,0,0,0.65)", border: "1px solid rgba(255,255,255,0.18)", backdropFilter: "blur(8px)" }}
+                title="Stop trailer"
+              >
+                <X className="w-4 h-4 text-white" strokeWidth={2.5} />
+              </button>
+            </>
           ) : (
             <>
               {(movie.backdrop_path || details?.backdrop_path) ? (

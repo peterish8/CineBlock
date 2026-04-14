@@ -19,7 +19,7 @@ const contentSecurityPolicy = (nonce) => [
   `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
   // Use nonce for styles instead of 'unsafe-inline'
   `style-src 'self' 'nonce-${nonce}'`,
-  "img-src 'self' data: blob: https://image.tmdb.org https://lh3.googleusercontent.com",
+  "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   "connect-src 'self' https://api.themoviedb.org https://vitals.vercel-insights.com https://va.vercel-scripts.com https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://1.1.1.1 https://ipwho.is https://ipapi.co",
   "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",

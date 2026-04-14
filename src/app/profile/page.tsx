@@ -368,7 +368,7 @@ export default function ProfilePage() {
               } : undefined}
             >
               {user?.image ? (
-                <Image src={user.image} alt={displayName} width={96} height={96} className="w-full h-full object-cover" />
+                <Image src={user.image} alt={displayName} width={96} height={96} className="w-full h-full object-cover" unoptimized />
               ) : (
                 <span className={isGlass ? "font-display font-black text-3xl text-blue-300" : "font-display font-black text-3xl text-black"}>
                   {initials}

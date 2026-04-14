@@ -5,6 +5,7 @@ import Image from "next/image";
 import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import SkeletonCard from "./SkeletonCard";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 interface SimilarRowProps {
   seed: { movieId: number; movieTitle: string };
@@ -17,6 +18,7 @@ export default function SimilarRow({ seed, mediaType, onMovieClick }: SimilarRow
   const [loaded, setLoaded] = useState(false);
   const [visible, setVisible] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
+  const isGlass = useThemeMode() === "glass";
 
   // Lazy-load: only fetch when row scrolls into view
   useEffect(() => {
@@ -55,14 +57,20 @@ export default function SimilarRow({ seed, mediaType, onMovieClick }: SimilarRow
       .finally(() => setLoaded(true));
   }, [visible, seed.movieId, mediaType]);
 
-  // Don't render anything if loaded and no results
   if (loaded && movies.length === 0) return null;
 
   return (
-    <div ref={rowRef} className="px-4 sm:px-6 py-5 border-y-2 border-brutal-border bg-surface/40">
-      <p className="text-[9px] font-mono font-black text-brutal-dim uppercase tracking-[0.25em] mb-3">
+    <div
+      ref={rowRef}
+      className={`px-4 sm:px-6 py-5 ${isGlass ? "" : "border-y-2 border-brutal-border bg-surface/40"}`}
+      style={isGlass ? {
+        borderTop: "1px solid rgba(255,255,255,0.07)",
+        borderBottom: "1px solid rgba(255,255,255,0.07)",
+      } : undefined}
+    >
+      <p className={`text-[9px] font-bold uppercase tracking-[0.25em] mb-3 ${isGlass ? "text-slate-500" : "font-mono font-black text-brutal-dim"}`}>
         Because you watched{" "}
-        <span className="text-brutal-yellow">{seed.movieTitle}</span>
+        <span className={isGlass ? "text-amber-400" : "text-brutal-yellow"}>{seed.movieTitle}</span>
       </p>
 
       <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
@@ -78,7 +86,14 @@ export default function SimilarRow({ seed, mediaType, onMovieClick }: SimilarRow
                 onClick={() => onMovieClick(movie)}
                 className="w-[100px] shrink-0 group text-left focus:outline-none"
               >
-                <div className="aspect-[2/3] relative border-2 border-brutal-border group-hover:border-brutal-yellow transition-colors overflow-hidden">
+                <div
+                  className={`aspect-[2/3] relative overflow-hidden transition-all ${
+                    isGlass
+                      ? "rounded-xl group-hover:ring-1 group-hover:ring-white/25 group-hover:-translate-y-0.5"
+                      : "border-2 border-brutal-border group-hover:border-brutal-yellow transition-colors"
+                  }`}
+                  style={isGlass ? { border: "1px solid rgba(255,255,255,0.10)" } : undefined}
+                >
                   {movie.poster_path ? (
                     <Image
                       src={posterUrl(movie.poster_path, "small")}
@@ -88,14 +103,18 @@ export default function SimilarRow({ seed, mediaType, onMovieClick }: SimilarRow
                       className="object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-surface-2 flex items-center justify-center">
-                      <span className="text-brutal-dim text-[8px] font-mono text-center px-1">
+                    <div className={`w-full h-full flex items-center justify-center ${isGlass ? "bg-white/5" : "bg-surface-2"}`}>
+                      <span className={`text-[8px] font-bold text-center px-1 ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>
                         {movie.title}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-[9px] font-mono font-bold text-brutal-muted mt-1 truncate group-hover:text-brutal-white transition-colors">
+                <p className={`text-[9px] font-bold mt-1 truncate transition-colors ${
+                  isGlass
+                    ? "text-slate-400 group-hover:text-white"
+                    : "font-mono text-brutal-muted group-hover:text-brutal-white"
+                }`}>
                   {movie.title}
                 </p>
               </button>

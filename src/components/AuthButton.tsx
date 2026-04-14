@@ -1,39 +1,48 @@
 "use client";
 
 import { useConvexAuth, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useState, useRef, useEffect } from "react";
-import { LogIn, LogOut, User, Bookmark, ChevronDown } from "lucide-react";
+
+import { useState, useEffect, useRef } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { LogIn, User, Bookmark, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { api } from "../../convex/_generated/api";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 export default function AuthButton() {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const { signOut } = useAuthActions();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const theme = useThemeMode();
+  const isGlass = theme === "glass";
+  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   const pendingInvites = useQuery(
     api.blocks.getPendingInvitations,
     isAuthenticated ? {} : "skip"
   );
   const inviteCount = pendingInvites?.length ?? 0;
 
+  // Close on outside click
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const [showDebug, setShowDebug] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (isLoading) setShowDebug(true);
-    }, 4000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => { if (isLoading) setShowDebug(true); }, 4000);
+    return () => clearTimeout(t);
   }, [isLoading]);
 
   if (isLoading) {
@@ -43,10 +52,8 @@ export default function AuthButton() {
           <User className="w-4 h-4 animate-pulse" strokeWidth={2.5} />
         </div>
         {showDebug && (
-          <button 
-            onClick={() => window.location.reload()}
-            className="text-[9px] font-mono font-bold text-brutal-red underline decoration-2 underline-offset-2"
-          >
+          <button onClick={() => window.location.reload()}
+            className="text-[9px] font-mono font-bold text-brutal-red underline decoration-2 underline-offset-2">
             STUCK? RELOAD
           </button>
         )}
@@ -56,86 +63,92 @@ export default function AuthButton() {
 
   if (!isAuthenticated) {
     return (
-      <Link
-        href="/sign-in"
-        className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest flex items-center gap-2 bg-surface border-brutal-border hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow"
-      >
+      <Link href="/sign-in"
+        className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest flex items-center gap-2 bg-surface border-brutal-border hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow">
         <LogIn className="w-4 h-4" strokeWidth={2.5} />
         <span className="hidden sm:inline-block">SIGN IN</span>
       </Link>
     );
   }
 
+  const divider = (
+    <span className="w-px self-stretch" style={{ background: isGlass ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.15)" }} />
+  );
+
+  const itemClass = `flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono font-bold tracking-wider transition-colors duration-150 whitespace-nowrap ${
+    isGlass ? "text-white/70 hover:text-white" : "text-white/70 hover:text-white"
+  }`;
+
   return (
-    <div className="relative" ref={ref}>
-      {/* Single box: left side navigates, right side opens dropdown */}
-      <div className="brutal-btn p-0 flex items-stretch overflow-hidden bg-surface border-brutal-border hover:!border-brutal-yellow hover:!text-brutal-yellow relative">
-        <Link
-          href="/profile"
-          className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5"
-        >
-          <User className="w-4 h-4" strokeWidth={2.5} />
+    <div ref={ref} className="relative flex items-center">
+      {/* Expanding pill */}
+      <motion.div
+        layout
+        className="flex items-stretch overflow-hidden"
+        style={{
+          borderRadius: 10,
+          background: isGlass
+            ? "rgba(255,255,255,0.07)"
+            : "rgba(30,30,30,0.95)",
+          border: isGlass
+            ? "1px solid rgba(255,255,255,0.12)"
+            : "2px solid rgba(255,255,255,0.15)",
+        }}
+        transition={{ type: "spring", stiffness: 280, damping: 24 }}
+      >
+        {/* Expanded items — animate in from the right side leftward */}
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              key="menu-items"
+              className="flex items-stretch"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 24 }}
+              style={{ overflow: "hidden" }}
+            >
+              <Link href="/profile" onClick={() => setOpen(false)} className={itemClass}>
+                <User className="w-3.5 h-3.5" strokeWidth={2.5} />
+                PROFILE
+              </Link>
+              {divider}
+              <Link href="/watchlist" onClick={() => setOpen(false)} className={itemClass}>
+                <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
+                MY LISTS
+              </Link>
+              {divider}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Profile icon — always visible, links to profile */}
+        <Link href="/profile" className="flex items-center px-2.5 py-1.5 relative">
+          <User className="w-4 h-4 text-white/80" strokeWidth={2.5} />
           {inviteCount > 0 && (
-            <span className="absolute -top-1.5 left-4 w-4 h-4 rounded-full bg-brutal-yellow text-black text-[9px] font-black flex items-center justify-center border border-black">
+            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 text-black text-[9px] font-black flex items-center justify-center">
               {inviteCount > 9 ? "9+" : inviteCount}
             </span>
           )}
         </Link>
-        {/* divider */}
-        <span className="w-px self-stretch bg-brutal-border opacity-50" />
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center px-1.5 py-1.5"
-        >
-          <ChevronDown
-            className="w-3 h-3 transition-transform duration-200"
-            style={{ transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }}
-            strokeWidth={2.5}
-          />
-        </button>
-      </div>
 
-      {dropdownOpen && (
-        <div
-          className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl z-[100] animate-pop-in"
-          style={{
-            background: "rgba(10, 14, 26, 0.55)",
-            backdropFilter: "blur(28px) saturate(160%)",
-            WebkitBackdropFilter: "blur(28px) saturate(160%)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08)",
-          }}
+        {/* Divider */}
+        {divider}
+
+        {/* Chevron — toggles expand */}
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center px-2 py-1.5"
+          aria-label="Toggle profile menu"
         >
-          <Link
-            href="/profile"
-            onClick={() => setDropdownOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-xs font-mono font-bold text-white/90 hover:text-brutal-cyan hover:bg-white/5 transition-colors"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+          <motion.div
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 22 }}
           >
-            <User className="w-3.5 h-3.5" strokeWidth={2.5} />
-            PROFILE
-          </Link>
-          <Link
-            href="/watchlist"
-            onClick={() => setDropdownOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 text-xs font-mono font-bold text-white/90 hover:text-brutal-lime hover:bg-white/5 transition-colors"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-          >
-            <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
-            MY LISTS
-          </Link>
-          <button
-            onClick={() => {
-              setDropdownOpen(false);
-              void signOut();
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-mono font-bold text-white/90 hover:text-brutal-red hover:bg-white/5 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" strokeWidth={2.5} />
-            SIGN OUT
-          </button>
-        </div>
-      )}
+            <ChevronDown className="w-3.5 h-3.5 text-white/60" strokeWidth={2.5} />
+          </motion.div>
+        </button>
+      </motion.div>
     </div>
   );
 }

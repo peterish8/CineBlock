@@ -82,7 +82,10 @@ export const fetchAndStore = internalAction({
       return;
     }
     try {
-      const res = await fetch(`${appUrl}/api/internal/fetch-news`);
+      const secret = process.env.INTERNAL_API_SECRET;
+      const res = await fetch(`${appUrl}/api/internal/fetch-news`, {
+        headers: secret ? { "x-internal-secret": secret } : {},
+      });
       if (!res.ok) {
         console.error("News fetch failed:", res.status);
         return;

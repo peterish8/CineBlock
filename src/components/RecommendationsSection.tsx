@@ -6,6 +6,7 @@ import { useMovieLists } from "@/hooks/useMovieLists";
 import PosterCard from "./PosterCard";
 import { Sparkles, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 interface RecommendationsSectionProps {
   onMovieClick: (movie: TMDBMovie) => void;
@@ -13,6 +14,7 @@ interface RecommendationsSectionProps {
 
 export default function RecommendationsSection({ onMovieClick }: RecommendationsSectionProps) {
   const { liked: watchlist } = useMovieLists();
+  const isGlass = useThemeMode() === "glass";
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -25,7 +27,6 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
 
     setLoading(true);
     try {
-      // Fetch from up to 3 watchlisted movies
       const moviesToFetch = watchlist.slice(0, 3);
       const results = await Promise.allSettled(
         moviesToFetch.map(async (movie) => {
@@ -38,14 +39,12 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
         })
       );
 
-      // Flatten, deduplicate, exclude already-saved
       const watchlistIds = new Set(watchlist.map((m) => m.id));
       const allMovies = results
         .filter((r): r is PromiseFulfilledResult<TMDBMovie[]> => r.status === "fulfilled")
         .flatMap((r) => r.value)
         .filter((m) => m.poster_path && !watchlistIds.has(m.id));
 
-      // Deduplicate by id
       const seen = new Set<number>();
       const unique = allMovies.filter((m) => {
         if (seen.has(m.id)) return false;
@@ -53,7 +52,7 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
         return true;
       });
 
-      setMovies(unique.slice(0, 10)); // Show max 10 on homepage
+      setMovies(unique.slice(0, 10));
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,38 +69,50 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
   return (
     <section className="py-6 px-4 sm:px-6">
       <div className="max-w-[1600px] mx-auto">
-        {/* Header (Clickable to toggle) */}
-        <div 
+        {/* Header */}
+        <div
           className="flex items-center justify-between mb-4 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-brutal-yellow" strokeWidth={2.5} />
-            <h2 className="font-display font-bold text-lg text-brutal-white uppercase tracking-tight">
-              FOR YOU
+            <Sparkles className={`w-5 h-5 ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
+            <h2 className={`font-display font-bold text-lg tracking-tight ${isGlass ? "text-white" : "text-brutal-white uppercase"}`}>
+              {isGlass ? "For You" : "FOR YOU"}
             </h2>
-            <span className="brutal-chip text-brutal-dim text-[10px]">
-              BASED ON {watchlist.length} SAVED
+            <span
+              className={`px-2 py-0.5 text-[10px] font-bold ${isGlass ? "rounded-lg" : "brutal-chip text-brutal-dim"}`}
+              style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(148,163,184,0.6)" } : undefined}
+            >
+              {isGlass ? `Based on ${watchlist.length} saved` : `BASED ON ${watchlist.length} SAVED`}
             </span>
-            {isExpanded ? <ChevronUp className="w-4 h-4 text-brutal-dim" /> : <ChevronDown className="w-4 h-4 text-brutal-dim" />}
+            {isExpanded
+              ? <ChevronUp className={`w-4 h-4 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`} />
+              : <ChevronDown className={`w-4 h-4 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`} />
+            }
           </div>
           <Link
             href="/recommendations"
-            className="brutal-btn px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-mono font-bold"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold transition-all active:scale-[0.97] ${
+              isGlass ? "rounded-xl" : "brutal-btn font-mono font-black"
+            }`}
+            style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}
             onClick={(e) => e.stopPropagation()}
           >
-            VIEW ALL
+            View all
             <ArrowRight className="w-3 h-3" strokeWidth={3} />
           </Link>
         </div>
 
-        {/* Flat grid - Only show if expanded */}
+        {/* Grid — only when expanded */}
         {isExpanded && (
           loading ? (
             <div className="flex justify-center py-8">
-              <div className="brutal-chip flex items-center gap-2 text-brutal-yellow border-brutal-yellow">
-                <div className="w-4 h-4 border-2 border-brutal-border border-t-brutal-yellow animate-spin" />
-                FINDING MOVIES...
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold ${isGlass ? "rounded-xl" : "brutal-chip text-brutal-yellow border-brutal-yellow"}`}
+                style={isGlass ? { background: "rgba(251,191,36,0.10)", border: "1px solid rgba(251,191,36,0.25)", color: "#FCD34D" } : undefined}
+              >
+                <div className={`w-4 h-4 border-2 border-t-transparent animate-spin ${isGlass ? "rounded-full border-amber-400" : "border-brutal-border border-t-brutal-yellow"}`} />
+                {isGlass ? "Finding movies..." : "FINDING MOVIES..."}
               </div>
             </div>
           ) : (

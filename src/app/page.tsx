@@ -226,7 +226,8 @@ function HomeContent() {
           </Link>
         )}
         <button suppressHydrationWarning
-          className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime"}
+          onClick={() => setWatchlistOpen(true)}
+          className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15 active:scale-95" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime active:scale-95"}
           style={isGlass ? { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" } : undefined}
           id="watchlist-fab"
         >

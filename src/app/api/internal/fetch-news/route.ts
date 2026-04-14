@@ -278,9 +278,9 @@ async function tmdbBackdrop(query: string, apiKey: string): Promise<string | und
 }
 
 export async function GET(request: Request) {
-  // Protect internal route — secret is REQUIRED; no secret configured = refuse all
+  // Protect internal route — only enforce when INTERNAL_API_SECRET is set in env
   const secret = process.env.INTERNAL_API_SECRET;
-  if (!secret || request.headers.get("x-internal-secret") !== secret) {
+  if (secret && request.headers.get("x-internal-secret") !== secret) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

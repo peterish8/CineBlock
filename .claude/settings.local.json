@@ -1,16 +1,28 @@
 {
   "permissions": {
+    "defaultMode": "default",
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Read(**/.env*)",
+      "Edit(**/.env*)"
+    ],
+    "ask": [
+      "Bash(npm publish)",
+      "Bash(docker *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(aws *)"
+    ],
     "allow": [
-      "Bash(npm run:*)",
-      "Bash(find 'c:\\\\Users\\\\nithy\\\\Desktop\\\\1 prats projects\\\\movieX\\\\node_modules\\\\@auth\\\\core' -name resend*)",
-      "Bash(npx convex:*)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:api.github.com)",
-      "Bash(ls \"c:/Users/nithy/Desktop/1 prats projects/movieX\"/*.mjs)",
-      "Read(//c/Users/nithy/.claude/skills/vercel//**)",
-      "Read(//c/Users/nithy/.claude/skills/vercel/**)",
-      "Bash(grep \"\\\\.ts$\")",
-      "Bash(node -e \"const { CheckSquare2 } = require\\('lucide-react'\\); console.log\\(CheckSquare2 ? 'exists' : 'missing'\\)\")"
+      "Read",
+      "Edit",
+      "Write",
+      "WebFetch",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "mcp__brave_search__*",
+      "mcp__tavily__*"
     ]
   }
 }

@@ -111,6 +111,9 @@ export default function MobileBottomNav() {
     );
   }
 
+  // Hide nav entirely on CineSwipe for full immersion
+  if (pathname.startsWith("/swipe")) return null;
+
   return (
     <>
       {/* ── Scroll to top ── */}

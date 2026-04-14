@@ -33,12 +33,17 @@ export function applyThemeToDocument(theme: ThemeName) {
 }
 
 export function useThemeMode() {
+  // Must start with "default" so SSR and client first-render match (hydration safety).
+  // The useEffect below immediately corrects it on the client — any theme-dependent
+  // UI that's SSR-rendered will always have suppressHydrationWarning or be client-only.
   const [theme, setTheme] = useState<ThemeName>("default");
 
   useEffect(() => {
-    // Sync from DOM immediately on client mount — the inline <script> in <head>
-    // sets the class before React hydrates, so useState SSR default misses it.
-    setTheme(detectThemeFromBody());
+    // Sync from DOM on client mount — the inline <script> in <head>
+    // has already applied the correct body class before React hydrates.
+    const current = detectThemeFromBody();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTheme((prev) => (prev === current ? prev : current));
 
     const observer = new MutationObserver(() => {
       setTheme(detectThemeFromBody());

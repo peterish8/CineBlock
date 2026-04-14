@@ -11,9 +11,11 @@ import { useMovieLists } from "@/hooks/useMovieLists";
 import MovieActionRail from "@/components/MovieActionRail";
 import ListFilterBar from "@/components/ListFilterBar";
 import SelectionBar from "@/components/SelectionBar";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 function LikedContent() {
   const { liked } = useMovieLists();
+  const isGlass = useThemeMode() === "glass";
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [filteredMovies, setFilteredMovies] = useState<TMDBMovie[]>(liked);
   const [selectMode, setSelectMode] = useState(false);
@@ -44,45 +46,109 @@ function LikedContent() {
   };
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col pb-16 lg:pb-0">
-      <div className="sticky top-0 z-50 bg-bg border-b-3 border-brutal-border">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
+    <main
+      className={`min-h-screen flex flex-col pb-16 lg:pb-0 ${isGlass ? "relative overflow-x-hidden" : "bg-bg"}`}
+      style={isGlass ? { background: "#020817" } : undefined}
+    >
+      {/* Glass depth orbs */}
+      {isGlass && (
+        <>
+          <div className="pointer-events-none fixed left-[-20%] top-[-15%] aspect-square w-[70vw] rounded-full opacity-30" style={{ background: "radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)", filter: "blur(90px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed bottom-[-20%] right-[-15%] aspect-square w-[60vw] rounded-full opacity-25" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.20) 0%, transparent 70%)", filter: "blur(110px)", zIndex: 0 }} />
+        </>
+      )}
+
+      {/* Sticky header */}
+      <div
+        className={`sticky top-0 z-50 ${isGlass ? "" : "bg-bg border-b-3 border-brutal-border"}`}
+        style={isGlass ? {
+          background: "rgba(2,8,23,0.80)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
+        } : undefined}
+      >
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-5 flex items-center justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <Link href="/" className="brutal-btn p-2.5"><ArrowLeft className="w-4 h-4" strokeWidth={3} /></Link>
-            <Heart className="w-5 h-5 text-[var(--theme-primary)]" fill="currentColor" strokeWidth={2.5} />
-            <h1 className="font-display font-bold text-xl sm:text-2xl text-brutal-white uppercase tracking-tight">LIKED</h1>
+            <Link
+              href="/"
+              className={isGlass ? "flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-white/10" : "brutal-btn p-2.5"}
+              style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={3} />
+            </Link>
+            <Heart className={`w-5 h-5 ${isGlass ? "text-rose-400" : "text-[var(--theme-primary)]"}`} fill="currentColor" strokeWidth={2.5} />
+            <h1 className={`font-display font-bold text-xl sm:text-2xl tracking-tight ${isGlass ? "text-white" : "text-brutal-white uppercase"}`}>
+              {isGlass ? "Liked" : "LIKED"}
+            </h1>
           </div>
           <div className="flex items-center gap-2">
-            <span className="brutal-chip text-[var(--theme-primary)] border-[var(--theme-primary)] text-[10px]">{liked.length} MOVIES</span>
+            <span
+              className={`px-2 py-0.5 text-[10px] font-bold ${isGlass ? "rounded-lg" : "brutal-chip text-[var(--theme-primary)] border-[var(--theme-primary)]"}`}
+              style={isGlass ? { background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.30)", color: "#FCA5A5" } : undefined}
+            >
+              {liked.length} movies
+            </span>
             {liked.length > 0 && (
-              <Link href="/recommendations" className="brutal-btn flex items-center gap-2 px-3 py-2 text-[10px] font-mono font-bold !bg-[var(--theme-primary)] !text-black !border-[var(--theme-primary)]">
-                <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />FOR YOU
+              <Link
+                href="/recommendations"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold transition-all active:scale-[0.97] ${
+                  isGlass ? "rounded-xl" : "brutal-btn font-mono font-black !bg-[var(--theme-primary)] !text-black !border-[var(--theme-primary)]"
+                }`}
+                style={isGlass ? { background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.45)", color: "#FCA5A5" } : undefined}
+              >
+                <Sparkles className="w-3.5 h-3.5" strokeWidth={2.5} />For You
               </Link>
             )}
             {liked.length > 0 && (
               <button
                 onClick={() => { setSelectMode((v) => !v); if (selectMode) setSelected(new Set()); }}
-                className={`brutal-btn px-3 py-1.5 text-[9px] font-mono font-black flex items-center gap-1.5 ${selectMode ? "!bg-brutal-yellow !text-black !border-brutal-yellow" : ""}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-bold transition-all active:scale-[0.97] ${
+                  isGlass
+                    ? "rounded-xl"
+                    : `brutal-btn font-mono font-black ${selectMode ? "!bg-brutal-yellow !text-black !border-brutal-yellow" : ""}`
+                }`}
+                style={isGlass ? (selectMode
+                  ? { background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.45)", color: "#FCD34D" }
+                  : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" }
+                ) : undefined}
               >
                 <CheckSquare2 className="w-3.5 h-3.5" />
-                {selectMode ? "DONE" : "SELECT"}
+                {selectMode ? "Done" : "Select"}
               </button>
             )}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 max-w-[1600px] mx-auto w-full pt-2 pb-8">
+      <div className="flex-1 max-w-[1600px] mx-auto w-full pt-2 pb-8 relative z-10">
         {liked.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-            <div className="brutal-card p-8 max-w-md w-full">
-              <Heart className="w-12 h-12 text-brutal-dim mx-auto mb-4" strokeWidth={1.5} />
-              <p className="font-display font-bold text-lg text-brutal-white uppercase mb-2">NO LIKED MOVIES</p>
-              <p className="text-brutal-muted text-sm font-mono mb-4">
+            <div
+              className={isGlass ? "p-8 max-w-md w-full rounded-2xl" : "brutal-card p-8 max-w-md w-full"}
+              style={isGlass ? {
+                background: "rgba(8,15,40,0.72)",
+                backdropFilter: "blur(28px) saturate(200%)",
+                WebkitBackdropFilter: "blur(28px) saturate(200%)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                boxShadow: "0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10)",
+              } : undefined}
+            >
+              <Heart className={`w-12 h-12 mx-auto mb-4 ${isGlass ? "text-slate-600" : "text-brutal-dim"}`} strokeWidth={1.5} />
+              <p className={`font-bold text-lg mb-2 ${isGlass ? "text-white" : "font-display text-brutal-white uppercase"}`}>
+                {isGlass ? "No liked movies" : "NO LIKED MOVIES"}
+              </p>
+              <p className={`text-sm mb-4 ${isGlass ? "text-slate-400" : "text-brutal-muted font-mono"}`}>
                 Tap the <Heart className="w-3 h-3 inline" /> icon on any poster to like it.
               </p>
-              <Link href="/" className="brutal-btn inline-flex items-center gap-2 px-4 py-2 text-xs font-mono font-bold">
-                <ArrowLeft className="w-3 h-3" strokeWidth={3} />BROWSE
+              <Link
+                href="/"
+                className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold transition-all active:scale-[0.97] ${
+                  isGlass ? "rounded-xl" : "brutal-btn font-mono font-black"
+                }`}
+                style={isGlass ? { background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", color: "rgba(148,163,184,0.9)" } : undefined}
+              >
+                <ArrowLeft className="w-3 h-3" strokeWidth={3} />Browse
               </Link>
             </div>
           </div>
@@ -90,8 +156,8 @@ function LikedContent() {
           <>
             <ListFilterBar movies={liked} onFiltered={handleFiltered} />
             <div className="px-4 sm:px-6">
-              <p className="text-brutal-dim text-[10px] font-mono uppercase tracking-wider mb-4">
-                ❤ {liked.length} LIKED — THESE POWER YOUR "FOR YOU" RECOMMENDATIONS
+              <p className={`text-[10px] uppercase tracking-wider mb-4 ${isGlass ? "text-slate-500" : "text-brutal-dim font-mono"}`}>
+                ❤ {liked.length} liked — these power your &ldquo;For You&rdquo; recommendations
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {filteredMovies.map((movie, i) => {
@@ -102,7 +168,11 @@ function LikedContent() {
                   return (
                     <div
                       key={movie.id}
-                      className={`group brutal-poster relative aspect-[2/3] w-full animate-fade-in cursor-pointer ${isSelected ? "ring-2 ring-brutal-yellow ring-offset-2 ring-offset-bg" : ""}`}
+                      className={`group brutal-poster relative aspect-[2/3] w-full animate-fade-in cursor-pointer ${
+                        isSelected
+                          ? isGlass ? "ring-2 ring-cyan-400 ring-offset-1 ring-offset-transparent" : "ring-2 ring-brutal-yellow ring-offset-2 ring-offset-bg"
+                          : ""
+                      }`}
                       style={{ animationDelay: `${(i % 30) * 30}ms` }}
                       onClick={() => selectMode ? toggleSelect(movie.id) : setSelectedMovie(movie)}
                     >
@@ -127,7 +197,14 @@ function LikedContent() {
                       </div>
                       {!selectMode && <MovieActionRail movie={movie} actions={["like", "watchlist", "watched", "add"]} />}
                       {selectMode && (
-                        <div className={`absolute top-2 left-2 w-5 h-5 border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-brutal-yellow border-brutal-yellow" : "bg-black/60 border-brutal-border"}`}>
+                        <div
+                          className={`absolute top-2 left-2 w-5 h-5 flex items-center justify-center transition-colors ${
+                            isSelected
+                              ? isGlass ? "rounded-md bg-cyan-400 border-cyan-400" : "bg-brutal-yellow border-brutal-yellow"
+                              : isGlass ? "rounded-md bg-black/60" : "bg-black/60 border-brutal-border"
+                          } ${isGlass ? "" : "border-2"}`}
+                          style={isGlass && !isSelected ? { border: "1px solid rgba(255,255,255,0.30)" } : undefined}
+                        >
                           {isSelected && <span className="text-black text-[10px] font-black">✓</span>}
                         </div>
                       )}

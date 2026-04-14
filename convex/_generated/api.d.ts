@@ -20,7 +20,6 @@ import type * as maintenance from "../maintenance.js";
 import type * as news from "../news.js";
 import type * as radar from "../radar.js";
 import type * as stamps from "../stamps.js";
-import type * as testError from "../testError.js";
 import type * as users from "../users.js";
 
 import type {
@@ -42,7 +41,6 @@ declare const fullApi: ApiFromModules<{
   news: typeof news;
   radar: typeof radar;
   stamps: typeof stamps;
-  testError: typeof testError;
   users: typeof users;
 }>;
 
