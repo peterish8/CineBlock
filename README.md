@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/readme/banner.png" alt="CineBlock banner" width="100%"/>
+</p>
+
 ---
 name: CineBlock
 version: 0.1.0
@@ -176,3 +180,6 @@ python cineblock-cli.py
 ## License
 
 MIT © 2026 CineBlock contributors.
+<p align="center">
+  <img src="assets/readme/footer.png" alt="CineBlock footer" width="700"/>
+</p>
