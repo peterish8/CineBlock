@@ -66,6 +66,12 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
     return () => clearTimeout(timer);
   }, [activeMov]);
 
+  const handleClose = useCallback(() => {
+    setNestedMovie(null);
+    document.body.style.overflow = "";
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();
@@ -73,12 +79,6 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleClose]);
-
-  const handleClose = useCallback(() => {
-    setNestedMovie(null);
-    document.body.style.overflow = "";
-    onClose();
-  }, [onClose]);
 
   if (!activeMov) return null;
 
