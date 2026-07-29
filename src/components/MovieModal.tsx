@@ -272,7 +272,7 @@ export default function MovieModal({
   }, [onClose]);
 
   // Helper for category swiping on mobile
-  const categories = (["flatrate", "rent", "buy"] as const).filter(c => watchProviders?.[region]?.[c]?.length > 0);
+  const categories = (["flatrate", "rent", "buy"] as const).filter(c => (watchProviders?.[region]?.[c]?.length ?? 0) > 0);
   
   const handleNextCategory = () => {
     if (!activeCategory) return;
@@ -524,13 +524,13 @@ export default function MovieModal({
                   <div className="flex flex-col gap-0.5">
                     <h3 className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider uppercase" : "text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest"}>WHERE TO WATCH</h3>
                     <div className={isGlass ? "flex sm:hidden gap-1.5 mt-1 bg-white/5 p-1 rounded-full items-center" : "flex sm:hidden gap-1.5 mt-1"}>
-                      {currentProviders?.flatrate?.length > 0 && (
+                      {(currentProviders?.flatrate?.length ?? 0) > 0 && (
                         <button onClick={() => setActiveCategory("flatrate")} className={isGlass ? `px-3 py-1 text-[10px] font-medium transition-all rounded-full ${activeCategory === 'flatrate' ? "bg-white/20 shadow-md text-white" : "text-white/50"}` : `text-[8px] font-mono font-black border px-1.5 py-0.5 rounded-full transition-all uppercase ${activeCategory === 'flatrate' ? "bg-brutal-lime text-black border-brutal-lime" : "text-brutal-lime border-brutal-lime/30"}`}>STREAM</button>
                       )}
-                      {currentProviders?.rent?.length > 0 && (
+                      {(currentProviders?.rent?.length ?? 0) > 0 && (
                         <button onClick={() => setActiveCategory("rent")} className={isGlass ? `px-3 py-1 text-[10px] font-medium transition-all rounded-full ${activeCategory === 'rent' ? "bg-white/20 shadow-md text-white" : "text-white/50"}` : `text-[8px] font-mono font-black border px-1.5 py-0.5 rounded-full transition-all uppercase ${activeCategory === 'rent' ? "bg-brutal-yellow text-black border-brutal-yellow" : "text-brutal-yellow border-brutal-yellow/30"}`}>RENT</button>
                       )}
-                      {currentProviders?.buy?.length > 0 && (
+                      {(currentProviders?.buy?.length ?? 0) > 0 && (
                         <button onClick={() => setActiveCategory("buy")} className={isGlass ? `px-3 py-1 text-[10px] font-medium transition-all rounded-full ${activeCategory === 'buy' ? "bg-white/20 shadow-md text-white" : "text-white/50"}` : `text-[8px] font-mono font-black border px-1.5 py-0.5 rounded-full transition-all uppercase ${activeCategory === 'buy' ? "bg-brutal-cyan text-black border-brutal-cyan" : "text-brutal-cyan border-brutal-cyan/30"}`}>BUY</button>
                       )}
                     </div>
@@ -615,27 +615,27 @@ export default function MovieModal({
                 <div className="relative">
                   {/* Desktop Container */}
                   <div className="hidden sm:flex flex-col gap-4">
-                    {currentProviders?.flatrate?.length > 0 && (
+                    {(currentProviders?.flatrate?.length ?? 0) > 0 && (
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2" : "text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2.5 px-0.5"}>STREAM</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.flatrate.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="flatrate" movie={movie} isGlass={isGlass} />)}
+                          {currentProviders?.flatrate?.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="flatrate" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
-                    {currentProviders?.rent?.length > 0 && (
+                    {(currentProviders?.rent?.length ?? 0) > 0 && (
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2 mt-4" : "text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2.5 px-0.5"}>RENT</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.rent.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="rent" movie={movie} isGlass={isGlass} />)}
+                          {currentProviders?.rent?.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="rent" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
-                    {currentProviders?.buy?.length > 0 && (
+                    {(currentProviders?.buy?.length ?? 0) > 0 && (
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2 mt-4" : "text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2.5 px-0.5"}>BUY</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.buy.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="buy" movie={movie} isGlass={isGlass} />)}
+                          {currentProviders?.buy?.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="buy" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
@@ -663,9 +663,9 @@ export default function MovieModal({
                           transition={{ duration: 0.2, ease: "easeOut" }}
                           className="w-full"
                         >
-                          {activeCategory && currentProviders?.[activeCategory]?.length > 0 && (
+                          {activeCategory && (currentProviders?.[activeCategory]?.length ?? 0) > 0 && (
                             <div className="flex flex-wrap gap-2 pb-1.5 min-h-[44px]">
-                              {currentProviders[activeCategory].map((p: TMDBWatchProvider) => (
+                              {currentProviders?.[activeCategory]?.map((p: TMDBWatchProvider) => (
                                 <ProviderItem key={p.provider_id} provider={p} category={activeCategory} movie={movie} isMobile isGlass={isGlass} />
                               ))}
                             </div>

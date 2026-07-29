@@ -20,6 +20,21 @@ import {
   Search,
 } from "lucide-react";
 
+type OwnedBlockCard = Doc<"blocks"> & {
+  movieCount: number;
+  previewPosters: string[];
+};
+
+type SavedBlockCard = {
+  _id: Id<"saved_blocks">;
+  blockId: Id<"blocks">;
+  block: OwnedBlockCard & { ownerName: string };
+};
+
+type BlockCardProps =
+  | { block: OwnedBlockCard; isOwned: true }
+  | { block: SavedBlockCard; isOwned: false };
+
 // ─── Create Block Form ────────────────────────────────────────────────────────
 
 function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate: (title: string) => Promise<Id<"blocks">> }) {
@@ -85,7 +100,7 @@ function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate
 
 // ─── Block Card ───────────────────────────────────────────────────────────────
 
-function BlockCard({ block, isOwned }: { block: Doc<"blocks">; isOwned: boolean }) {
+function BlockCard({ block, isOwned }: BlockCardProps) {
   const { deleteBlock } = useBlocks();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +131,7 @@ function BlockCard({ block, isOwned }: { block: Doc<"blocks">; isOwned: boolean 
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isOwned !== true) return;
     if (confirmDelete) {
       try {
         setError(null);
@@ -186,7 +202,7 @@ function BlockCard({ block, isOwned }: { block: Doc<"blocks">; isOwned: boolean 
         )}
         {!isOwned && (
           <p className="font-mono text-[10px] uppercase tracking-wider text-brutal-dim">
-            by @{blockData.ownerName}
+            by @{block.block.ownerName}
           </p>
         )}
         {/* Progress bar — shows if there are movies */}

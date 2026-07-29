@@ -1,6 +1,7 @@
 import type { ThemeName } from "@/lib/types";
+import { ENABLE_NETFLIX_THEME } from "@/lib/featureFlags";
 
-export const ENABLE_NETFLIX_THEME = false;
+export { ENABLE_NETFLIX_THEME };
 
 export const AVAILABLE_THEMES: ThemeName[] = ENABLE_NETFLIX_THEME
   ? ["default", "netflix", "glass"]

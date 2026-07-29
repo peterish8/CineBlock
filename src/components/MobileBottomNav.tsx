@@ -15,7 +15,7 @@ import StampSearchModal from "./StampSearchModal";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
-const SHOW_STREAMING = false;
+import { ENABLE_STREAMING } from "@/lib/featureFlags";
 
 // Spring preset for snappy interactive elements
 const navSpring = { type: "spring" as const, stiffness: 480, damping: 32 };
@@ -503,7 +503,7 @@ export default function MobileBottomNav() {
                   </Link>
                 ))}
 
-                {SHOW_STREAMING && (
+                {ENABLE_STREAMING && (
                   <Link href="/streaming" onClick={() => setBrowseOpen(false)}
                     className={`col-span-2 flex items-center gap-3 px-4 py-4 transition-all duration-200 ${isGlass ? "rounded-2xl border text-slate-300" : "brutal-btn py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"}`}
                     style={isGlass ? { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" } : undefined}>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { Platform } from "@/app/streaming/page";
+import type { Platform } from "@/app/streaming/types";
 import { TMDBMovie } from "@/lib/types";
 import { posterUrl, backdropUrl } from "@/lib/constants";
 import MovieModal from "@/components/MovieModal";

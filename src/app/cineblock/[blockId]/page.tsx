@@ -135,9 +135,9 @@ function SearchPosterCard({
 
 // ─── Full search panel ────────────────────────────────────────────────────────
 function SearchPanel({
-  movies, blockMovieIds, isFull, addingMovieId, onAdd, onDragStart, inputRef,
+  movieCount, blockMovieIds, isFull, addingMovieId, onAdd, onDragStart, inputRef,
 }: {
-  movies: TMDBMovie[];
+  movieCount: number;
   blockMovieIds: Set<number>;
   isFull: boolean;
   addingMovieId: number | null;
@@ -385,9 +385,9 @@ function SearchPanel({
       {/* Capacity bar */}
       <div className="px-4 py-1.5 border-b border-brutal-border/40 bg-surface flex items-center gap-2 flex-shrink-0">
         <div className="flex-1 h-1 bg-surface-2 border border-brutal-border overflow-hidden">
-          <div className="h-full bg-brutal-violet transition-all duration-300" style={{ width: `${(movies.length / 50) * 100}%` }} />
+          <div className="h-full bg-brutal-violet transition-all duration-300" style={{ width: `${(movieCount / 50) * 100}%` }} />
         </div>
-        <span className="font-mono text-[9px] text-brutal-dim">{movies.length}/50</span>
+        <span className="font-mono text-[9px] text-brutal-dim">{movieCount}/50</span>
         {isFull && <span className="font-mono text-[9px] text-red-400 font-bold">FULL</span>}
       </div>
 
@@ -687,7 +687,7 @@ export default function CineBlockViewPage() {
   };
 
   const searchPanelProps = {
-    movies, blockMovieIds, isFull, addingMovieId,
+    movieCount: movies.length, blockMovieIds, isFull, addingMovieId,
     onAdd: handleAddFromSearch,
     onDragStart: handleDragStart,
   };

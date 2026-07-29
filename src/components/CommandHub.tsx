@@ -13,8 +13,9 @@ import StampSearchModal from "./StampSearchModal";
 import { applyThemeToDocument, useThemeMode } from "@/hooks/useThemeMode";
 import { getNextTheme } from "@/lib/themeConfig";
 
+import { ENABLE_STREAMING } from "@/lib/featureFlags";
+
 // ─── Feature Flags ────────────────────────────────────────────────────────────
-const SHOW_STREAMING = false; // set to true when streaming page is ready
 
 interface CommandHubProps {
   onFilterChange: (filters: {
@@ -421,7 +422,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   </div>
 
                   {[
-                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2,        label: "Streaming",       sub: "Stream anywhere",    iconColor: "#60A5FA", glow: "rgba(96,165,250,0.25)" }] : []),
+                    ...(ENABLE_STREAMING ? [{ href: "/streaming", icon: Tv2,        label: "Streaming",       sub: "Stream anywhere",    iconColor: "#60A5FA", glow: "rgba(96,165,250,0.25)" }] : []),
                     { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover",  iconColor: "#F472B6", glow: "rgba(244,114,182,0.25)" },
                     { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks", iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
                     { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits",   iconColor: "#A3E635", glow: "rgba(163,230,53,0.25)" },
@@ -571,7 +572,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 </div>
                 <div className="flex flex-col flex-1 overflow-y-auto">
                   {[
-                    ...(SHOW_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
+                    ...(ENABLE_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
                     { href: "/swipe",           icon: Sparkles,   label: "CINESWIPE",       color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
                     { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
                     { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },

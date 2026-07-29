@@ -179,7 +179,7 @@ async function fetchRedditFeeds(): Promise<NewsArticle[]> {
             url: d.url || `https://reddit.com${d.permalink}`,
             source: feed.source,
             type: "reddit" as const,
-            publishedAt: new Date(d.created_utc * 1000).toISOString(),
+            publishedAt: new Date((d.created_utc ?? 0) * 1000).toISOString(),
             thumbnail,
           };
         });

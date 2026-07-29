@@ -68,12 +68,12 @@ export async function GET(req: NextRequest) {
         id: m.id,
         title: m.title || "Untitled",
         release_date: m.release_date,
-        poster_path: m.poster_path,
-        backdrop_path: m.backdrop_path,
-        genre_ids: m.genre_ids,
+        poster_path: m.poster_path ?? null,
+        backdrop_path: m.backdrop_path ?? null,
+        genre_ids: m.genre_ids ?? [],
         overview: m.overview || "",
-        vote_average: m.vote_average,
-        popularity: m.popularity,
+        vote_average: m.vote_average ?? 0,
+        popularity: m.popularity ?? 0,
         media_type: "movie",
       });
     }

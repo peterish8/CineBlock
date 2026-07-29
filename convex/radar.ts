@@ -16,6 +16,17 @@ type TmdbDiscoverMovie = {
   popularity?: number;
 };
 
+type NormalizedRadarMovie = {
+  tmdbId: number;
+  title: string;
+  releaseDate: string;
+  posterPath: string;
+  genreIds: number[];
+  overview: string;
+  voteAverage: number;
+  popularity: number;
+};
+
 export const purgeExpiredRadarItems = internalMutation({
   args: {},
   handler: async (ctx) => {
@@ -197,7 +208,7 @@ export const syncRadar = action({
       const allMovies = [...genreMovies, ...page1, ...page2];
 
       // 3. Deduplicate, filter past releases, normalize
-      const movieMap = new Map<number, TmdbDiscoverMovie>();
+      const movieMap = new Map<number, NormalizedRadarMovie>();
       for (const m of allMovies) {
         if (!m.release_date || m.release_date < today) continue;
         if (movieMap.has(m.id)) continue;

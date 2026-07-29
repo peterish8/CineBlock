@@ -72,12 +72,6 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
     return () => clearTimeout(timer);
   }, [activeMov]);
 
-  const handleClose = useCallback(() => {
-    setNestedMovie(null);
-    document.body.style.overflow = "";
-    onClose();
-  }, [onClose]);
-
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();

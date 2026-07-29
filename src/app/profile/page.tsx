@@ -15,6 +15,14 @@ import type { ThemeName } from "@/lib/types";
 import { applyThemeToDocument, readStoredTheme, useThemeMode } from "@/hooks/useThemeMode";
 import { getNextTheme, getThemeDisplayName } from "@/lib/themeConfig";
 
+type ImportDataPreview = {
+  watched?: unknown[];
+  liked?: unknown[];
+  watchlist?: unknown[];
+  stamps?: unknown[];
+  blocks?: unknown[];
+};
+
 export default function ProfilePage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const user = useQuery(api.users.currentUser);
@@ -58,7 +66,7 @@ export default function ProfilePage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importDataPreview, setImportDataPreview] = useState<Record<string, unknown> | null>(null);
+  const [importDataPreview, setImportDataPreview] = useState<ImportDataPreview | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState("");
 
@@ -1237,11 +1245,11 @@ export default function ProfilePage() {
                   >
                     <p className={`uppercase tracking-widest text-[9px] ${isGlass ? "text-slate-300" : "text-brutal-white"}`}>Payload Analyzed:</p>
                     <ul className={`space-y-1 ml-2 ${isGlass ? "text-slate-400" : "text-brutal-dim"}`}>
-                      {importDataPreview?.watched?.length > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview.watched.length} Watched records (Updates Franchise)</li>}
-                      {importDataPreview?.liked?.length > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview.liked.length} Liked records</li>}
-                      {importDataPreview?.watchlist?.length > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview.watchlist.length} Queue entries</li>}
-                      {importDataPreview?.stamps?.length > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview.stamps.length} Stamps</li>}
-                      {importDataPreview?.blocks?.length > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview.blocks.length} CineBlocks</li>}
+                      {(importDataPreview?.watched?.length ?? 0) > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview!.watched!.length} Watched records (Updates Franchise)</li>}
+                      {(importDataPreview?.liked?.length ?? 0) > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview!.liked!.length} Liked records</li>}
+                      {(importDataPreview?.watchlist?.length ?? 0) > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview!.watchlist!.length} Queue entries</li>}
+                      {(importDataPreview?.stamps?.length ?? 0) > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview!.stamps!.length} Stamps</li>}
+                      {(importDataPreview?.blocks?.length ?? 0) > 0 && <li><span className={isGlass ? "text-emerald-400" : "text-brutal-lime"}>+</span> {importDataPreview!.blocks!.length} CineBlocks</li>}
                     </ul>
                     <p className={`text-[9px] pt-2 ${isGlass ? "text-slate-500" : "text-brutal-muted"}`} style={isGlass ? { borderTop: "1px solid rgba(255,255,255,0.08)" } : { borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "8px" }}>
                       New lists will merge existing items (duplicates skipped). New blocks will be generated separately.

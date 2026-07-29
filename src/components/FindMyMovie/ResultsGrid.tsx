@@ -5,23 +5,15 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import UserListButtons from "../UserListButtons";
 import { TMDB_IMAGE_BASE, POSTER_SIZES } from "@/lib/constants";
-
-interface Movie {
-  id: number;
-  title: string;
-  poster_path: string | null;
-  release_date: string;
-  overview: string;
-  vote_average: number;
-}
+import type { TMDBMovie } from "@/lib/types";
 
 interface ResultsGridProps {
-  movies: Movie[];
+  movies: TMDBMovie[];
   onRetry: () => void;
   onReroll: () => void;
   rerolling: boolean;
   onClose: () => void;
-  onMovieClick: (movie: Movie) => void;
+  onMovieClick: (movie: TMDBMovie) => void;
   isGlass?: boolean;
 }
 
