@@ -394,6 +394,25 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Hide viewport scrollbar gutter while modals lock page scroll (prevents blue glass scrollbar flash) */
+html.scroll-lock,
+body.scroll-lock {
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+html.scroll-lock::-webkit-scrollbar,
+body.scroll-lock::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+[role="dialog"]:focus,
+[role="dialog"]:focus-visible {
+  outline: none !important;
+}
+
 /* Select option styling for dark */
 option {
   background: #161616;

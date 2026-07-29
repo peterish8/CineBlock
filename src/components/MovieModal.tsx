@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, Star, Users, Bookmark, Play, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical, Plus, ChevronDown } from "lucide-react";
@@ -13,6 +13,7 @@ import { useRegion } from "@/hooks/useRegion";
 import { useBlockModal } from "@/components/BlockModalProvider";
 import { useConvexAuth } from "convex/react";
 import { useThemeMode } from "@/hooks/useThemeMode";
+import { lockPageScroll } from "@/lib/scrollLock";
 
 interface MovieModalProps {
   movie: TMDBMovie | null;
@@ -224,43 +225,23 @@ export default function MovieModal({
     }
   }, [region, setRegion]);
 
-  // 4. Handle Scroll Lock & Details Fetching
+  // Lock page scroll before paint so the glass-theme scrollbar gutter never flashes.
+  useLayoutEffect(() => {
+    if (!movie) return;
+    return lockPageScroll();
+  }, [movie]);
+
+  // Fetch details when movie changes
   useEffect(() => {
-    if (movie) {
-      queueMicrotask(() => fetchDetails(movie.id, movie.media_type || "movie"));
-      const prevHtmlOverflow = document.documentElement.style.overflow;
-      const prevBodyOverflow = document.body.style.overflow;
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      return () => {
-        const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
-        if (activeDialogs <= 1) {
-          document.documentElement.style.overflow = prevHtmlOverflow;
-          document.body.style.overflow = prevBodyOverflow;
-        }
-      };
-    } else {
+    if (!movie) {
       queueMicrotask(() => {
         setDetails(null);
         setWatchProviders(null);
         setPlayingTrailer(false);
       });
-      // Clean up overflow only if no other modals explicitly exist
-      const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
-      if (activeDialogs <= 1) {
-        document.documentElement.style.overflow = "";
-        document.body.style.overflow = "";
-      }
+      return;
     }
-    
-    return () => {
-      // Unmount cleanup (handles Back Button navigation)
-      const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
-      if (activeDialogs <= 1) {
-        document.documentElement.style.overflow = "";
-        document.body.style.overflow = "";
-      }
-    };
+    queueMicrotask(() => fetchDetails(movie.id, movie.media_type || "movie"));
   }, [movie, fetchDetails]);
 
   useEffect(() => {
@@ -333,10 +314,8 @@ export default function MovieModal({
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 overscroll-none"
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 overscroll-none outline-none"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
     >
       {/* Overlay — glass gets stronger blur */}
       <div className={`absolute inset-0 animate-fade-in ${
@@ -348,7 +327,9 @@ export default function MovieModal({
       }`} />
 
       <div
-        className={`relative w-[calc(100%-1.5rem)] sm:w-full mx-auto sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar ${
+        role="dialog"
+        aria-modal="true"
+        className={`relative w-[calc(100%-1.5rem)] sm:w-full mx-auto sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar outline-none focus:outline-none focus-visible:outline-none ${
           isGlass
             ? "animate-glass-enter-bottom bg-[rgba(4,12,36,0.70)] backdrop-blur-[48px] saturate-[1.6] border border-white/[0.10] rounded-t-[28px] sm:rounded-3xl shadow-[0_32px_80px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.10)]"
             : isNetflix
@@ -428,7 +409,7 @@ export default function MovieModal({
               <iframe
                 src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&controls=1&rel=0&modestbranding=1&showinfo=0`}
                 title={trailer.name}
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full border-0 outline-none"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />

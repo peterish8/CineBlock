@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useThemeMode } from "@/hooks/useThemeMode";
+import { lockPageScroll } from "@/lib/scrollLock";
 import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
 import Image from "next/image";
@@ -27,13 +28,9 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
   const [activeTab, setActiveTab] = useState<TabId>("liked");
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!mounted) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    return lockPageScroll();
   }, [mounted]);
 
   useEffect(() => {
