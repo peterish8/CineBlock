@@ -70,9 +70,9 @@ export const recomputeUserCounts = internalMutation({
       .paginate({ numItems: USER_BATCH_SIZE, cursor: cursor ?? null });
     for (const user of page.page) {
       const [liked, watched, watchlist] = await Promise.all([
-        ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),
-        ctx.db.query("watched").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),
-        ctx.db.query("watchlist").withIndex("by_userId", (q: any) => q.eq("userId", user._id)).collect(),
+        ctx.db.query("liked").withIndex("by_userId", (q) => q.eq("userId", user._id)).collect(),
+        ctx.db.query("watched").withIndex("by_userId", (q) => q.eq("userId", user._id)).collect(),
+        ctx.db.query("watchlist").withIndex("by_userId", (q) => q.eq("userId", user._id)).collect(),
       ]);
       await ctx.db.patch(user._id, {
         likedCount: liked.length,

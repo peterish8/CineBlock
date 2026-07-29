@@ -12,7 +12,7 @@ import { GENRES, LANGUAGES, generateYearRange } from "@/lib/constants";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 function BoxOfficeContent() {
-  const { liked, isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
+  const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const isGlass = useThemeMode() === "glass";
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(true);

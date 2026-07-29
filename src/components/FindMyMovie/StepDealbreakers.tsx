@@ -59,7 +59,7 @@ export default function StepDealbreakers({ value, onChange }: StepDealbreakersPr
             : "brutal-btn hover:!border-brutal-lime hover:!text-brutal-lime"
         }`}
       >
-        ✌️ NONE OF THESE — I'M GOOD
+        ✌️ NONE OF THESE — I&apos;M GOOD
       </button>
     </div>
   );

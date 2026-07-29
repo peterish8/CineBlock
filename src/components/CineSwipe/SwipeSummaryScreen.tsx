@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { X, Check, Heart, Bookmark, Eye, Ban, SkipForward, Sparkles, ListVideo } from "lucide-react";
+import { X, Heart, Bookmark, Eye, SkipForward, Sparkles, ListVideo } from "lucide-react";
 import { SessionSwipe } from "@/hooks/useCineSwipeEngine";
 import { useToast } from "@/components/ToastProvider";
 import { useThemeMode } from "@/hooks/useThemeMode";
@@ -147,8 +147,8 @@ export default function SwipeSummaryScreen({ engine }: { engine: CineSwipeEngine
       await recordSwipeBatch({ swipes: payload });
       pushToast("success", "Session saved! 🍿");
       router.push("/");
-    } catch (e: any) {
-      pushToast("error", e.message || "Failed to save session");
+    } catch (e: unknown) {
+      pushToast("error", e instanceof Error ? e.message : "Failed to save session");
       setIsCommiting(false);
     }
   }, [swipes, recordSwipeBatch, pushToast, router]);

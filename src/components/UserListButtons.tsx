@@ -4,7 +4,26 @@ import { useConvexAuth } from "convex/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { TMDBMovie } from "@/lib/types";
 import { Bookmark, CheckCircle, Heart } from "lucide-react";
+
+function toTmdbMovie(movie: UserListButtonsProps["movie"]): TMDBMovie {
+  return {
+    id: movie.id,
+    title: movie.title,
+    poster_path: movie.poster_path,
+    original_title: movie.title,
+    overview: "",
+    backdrop_path: null,
+    release_date: "",
+    vote_average: 0,
+    vote_count: 0,
+    genre_ids: [],
+    original_language: "",
+    popularity: 0,
+    adult: false,
+  };
+}
 
 interface UserListButtonsProps {
   movie: {
@@ -50,7 +69,7 @@ export default function UserListButtons({ movie, isGlass = false }: UserListButt
         });
       }
     } else {
-      localLists.toggleWatchlist(movie as any);
+      localLists.toggleWatchlist(toTmdbMovie(movie));
     }
   };
 
@@ -66,7 +85,7 @@ export default function UserListButtons({ movie, isGlass = false }: UserListButt
         });
       }
     } else {
-      localLists.toggleWatched(movie as any);
+      localLists.toggleWatched(toTmdbMovie(movie));
     }
   };
 
@@ -82,7 +101,7 @@ export default function UserListButtons({ movie, isGlass = false }: UserListButt
         });
       }
     } else {
-      localLists.toggleLiked(movie as any);
+      localLists.toggleLiked(toTmdbMovie(movie));
     }
   };
 

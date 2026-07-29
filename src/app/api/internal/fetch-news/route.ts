@@ -52,7 +52,19 @@ function normalizeTitle(title: string): string {
 }
 
 /** Extract the best available image from an RSS item */
-function extractRSSImage(item: any): string | undefined {
+type RssParserItem = {
+  enclosure?: { url?: string };
+  mediaContent?: { $?: { url?: string }; url?: string } | Array<{ $?: { url?: string }; url?: string }>;
+  mediaThumbnail?: { $?: { url?: string }; url?: string };
+  contentEncoded?: string;
+  content?: string;
+  title?: string;
+  contentSnippet?: string;
+  link?: string;
+  pubDate?: string;
+};
+
+function extractRSSImage(item: RssParserItem): string | undefined {
   // 1. Direct enclosure (most reliable)
   if (item.enclosure?.url && item.enclosure.url.startsWith("http")) {
     return item.enclosure.url;
@@ -94,7 +106,7 @@ async function fetchRSSFeeds(): Promise<NewsArticle[]> {
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
       const parsed = await parser.parseURL(feed.url);
-      return (parsed.items || []).map((item: any) => ({
+      return (parsed.items || []).map((item: RssParserItem) => ({
         id: slugify(item.title || "", feed.source),
         title: item.title || "",
         description: (item.contentSnippet || "").slice(0, 200),
@@ -130,9 +142,18 @@ async function fetchRedditFeeds(): Promise<NewsArticle[]> {
       const data = await res.json();
       const posts = data?.data?.children || [];
       return posts
-        .filter((p: any) => !p.data.stickied)
-        .map((p: any) => {
-          const d = p.data;
+        .filter((p: { data: { stickied?: boolean } }) => !p.data.stickied)
+        .map((p: { data: Record<string, unknown> }) => {
+          const d = p.data as {
+            stickied?: boolean;
+            preview?: { images?: { resolutions?: { url?: string }[]; source?: { url?: string } }[] };
+            thumbnail?: string;
+            title?: string;
+            selftext?: string;
+            url?: string;
+            permalink?: string;
+            created_utc?: number;
+          };
 
           // Reddit encodes & as &amp; in preview URLs — decode them
           let thumbnail: string | undefined;
@@ -265,7 +286,7 @@ async function tmdbBackdrop(query: string, apiKey: string): Promise<string | und
       });
       if (!res.ok) continue;
       const data = await res.json();
-      const hit = (data.results || []).find((r: any) => r.backdrop_path || r.poster_path);
+      const hit = (data.results || []).find((r: { backdrop_path?: string; poster_path?: string }) => r.backdrop_path || r.poster_path);
       if (hit) {
         const path = hit.backdrop_path || hit.poster_path;
         return `https://image.tmdb.org/t/p/w780${path}`;

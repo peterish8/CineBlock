@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { TMDBMovie } from "@/lib/types";
 import { useBlocks } from "@/hooks/useBlocks";
 import { CheckSquare, Square, X, ListPlus, Loader2, ExternalLink, CheckCircle2 } from "lucide-react";
@@ -279,9 +280,11 @@ export default function SelectionBar({ selected, allMovies, onToggleAll, onClear
                         style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)" } : undefined}
                       >
                         {m.poster_path && (
-                          <img
+                          <Image
                             src={`https://image.tmdb.org/t/p/w92${m.poster_path}`}
                             alt={m.title}
+                            width={40}
+                            height={56}
                             className="w-full h-full object-cover"
                           />
                         )}

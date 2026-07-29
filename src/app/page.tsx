@@ -19,6 +19,8 @@ import { useThemeMode } from "@/hooks/useThemeMode";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 
+const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
+
 function HomeContent() {
   const [filters, setFilters] = useState({
     query: "",
@@ -38,13 +40,14 @@ function HomeContent() {
   const likedCount = liked.length;
   const isGlass = useThemeMode() === "glass";
 
-  // Snapshot watched IDs at page load only — cards only disappear after a refresh,
-  // not immediately when you mark something as watched during the session.
-  const watchedSnapshotRef = useRef<Set<number> | null>(null);
-  if (watchedSnapshotRef.current === null && watched.length > 0) {
-    watchedSnapshotRef.current = new Set(watched.map((m) => m.id));
-  }
-  const watchedIds = watchedSnapshotRef.current ?? new Set<number>();
+  // Snapshot watched IDs once when the list first loads — cards only disappear after refresh.
+  const [watchedIds, setWatchedIds] = useState<Set<number>>(() => new Set());
+  const watchedSnapshotTaken = useRef(false);
+  useEffect(() => {
+    if (watchedSnapshotTaken.current || watched.length === 0) return;
+    watchedSnapshotTaken.current = true;
+    queueMicrotask(() => setWatchedIds(new Set(watched.map((m) => m.id))));
+  }, [watched]);
 
   // Personalized recommendations — analyzed from watch history, max 2 API calls per session
   const { cards: personalizedCards } = usePersonalizedRecs({
@@ -67,8 +70,6 @@ function HomeContent() {
     ...filters,
     language: filters.language || activeLanguage,
   }), [filters, activeLanguage]);
-
-  const isSearching = filters.query.trim().length > 0 || filters.genre !== "" || filters.year !== "" || filters.language !== "";
 
   useEffect(() => {
     const search = window.location.search;
@@ -94,7 +95,7 @@ function HomeContent() {
             release_date: data.first_air_date,
             vote_average: data.vote_average,
             vote_count: data.vote_count,
-            genre_ids: data.genres?.map((g: any) => g.id) || [],
+            genre_ids: data.genres?.map((g: { id: number }) => g.id) || [],
             original_language: data.original_language,
             popularity: data.popularity,
             adult: false,
@@ -147,8 +148,6 @@ function HomeContent() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
-  const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
 
   const handleFilterChange = useCallback(
     (newFilters: typeof filters) => {

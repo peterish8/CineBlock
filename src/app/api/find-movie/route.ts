@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { buildTMDBParams, WizardState } from "@/lib/tmdbQueryBuilder";
+import { TMDBMovie } from "@/lib/types";
 
 // --- Rate limiting: 10 requests per minute per IP (each call fans out to ~20 TMDB requests) ---
 const rateLimitMap = new Map<string, number[]>();
@@ -101,7 +102,7 @@ async function fetchDiscoverBatch(
   },
   excludeSet: Set<number>
 ) {
-  const collected: any[] = [];
+  const collected: TMDBMovie[] = [];
   const seen = new Set<number>();
 
   for (const page of opts.pages) {
@@ -122,7 +123,7 @@ async function fetchDiscoverBatch(
     if (!res.ok) continue;
 
     const data = await res.json();
-    const results: any[] = data.results || [];
+    const results = (data.results || []) as TMDBMovie[];
     for (const movie of results) {
       if (!movie || typeof movie.id !== "number") continue;
       if (excludeSet.has(movie.id) || seen.has(movie.id)) continue;
@@ -160,7 +161,7 @@ async function fetchPersonalizedPool(
     if (uniqueSeedIds.length >= 10) break;
   }
 
-  const pool: any[] = [];
+  const pool: { movie: TMDBMovie; score: number }[] = [];
   const seenMovies = new Set<number>();
 
   for (const seedId of uniqueSeedIds) {
@@ -168,7 +169,7 @@ async function fetchPersonalizedPool(
     if (!recRes.ok) continue;
 
     const recData = await recRes.json();
-    const recs: any[] = recData.results || [];
+    const recs = (recData.results || []) as TMDBMovie[];
 
     for (const movie of recs) {
       if (!movie || typeof movie.id !== "number") continue;
@@ -200,8 +201,8 @@ async function fetchPersonalizedPool(
   return pool.sort((a, b) => b.score - a.score).map((item) => item.movie);
 }
 
-function dedupeAndLimit(movies: any[], excludeSet: Set<number>, limit: number) {
-  const out: any[] = [];
+function dedupeAndLimit(movies: TMDBMovie[], excludeSet: Set<number>, limit: number) {
+  const out: TMDBMovie[] = [];
   const seen = new Set<number>();
 
   for (const movie of movies) {
@@ -230,8 +231,8 @@ export async function POST(req: NextRequest) {
     const state: WizardState = {
       keywordId: typeof body.keywordId === "number" ? body.keywordId : null,
       languages: sanitizeLanguages(body.languages),
-      yearFrom: sanitizeYear((body as any).yearFrom),
-      yearTo: sanitizeYear((body as any).yearTo),
+      yearFrom: sanitizeYear(body.yearFrom),
+      yearTo: sanitizeYear(body.yearTo),
     };
     if (state.yearFrom > state.yearTo) {
       const tmp = state.yearFrom;
@@ -262,7 +263,7 @@ export async function POST(req: NextRequest) {
           { includeKeyword: false, yearLevel: 6, languageMode: "any" as const, sortBy: "popularity.desc" as const, pages: [1, 2, 3, 4], minVoteAverage: "5.3", voteCountMin: "8" },
         ];
 
-    const strictPool: any[] = [];
+    const strictPool: TMDBMovie[] = [];
     const strictSeen = new Set<number>();
 
     for (const stage of stages) {
@@ -282,7 +283,7 @@ export async function POST(req: NextRequest) {
       ? []
       : await fetchPersonalizedPool(state, personalization, apiKey, excludeSet);
 
-    const final: any[] = [];
+    const final: TMDBMovie[] = [];
     const used = new Set<number>();
 
     const strictCount = strictTop.length;

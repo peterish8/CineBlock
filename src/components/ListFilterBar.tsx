@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Image from "next/image";
 import { TMDBMovie } from "@/lib/types";
 import { GENRES } from "@/lib/constants";
 import { enrichMovieList } from "@/lib/movieMetaCache";
@@ -51,7 +52,7 @@ export default function ListFilterBar({ movies, onFiltered }: ListFilterBarProps
     const dMap = new Map<number, { id: number; name: string }>();
     const uncached: TMDBMovie[] = [];
 
-    for (const m of enrichedMovies as any[]) {
+    for (const m of enrichedMovies) {
       let isFullyCached = true;
       const y = (m.release_date || "").split("-")[0];
       if (y) yMap.set(m.id, y);
@@ -88,14 +89,14 @@ export default function ListFilterBar({ movies, onFiltered }: ListFilterBarProps
                 if (y) yMap.set(m.id, y);
 
                 let dirObj = null;
-                const dCrew = d.credits?.crew?.filter((c: any) => c.job === "Director");
+                const dCrew = d.credits?.crew?.filter((c: { job: string }) => c.job === "Director");
                 if (dCrew && dCrew.length > 0) {
                   dirObj = { id: dCrew[0].id, name: dCrew[0].name };
                   dMap.set(m.id, dirObj);
                 }
 
                 saveMovieMeta(
-                  { ...m, release_date: d.release_date || d.first_air_date, genre_ids: d.genres?.map((g: any) => g.id) || m.genre_ids },
+                  { ...m, release_date: d.release_date || d.first_air_date, genre_ids: d.genres?.map((g: { id: number }) => g.id) || m.genre_ids },
                   dirObj
                 );
               }
@@ -562,9 +563,11 @@ export default function ListFilterBar({ movies, onFiltered }: ListFilterBarProps
                         style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)" } : undefined}
                       >
                         {p.profile_path ? (
-                          <img
+                          <Image
                             src={`https://image.tmdb.org/t/p/w45${p.profile_path}`}
                             alt={p.name}
+                            width={28}
+                            height={28}
                             className="w-full h-full object-cover"
                           />
                         ) : (

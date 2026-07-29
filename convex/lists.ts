@@ -1,8 +1,9 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type { Id } from "./_generated/dataModel";
 
-async function ensureUserCounts(ctx: any, userId: any) {
+async function ensureUserCounts(ctx: MutationCtx, userId: Id<"users">) {
   const user = await ctx.db.get(userId);
   const likedCount = user?.likedCount;
   const watchedCount = user?.watchedCount;
@@ -17,9 +18,9 @@ async function ensureUserCounts(ctx: any, userId: any) {
   }
 
   const [liked, watched, watchlist] = await Promise.all([
-    ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
-    ctx.db.query("watched").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
-    ctx.db.query("watchlist").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+    ctx.db.query("liked").withIndex("by_userId", (q) => q.eq("userId", userId)).collect(),
+    ctx.db.query("watched").withIndex("by_userId", (q) => q.eq("userId", userId)).collect(),
+    ctx.db.query("watchlist").withIndex("by_userId", (q) => q.eq("userId", userId)).collect(),
   ]);
 
   const counts = {
@@ -303,12 +304,12 @@ export const getUserGenres = query({
     if (!userId) return [];
 
     const [liked, watchlist] = await Promise.all([
-      ctx.db.query("liked").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
-      ctx.db.query("watchlist").withIndex("by_userId", (q: any) => q.eq("userId", userId)).collect(),
+      ctx.db.query("liked").withIndex("by_userId", (q) => q.eq("userId", userId)).collect(),
+      ctx.db.query("watchlist").withIndex("by_userId", (q) => q.eq("userId", userId)).collect(),
     ]);
 
     const genreCounts: Record<number, number> = {};
-    [...liked, ...watchlist].forEach((item: any) => {
+    [...liked, ...watchlist].forEach((item) => {
       item.genreIds?.forEach((gid: number) => {
         genreCounts[gid] = (genreCounts[gid] || 0) + 1;
       });

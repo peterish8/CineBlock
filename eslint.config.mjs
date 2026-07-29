@@ -1,7 +1,7 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
-export default [
+const eslintConfig = [
   ...nextVitals,
   ...nextTypescript,
   {
@@ -11,6 +11,10 @@ export default [
       "out/**",
       "build/**",
       "convex/_generated/**",
+      ".claude/**",
+      ".obsidian/**",
     ],
   },
 ];
+
+export default eslintConfig;

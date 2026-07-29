@@ -7,27 +7,45 @@ import Link from "next/link";
 import { useRadar } from "@/hooks/useRadar";
 import ReleaseTimeline from "@/components/ReleaseTimeline";
 import MovieModal from "@/components/MovieModal";
+import { RadarMovie, TMDBMovie } from "@/lib/types";
+
+function radarToTmdbMovie(item: RadarMovie): TMDBMovie {
+  return {
+    id: item.id,
+    title: item.title,
+    original_title: item.title,
+    overview: item.overview,
+    poster_path: item.poster_path,
+    backdrop_path: item.backdrop_path,
+    release_date: item.release_date,
+    vote_average: item.vote_average,
+    vote_count: 0,
+    genre_ids: item.genre_ids,
+    original_language: "",
+    popularity: item.popularity,
+    adult: false,
+    media_type: item.media_type,
+  };
+}
 
 export default function RadarPage() {
   const { movies, loading, error, isPersonalized } = useRadar();
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [isGlass, setIsGlass] = useState(false);
 
   useEffect(() => {
-    setIsGlass(document.body.classList.contains("theme-glass"));
-    const observer = new MutationObserver(() =>
-      setIsGlass(document.body.classList.contains("theme-glass"))
-    );
+    const update = () => setIsGlass(document.body.classList.contains("theme-glass"));
+    const raf = requestAnimationFrame(update);
+    const observer = new MutationObserver(update);
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, []);
 
-  const handleMovieClick = useCallback((item: any) => {
-    if (item.media_type === "tv") {
-      setSelectedMovie({ ...item, title: item.title || item.name, release_date: item.release_date || item.first_air_date, media_type: "tv" as const });
-    } else {
-      setSelectedMovie({ ...item, media_type: "movie" as const });
-    }
+  const handleMovieClick = useCallback((item: RadarMovie) => {
+    setSelectedMovie(radarToTmdbMovie(item));
   }, []);
 
   if (error) {

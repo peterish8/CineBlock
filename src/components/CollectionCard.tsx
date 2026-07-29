@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { posterUrl } from "@/lib/constants";
-import { TMDBCollection } from "@/lib/types";
+import { TMDBCollection, TMDBMovie } from "@/lib/types";
 import { ArrowRight, Box, Play } from "lucide-react";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { fetchCollectionDetail } from "@/lib/collectionCache";
 
 interface CollectionCardProps {
   collection: TMDBCollection;
@@ -19,12 +20,12 @@ interface CollectionCardProps {
 
 export default function CollectionCard({ collection, onClick, progress: manualProgress }: CollectionCardProps) {
   const { isWatched } = useMovieLists();
+  const cardRef = useRef<HTMLButtonElement>(null);
   
   // State for dynamic content
-  const [parts, setParts] = useState<any[] | null>(null);
+  const [parts, setParts] = useState<TMDBMovie[] | null>(null);
   const [dynamicCollage, setDynamicCollage] = useState<string[] | null>(null);
   const [collageErrors, setCollageErrors] = useState<Record<number, boolean>>({});
-  const [mainError, setMainError] = useState(false);
 
   // Use provided collage or dynamic collage
   const collage = collection.collage || dynamicCollage;
@@ -42,35 +43,47 @@ export default function CollectionCard({ collection, onClick, progress: manualPr
     : 0;
 
   useEffect(() => {
-    // Always try to fetch parts if we don't have them yet to power the collage and real progress
-    if (collection.id && !parts) {
-      const fetchCollectionData = async () => {
-        try {
-          const res = await fetch(`/api/movies?action=collection&id=${collection.id}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.parts && data.parts.length > 0) {
-              setParts(data.parts);
-              
-              // Only set dynamic collage if not already provided
-              if (!collection.collage) {
-                const sorted = (data.id === 9999999 || data.id === 9999998) ? [...data.parts] : [...data.parts].sort((a: any, b: any) => {
-                  const dateA = a.release_date || "9999";
-                  const dateB = b.release_date || "9999";
-                  return dateA.localeCompare(dateB);
-                });
-                const posters = sorted.map((p: any) => p.poster_path).filter(Boolean);
-                setDynamicCollage(posters);
-              }
+    if (!collection.id || parts || (collection.collage && manualProgress)) return;
+
+    const el = cardRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || cancelled) return;
+        observer.disconnect();
+
+        void fetchCollectionDetail(collection.id)
+          .then((data) => {
+            if (cancelled || !data.parts?.length) return;
+            setParts(data.parts);
+            if (!collection.collage) {
+              const sorted =
+                data.id === 9999999 || data.id === 9999998
+                  ? [...data.parts]
+                  : [...data.parts].sort((a: TMDBMovie, b: TMDBMovie) => {
+                      const dateA = a.release_date || "9999";
+                      const dateB = b.release_date || "9999";
+                      return dateA.localeCompare(dateB);
+                    });
+              const posters = sorted.map((p: TMDBMovie) => p.poster_path).filter(Boolean) as string[];
+              setDynamicCollage(posters);
             }
-          }
-        } catch (err) {
-          console.error("Collection data fetch failed:", err);
-        }
-      };
-      fetchCollectionData();
-    }
-  }, [collection.id, collection.collage, parts]);
+          })
+          .catch((err) => {
+            console.error("Collection data fetch failed:", err);
+          });
+      },
+      { rootMargin: "120px" }
+    );
+
+    observer.observe(el);
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
+  }, [collection.id, collection.collage, manualProgress, parts]);
 
   const handleCollageError = (index: number) => {
     setCollageErrors(prev => ({ ...prev, [index]: true }));
@@ -81,6 +94,7 @@ export default function CollectionCard({ collection, onClick, progress: manualPr
 
   return (
     <button
+      ref={cardRef}
       onClick={onClick}
       className={`group relative w-full flex flex-col items-start text-left focus:outline-none transition-opacity duration-300 opacity-100`}
     >

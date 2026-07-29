@@ -15,7 +15,7 @@ const DURATION = 5000;
 
 export default function StampNudge({ movie, onOpen, onDismiss }: StampNudgeProps) {
   const [progress, setProgress] = useState(100);
-  const startRef = useRef<number>(Date.now());
+  const startRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 

@@ -21,7 +21,7 @@ function useProviderMovies(providerId: string, region: string, sort: string, gen
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => { if (!cancelled) setLoading(true); });
     const params = new URLSearchParams({ action: "stream-discover", provider_id: providerId, region, sort });
     if (genre) params.set("genre", genre);
     fetch(`/api/movies?${params}`).then(r => r.json()).then(d => {

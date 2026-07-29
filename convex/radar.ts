@@ -1,9 +1,20 @@
 import { query, mutation, action, internalMutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { api, internal } from "./_generated/api";
+import { api } from "./_generated/api";
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
+
+type TmdbDiscoverMovie = {
+  id: number;
+  title?: string;
+  release_date?: string;
+  poster_path?: string;
+  genre_ids?: number[];
+  overview?: string;
+  vote_average?: number;
+  popularity?: number;
+};
 
 export const purgeExpiredRadarItems = internalMutation({
   args: {},
@@ -158,7 +169,7 @@ export const syncRadar = action({
         url.searchParams.set("page", page.toString());
         const res = await fetch(url.toString(), { headers });
         const data = await res.json();
-        return (data.results || []) as any[];
+        return (data.results || []) as TmdbDiscoverMovie[];
       };
 
       const fetchGenrePage = async () => {
@@ -173,7 +184,7 @@ export const syncRadar = action({
         url.searchParams.set("include_adult", "false");
         const res = await fetch(url.toString(), { headers });
         const data = await res.json();
-        return (data.results || []) as any[];
+        return (data.results || []) as TmdbDiscoverMovie[];
       };
 
       const [page1, page2, genreMovies] = await Promise.all([
@@ -186,7 +197,7 @@ export const syncRadar = action({
       const allMovies = [...genreMovies, ...page1, ...page2];
 
       // 3. Deduplicate, filter past releases, normalize
-      const movieMap = new Map<number, any>();
+      const movieMap = new Map<number, TmdbDiscoverMovie>();
       for (const m of allMovies) {
         if (!m.release_date || m.release_date < today) continue;
         if (movieMap.has(m.id)) continue;

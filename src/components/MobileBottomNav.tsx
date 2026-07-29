@@ -55,9 +55,8 @@ export default function MobileBottomNav() {
 
   // ── Nav item: returns icon + active indicator ──
   function NavItem({
-    id, active, children, onClick, href,
+    active, children, onClick, href,
   }: {
-    id: string;
     active: boolean;
     children: React.ReactNode;
     onClick?: () => void;
@@ -219,12 +218,12 @@ export default function MobileBottomNav() {
                 boxShadow: "0 -4px 24px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)",
               }}
             >
-              <NavItem id="home" active={isActive("/")} href="/"
+              <NavItem active={isActive("/")} href="/"
                 onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}>
                 <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
               </NavItem>
 
-              <NavItem id="browse" active={browseOpen}
+              <NavItem active={browseOpen}
                 onClick={() => { setListsOpen(false); setBrowseOpen((o) => !o); }}>
                 <Box className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
               </NavItem>
@@ -272,12 +271,11 @@ export default function MobileBottomNav() {
                 </motion.button>
               </div>
 
-              <NavItem id="blocks" active={isActive("/blocks")} href="/blocks">
+              <NavItem active={isActive("/blocks")} href="/blocks">
                 <Users className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
               </NavItem>
 
               <NavItem
-                id="account"
                 active={isActive("/profile") || isActive("/sign-in")}
                 href={isAuthenticated ? "/profile" : "/sign-in"}
               >
@@ -298,11 +296,11 @@ export default function MobileBottomNav() {
                 boxShadow: "0 -6px 26px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.32)",
               }}
             >
-              <NavItem id="home" active={isActive("/")} href="/" onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}>
+              <NavItem active={isActive("/")} href="/" onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}>
                 <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
               </NavItem>
 
-              <NavItem id="browse" active={browseOpen} onClick={() => { setListsOpen(false); setBrowseOpen((o) => !o); }}>
+              <NavItem active={browseOpen} onClick={() => { setListsOpen(false); setBrowseOpen((o) => !o); }}>
                 <Box className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
               </NavItem>
 
@@ -338,12 +336,11 @@ export default function MobileBottomNav() {
                 </motion.button>
               </div>
 
-              <NavItem id="blocks" active={isActive("/blocks")} href="/blocks">
+              <NavItem active={isActive("/blocks")} href="/blocks">
                 <Users className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
               </NavItem>
 
               <NavItem
-                id="account"
                 active={isActive("/profile") || isActive("/sign-in")}
                 href={isAuthenticated ? "/profile" : "/sign-in"}
               >
@@ -464,7 +461,7 @@ export default function MobileBottomNav() {
                 {[
                   { onClick: () => { setBrowseOpen(false); setWizardOpen(true); }, icon: Sparkles, label: "FIND MOVIE", color: "blue" },
                   { onClick: () => { setBrowseOpen(false); setStampSearchOpen(true); }, icon: CheckCircle, label: "STAMP FILMS", color: "orange" },
-                ].map(({ onClick, icon: Icon, label, color }) => (
+                ].map(({ onClick, icon: Icon, label }) => (
                   <button key={label} onClick={onClick}
                     className={`flex items-center gap-3 px-4 transition-all duration-200 active:scale-[0.97] ${
                       isGlass

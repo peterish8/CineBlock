@@ -112,12 +112,12 @@ export async function GET(request: NextRequest) {
         if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
         const data = await res.json();
         // Return only relevant fields, top 8
-        const results = (data.results || []).slice(0, 8).map((p: any) => ({
+        const results = (data.results || []).slice(0, 8).map((p: { id: number; name: string; profile_path: string | null; known_for_department: string; known_for?: { title?: string; name?: string }[] }) => ({
           id: p.id,
           name: p.name,
           profile_path: p.profile_path,
           known_for_department: p.known_for_department,
-          known_for: (p.known_for || []).slice(0, 2).map((k: any) => k.title || k.name),
+          known_for: (p.known_for || []).slice(0, 2).map((k) => k.title || k.name),
         }));
         return NextResponse.json({ results });
       }

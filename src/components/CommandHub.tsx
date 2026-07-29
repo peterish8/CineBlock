@@ -43,7 +43,12 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [stampSearchOpen, setStampSearchOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
+  const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
+    if (typeof window === "undefined") return "default";
+    const saved = readStoredTheme();
+    applyThemeToDocument(saved);
+    return saved;
+  });
   const [browseOpen, setBrowseOpen] = useState(false);
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -51,7 +56,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [leftReactorFiring, setLeftReactorFiring] = useState(false);
   const [rightReactorFiring, setRightReactorFiring] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -112,12 +120,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     emitFilters(query, randomGenre.id.toString(), year, language, randomSort, randomRating, runtime, randomKeyword);
   }, [emitFilters, query, year, language, runtime]);
 
-  useEffect(() => {
-    const saved = readStoredTheme();
-    setCurrentTheme(saved);
-    applyThemeToDocument(saved);
-  }, []);
-
   const toggleTheme = () => {
     setCurrentTheme((prev) => {
       const next = getNextTheme(prev);
@@ -148,7 +150,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("reset-filters", handleReset);
     };
-  }, []);
+  }, [clearAll]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -1142,7 +1144,10 @@ function FilterSelect({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 180 });
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     if (!open) return;

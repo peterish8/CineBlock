@@ -17,7 +17,7 @@ export const exportUserData = query({
     const internalId = await getAuthUserId(ctx);
     if (!internalId) throw new Error("Unauthorized");
 
-    const data: any = {
+    const data: Record<string, unknown> = {
       version: 1,
       timestamp: Date.now(),
     };
@@ -63,7 +63,7 @@ export const importUserData = mutation({
     const p = args.payload;
     if (!p || typeof p !== "object") throw new Error("Invalid payload");
     
-    let stats = {
+    const stats = {
       watchedAdded: 0,
       likedAdded: 0,
       watchlistAdded: 0,

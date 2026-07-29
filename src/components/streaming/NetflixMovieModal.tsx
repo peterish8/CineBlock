@@ -29,6 +29,12 @@ export default function NetflixMovieModal({ movie, onClose }: Props) {
 
   const activeMov = nestedMovie || movie;
 
+  const handleClose = useCallback(() => {
+    setNestedMovie(null);
+    document.body.style.overflow = "";
+    onClose();
+  }, [onClose]);
+
   const fetchDetails = useCallback(async (id: number, type: "movie" | "tv") => {
     setLoading(true);
     setDetails(null);

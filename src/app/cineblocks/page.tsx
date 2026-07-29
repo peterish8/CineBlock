@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useBlocks } from "@/hooks/useBlocks";
 import { useConvexAuth } from "convex/react";
 import { posterUrl } from "@/lib/constants";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import {
   ArrowLeft,
   LayoutGrid,
@@ -16,13 +17,12 @@ import {
   Globe,
   X,
   Lock,
-  Users,
   Search,
 } from "lucide-react";
 
 // ─── Create Block Form ────────────────────────────────────────────────────────
 
-function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate: (title: string) => Promise<any> }) {
+function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate: (title: string) => Promise<Id<"blocks">> }) {
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +85,7 @@ function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate
 
 // ─── Block Card ───────────────────────────────────────────────────────────────
 
-function BlockCard({ block, isOwned }: { block: any; isOwned: boolean }) {
+function BlockCard({ block, isOwned }: { block: Doc<"blocks">; isOwned: boolean }) {
   const { deleteBlock } = useBlocks();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);

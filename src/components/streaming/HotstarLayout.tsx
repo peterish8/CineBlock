@@ -22,7 +22,7 @@ function useProviderMovies(providerId: string, region: string, sort: string, gen
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => { if (!cancelled) setLoading(true); });
     const params = new URLSearchParams({ action: "stream-discover", provider_id: providerId, region, sort });
     if (genre) params.set("genre", genre);
     fetch(`/api/movies?${params}`).then(r => r.json()).then(d => {
@@ -275,7 +275,7 @@ export default function HotstarLayout({ platform, country, onBack }: Props) {
              { icon: Tv, label: "TV" }, 
              { icon: Film, label: "Movies" }, 
              { icon: Activity, label: "Sports" }
-           ].map((item, i) => (
+           ].map((item) => (
              <button key={item.label} className={`flex flex-col items-center gap-1.5 focus:outline-none transition-colors relative group/navbtn ${item.active ? 'text-white' : 'text-[#8f98b0] hover:text-white'}`}>
                <item.icon className={`w-[22px] h-[22px] ${item.active ? 'fill-white' : ''} group-hover/navbtn:scale-110 transition-transform`} strokeWidth={item.active ? 2.5 : 2} />
                <span className="text-[10px] font-bold tracking-wider opacity-0 lg:opacity-0 group-hover:opacity-100 font-medium absolute -right-16 bg-black/80 px-2 py-1 rounded drop-shadow pointer-events-none translate-x-[-10px] group-hover:translate-x-0 transition-all">{item.label}</span>

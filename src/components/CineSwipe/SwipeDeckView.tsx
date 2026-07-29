@@ -252,7 +252,7 @@ function AuthenticatedSwipeDeck() {
           { label: "WATCHLIST", brutalColor: "text-brutal-lime",   glassColor: "text-emerald-400", key: "→" },
           { label: "BLOCK",     brutalColor: "text-brutal-violet", glassColor: "text-violet-400",  key: "↑" },
           { label: "FAVOURITE", brutalColor: "text-brutal-red",    glassColor: "text-pink-400",    key: "Space", deskOnly: true },
-        ].map((hint, idx) => (
+        ].map((hint) => (
           <div key={hint.label} className={`flex flex-col items-center gap-0.5 lg:gap-2 py-1 ${hint.deskOnly ? "hidden lg:flex" : "flex"}`}>
             <span className={`text-[10px] lg:text-sm font-black lg:px-4 lg:py-1 lg:rounded-md lg:bg-white/5 ${isGlass ? hint.glassColor : `font-mono ${hint.brutalColor}`}`}>
               {hint.key}

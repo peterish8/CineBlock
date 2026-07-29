@@ -58,7 +58,7 @@ export default function ProfilePage() {
   const [isExporting, setIsExporting] = useState(false);
 
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importDataPreview, setImportDataPreview] = useState<any>(null);
+  const [importDataPreview, setImportDataPreview] = useState<Record<string, unknown> | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState("");
 
@@ -136,8 +136,13 @@ export default function ProfilePage() {
     try {
       await setUsername({ username: usernameValue.trim() });
       setEditingUsername(false);
-    } catch (err: any) {
-      setUsernameError(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to save username.");
+    } catch (err: unknown) {
+      const message = err && typeof err === "object" && "data" in err
+        ? String((err as { data?: string }).data)
+        : err instanceof Error
+          ? err.message.replace("Uncaught Error: ", "")
+          : "Failed to save username.";
+      setUsernameError(message || "Failed to save username.");
     } finally {
       setSavingUsername(false);
     }
@@ -210,7 +215,7 @@ export default function ProfilePage() {
         if (!json.version) throw new Error("Invalid CineBlock backup file structure.");
         setImportDataPreview(json);
         setShowImportModal(true);
-      } catch (err) {
+      } catch {
         setImportError("Error parsing backup file. Make sure it's a valid JSON backup exported from CineBlock.");
         setShowImportModal(true);
       }
@@ -228,9 +233,9 @@ export default function ProfilePage() {
       alert(`Import completed successfully!\n\nAdded:\n${stats.watchedAdded} Watched Movies\n${stats.likedAdded} Liked Movies\n${stats.watchlistAdded} Watchlist Movies\n${stats.blocksAdded} CineBlocks\n${stats.stampsAdded} Stamps`);
       setShowImportModal(false);
       setImportDataPreview(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setImportError(err.message || "Failed to parse and import data payload.");
+      setImportError(err instanceof Error ? err.message : "Failed to parse and import data payload.");
     } finally {
       setIsImporting(false);
     }

@@ -1,4 +1,4 @@
-export default {
+const authConfig = {
   providers: [
     {
       // The Convex site URL acts as the JWT issuer for the built-in Password provider.
@@ -9,3 +9,5 @@ export default {
     },
   ],
 };
+
+export default authConfig;

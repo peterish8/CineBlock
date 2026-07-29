@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { X, CheckCircle, Star, Calendar, Box, Info, Heart, Bookmark } from "lucide-react";
+import { X, CheckCircle, Star, Box, Info, Heart, Bookmark } from "lucide-react";
 import { TMDBCollectionDetail, TMDBMovie } from "@/lib/types";
-import { backdropUrl, posterUrl } from "@/lib/constants";
+import { backdropUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
+import { fetchCollectionDetail } from "@/lib/collectionCache";
 
 interface CollectionModalProps {
   collectionId: number | null;
@@ -25,34 +26,29 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
       return;
     }
 
-    const fetchCollection = async () => {
+    const loadCollection = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/movies?action=collection&id=${collectionId}`);
-        const data = await res.json();
-        if (res.ok) {
-          // Sort parts by release date (UNLESS it's the custom MCU chronological timeline or Spider-man Eras)
-          if (data.parts && data.id !== 9999999 && data.id !== 9999998) {
-            data.parts.sort((a: any, b: any) => {
-              const dateA = a.release_date || "9999";
-              const dateB = b.release_date || "9999";
-              return dateA.localeCompare(dateB);
-            });
-          }
-          setCollection(data);
-        } else {
-          setError(data.error || "Failed to access the vault database.");
+        const data = await fetchCollectionDetail(collectionId);
+        if (data.parts && data.id !== 9999999 && data.id !== 9999998) {
+          data.parts.sort((a: TMDBMovie, b: TMDBMovie) => {
+            const dateA = a.release_date || "9999";
+            const dateB = b.release_date || "9999";
+            return dateA.localeCompare(dateB);
+          });
         }
+        setCollection(data);
       } catch (err) {
         console.error("Failed to fetch collection:", err);
-        setError("Network connection lost while accessing the vault.");
+        const message = err instanceof Error ? err.message : "Network connection lost while accessing the vault.";
+        setError(message.toUpperCase().includes("TOO MANY") ? "TMDB is busy — wait a moment and try again." : message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCollection();
+    void loadCollection();
   }, [collectionId]);
 
   useEffect(() => {

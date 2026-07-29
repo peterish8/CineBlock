@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { WizardState } from "@/lib/tmdbQueryBuilder";
+import { TMDBMovie } from "@/lib/types";
 import StepKeywords from "./StepKeywords";
 import StepTime from "./StepTime";
 import StepLanguage from "./StepLanguage";
@@ -24,19 +25,21 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
   const [loading, setLoading] = useState(false);
   const [rerolling, setRerolling] = useState(false);
   const [error, setError] = useState("");
-  const [results, setResults] = useState<any[] | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [results, setResults] = useState<TMDBMovie[] | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [isGlass, setIsGlass] = useState(false);
   const seenIds = useRef<Set<number>>(new Set());
   const { liked, watchlist, watched } = useMovieLists();
 
   useEffect(() => {
-    setIsGlass(document.body.classList.contains("theme-glass"));
-    const observer = new MutationObserver(() =>
-      setIsGlass(document.body.classList.contains("theme-glass"))
-    );
+    const update = () => setIsGlass(document.body.classList.contains("theme-glass"));
+    const raf = requestAnimationFrame(update);
+    const observer = new MutationObserver(update);
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    return () => observer.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
   }, []);
 
   // Lock background scroll while wizard is mounted
@@ -79,8 +82,8 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
 
     if (!res.ok) throw new Error("Failed to find movies");
     const data = await res.json();
-    const movies = data.movies || [];
-    movies.forEach((m: any) => seenIds.current.add(m.id));
+    const movies = (data.movies || []) as TMDBMovie[];
+    movies.forEach((m) => seenIds.current.add(m.id));
     setResults(movies);
   };
 

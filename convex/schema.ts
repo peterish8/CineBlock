@@ -3,7 +3,8 @@ import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 // Extract authTables minus users so we can extend the users table
-const { users: _authUsers, ...otherAuthTables } = authTables;
+const { users: _usersTable, ...otherAuthTables } = authTables;
+void _usersTable;
 
 const schema = defineSchema({
   ...otherAuthTables,

@@ -36,12 +36,12 @@ export default function NewsFeed() {
       const sorted = [...(cached as NewsArticle[])].sort(
         (a, b) => (b.thumbnail ? 1 : 0) - (a.thumbnail ? 1 : 0)
       );
-      setArticles(sorted);
+      queueMicrotask(() => setArticles(sorted));
       return;
     }
 
     // Cache miss — fetch fresh from RSS/Reddit + TMDB fallback
-    setFetching(true);
+    queueMicrotask(() => setFetching(true));
     fetch("/api/internal/fetch-news")
       .then((r) => {
         if (!r.ok) throw new Error("Failed to fetch");

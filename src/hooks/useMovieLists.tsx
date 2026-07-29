@@ -20,6 +20,9 @@ interface MovieListsContextType {
   isWatched: (id: number) => boolean;
   toggleWatched: (movie: TMDBMovie) => Promise<{ added: boolean }>;
   moveToWatched: (movie: TMDBMovie) => void;
+
+  /** False while Convex list queries are still loading for signed-in users. */
+  listsReady: boolean;
 }
 
 const MovieListsContext = createContext<MovieListsContextType | null>(null);
@@ -57,21 +60,23 @@ function toMovie(item: { movieId: number; movieTitle: string; posterPath: string
   };
 }
 
+function getInitialLocalData() {
+  if (typeof window === "undefined") {
+    return { liked: [] as TMDBMovie[], watchlist: [] as TMDBMovie[], watched: [] as TMDBMovie[], loaded: false };
+  }
+  return {
+    liked: loadList(KEYS.liked),
+    watchlist: loadList(KEYS.watchlist),
+    watched: loadList(KEYS.watched),
+    loaded: true,
+  };
+}
+
 export function MovieListsProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
 
   // Local state — used when unauthenticated or before Convex loads
-  const [localData, setLocalData] = useState<{
-    liked: TMDBMovie[];
-    watchlist: TMDBMovie[];
-    watched: TMDBMovie[];
-    loaded: boolean;
-  }>({
-    liked: [],
-    watchlist: [],
-    watched: [],
-    loaded: false,
-  });
+  const [localData, setLocalData] = useState(getInitialLocalData);
   const didSyncUp = useRef(false);
 
   // Convex queries — reactive; returns [] when unauthenticated
@@ -86,16 +91,6 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
   const convexRemoveLiked = useMutation(api.lists.removeFromLiked);
   const convexAddWatched = useMutation(api.lists.addToWatched);
   const convexRemoveWatched = useMutation(api.lists.removeFromWatched);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    setLocalData({
-      liked: loadList(KEYS.liked),
-      watchlist: loadList(KEYS.watchlist),
-      watched: loadList(KEYS.watched),
-      loaded: true,
-    });
-  }, []);
 
   // Persist local state to localStorage (for unauthenticated use)
   useEffect(() => {
@@ -141,6 +136,10 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
   const liked = isAuthenticated && convexLiked !== undefined ? convexLiked.map(toMovie) : localData.liked;
   const watchlist = isAuthenticated && convexWatchlist !== undefined ? convexWatchlist.map(toMovie) : localData.watchlist;
   const watched = isAuthenticated && convexWatched !== undefined ? convexWatched.map(toMovie) : localData.watched;
+
+  const listsReady =
+    !isAuthenticated ||
+    (convexLiked !== undefined && convexWatchlist !== undefined && convexWatched !== undefined);
 
   const isLiked = useCallback((id: number) => liked.some((m) => m.id === id), [liked]);
   const isInWatchlist = useCallback((id: number) => watchlist.some((m) => m.id === id), [watchlist]);
@@ -228,6 +227,7 @@ export function MovieListsProvider({ children }: { children: ReactNode }) {
         liked, isLiked, toggleLiked,
         watchlist, isInWatchlist, toggleWatchlist,
         watched, isWatched, toggleWatched, moveToWatched,
+        listsReady,
       }}
     >
       {children}

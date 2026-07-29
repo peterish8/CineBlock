@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import {
   motion,
   useMotionValue,
@@ -8,7 +8,7 @@ import {
   animate,
   PanInfo,
 } from "framer-motion";
-import Image from "next/image";
+import NextImage from "next/image";
 import { Star, Bookmark, Eye, ArrowUpFromLine, X, Heart } from "lucide-react";
 import { TMDBMovie } from "@/lib/types";
 import { posterUrl, backdropUrl } from "@/lib/constants";
@@ -41,9 +41,11 @@ export default function SwipeCard({
   const [isSwiping, setIsSwiping] = useState(false);
 
   useEffect(() => {
-    setIsSwiping(false);
-    x.set(0);
-    y.set(0);
+    queueMicrotask(() => {
+      setIsSwiping(false);
+      x.set(0);
+      y.set(0);
+    });
   }, [movie.id, x, y]);
 
   const rotate = useTransform(x, [-300, 0, 300], [-18, 0, 18]);
@@ -61,7 +63,7 @@ export default function SwipeCard({
   // Preload next poster image
   useEffect(() => {
     if (movie.poster_path) {
-      const img = new (window as any).Image();
+      const img = new window.Image();
       img.src = posterUrl(movie.poster_path, "large");
     }
   }, [movie.poster_path]);
@@ -73,16 +75,16 @@ export default function SwipeCard({
     .map((id) => GENRES.find((g) => g.id === id)?.name)
     .filter(Boolean);
 
-  const triggerDoubleTap = () => {
+  const triggerDoubleTap = useCallback(() => {
     if (!isActive) return;
     setShowHeart(true);
     setTimeout(() => {
       onDoubleTap();
       setShowHeart(false);
     }, 600);
-  };
+  }, [isActive, onDoubleTap]);
 
-  const triggerSwipe = (direction: "left" | "right" | "up" | "down") => {
+  const triggerSwipe = useCallback((direction: "left" | "right" | "up" | "down") => {
     if (!isActive || isSwiping) return;
     setIsSwiping(true);
 
@@ -97,7 +99,7 @@ export default function SwipeCard({
     if (exitY !== 0) void animate(y, exitY, { duration: 0.3, ease: "easeOut" });
 
     setTimeout(() => onSwipe(direction), 250);
-  };
+  }, [isActive, isSwiping, onSwipe, x, y]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -136,7 +138,7 @@ export default function SwipeCard({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive, x, y, onSwipe, onDoubleTap]);
+  }, [isActive, triggerDoubleTap, triggerSwipe]);
 
   const handleTap = () => {
     if (!isActive) return;
@@ -175,15 +177,11 @@ export default function SwipeCard({
     }
 
     let direction: "left" | "right" | "up" | "down";
-    let exitX = 0;
-    let exitY = 0;
 
     if (isHorizontal) {
       direction = info.offset.x > 0 ? "right" : "left";
-      exitX = direction === "right" ? 600 : -600;
     } else {
       direction = info.offset.y > 0 ? "down" : "up";
-      exitY = direction === "down" ? 800 : -800;
     }
 
     // Fire the swipe trigger to handle animations consistently
@@ -218,7 +216,7 @@ export default function SwipeCard({
       {movie.poster_path ? (
         <>
           {/* Mobile vertical poster */}
-          <Image
+          <NextImage
             src={posterUrl(movie.poster_path, "large")}
             alt={movie.title}
             fill
@@ -228,7 +226,7 @@ export default function SwipeCard({
             draggable={false}
           />
           {/* Desktop horizontal backdrop */}
-          <Image
+          <NextImage
             src={backdropUrl(movie.backdrop_path || movie.poster_path, "large")}
             alt={movie.title}
             fill

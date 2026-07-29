@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { ArrowLeft, Search, ChevronRight, User } from "lucide-react";
+import { ArrowLeft, Search, ChevronRight } from "lucide-react";
 
 export default function SearchUsersPage() {
   const [query, setQuery] = useState("");

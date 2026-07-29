@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, Star, Users, Bookmark, Play, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical, Plus, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider, TMDBPerson } from "@/lib/types";
+import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider, TMDBWatchProviderResponse, TMDBPerson } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 import { backdropUrl, posterUrl, logoUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
@@ -36,6 +36,15 @@ export default function MovieModal({
   const [selectedActorId, setSelectedActorId] = useState<number | null>(null);
   const [actorPerson, setActorPerson] = useState<TMDBPerson | null>(null);
   const [actorLoading, setActorLoading] = useState(false);
+  const [details, setDetails] = useState<TMDBMovieDetail | null>(null);
+  const [watchProviders, setWatchProviders] = useState<TMDBWatchProviderResponse["results"] | null>(null);
+  const [playingTrailer, setPlayingTrailer] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [similar, setSimilar] = useState<TMDBMovie[]>([]);
+  const [activeCategory, setActiveCategory] = useState<"flatrate" | "rent" | "buy" | null>(null);
+  const [regionDropOpen, setRegionDropOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
   const [dragY, setDragY] = useState(0);
   const touchStartY = useRef(0);
 
@@ -54,33 +63,39 @@ export default function MovieModal({
   const movie = history[history.length - 1] || null;
 
   useEffect(() => {
-    if (rootMovie) {
-      setHistory([rootMovie]);
-      setShowActions(false);
-    } else {
-      setHistory([]);
-      setShowActions(false);
-    }
+    queueMicrotask(() => {
+      if (rootMovie) {
+        setHistory([rootMovie]);
+        setShowActions(false);
+      } else {
+        setHistory([]);
+        setShowActions(false);
+      }
+    });
   }, [rootMovie]);
 
   useEffect(() => {
-    if (movie) {
-      setCinemaRevealed(false);
-      const timer = setTimeout(() => setCinemaRevealed(true), 950);
-      return () => clearTimeout(timer);
-    }
-  }, [movie?.id]);
+    if (!movie) return;
+    queueMicrotask(() => setCinemaRevealed(false));
+    const timer = setTimeout(() => setCinemaRevealed(true), 950);
+    return () => clearTimeout(timer);
+  }, [movie]);
 
   // Reset actor panel and active category when movie changes
-  useEffect(() => { 
-    setSelectedActorId(null); 
-    setActorPerson(null); 
-    setActiveCategory(null);
+  useEffect(() => {
+    queueMicrotask(() => {
+      setSelectedActorId(null);
+      setActorPerson(null);
+      setActiveCategory(null);
+    });
   }, [movie?.id]);
 
   useEffect(() => {
-    if (!selectedActorId) { setActorPerson(null); return; }
-    setActorLoading(true);
+    if (!selectedActorId) {
+      queueMicrotask(() => setActorPerson(null));
+      return;
+    }
+    queueMicrotask(() => setActorLoading(true));
     fetch(`/api/movies?action=person&id=${selectedActorId}`)
       .then((r) => r.json())
       .then(setActorPerson)
@@ -88,26 +103,18 @@ export default function MovieModal({
       .finally(() => setActorLoading(false));
   }, [selectedActorId]);
 
-  const [details, setDetails] = useState<TMDBMovieDetail | null>(null);
-  const [watchProviders, setWatchProviders] = useState<{ [countryCode: string]: any } | null>(null);
   const { region, setRegion } = useRegion();
-  const [playingTrailer, setPlayingTrailer] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [similar, setSimilar] = useState<TMDBMovie[]>([]);
-  const [activeCategory, setActiveCategory] = useState<"flatrate" | "rent" | "buy" | null>(null);
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const { openBlockModal } = useBlockModal();
-  const [regionDropOpen, setRegionDropOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const regionBtnRef = useRef<HTMLButtonElement>(null);
   const regionDropRef = useRef<HTMLDivElement>(null);
-  const [dropPos, setDropPos] = useState({ top: 0, right: 0 });
   const theme = useThemeMode();
   const isGlass = theme === "glass";
   const isNetflix = theme === "netflix";
 
   useEffect(() => {
-    setMounted(true);
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   // Close region dropdown on outside click/tap
@@ -142,8 +149,10 @@ export default function MovieModal({
   };
 
   const fetchDetails = useCallback(async (id: number, type: "movie" | "tv") => {
-    setPlayingTrailer(false);
-    setSimilar([]);
+    queueMicrotask(() => {
+      setPlayingTrailer(false);
+      setSimilar([]);
+    });
     try {
       const detailAction = type === "tv" ? "tv-details" : "details";
       const similarAction = type === "tv" ? "recommendations-tv" : "recommendations";
@@ -186,7 +195,7 @@ export default function MovieModal({
       
       if (simRes.ok) {
         const simData = await simRes.json();
-        setSimilar(simData.results?.slice(0, 15).map((m: any) => ({
+        setSimilar((simData.results as TMDBMovie[])?.slice(0, 15).map((m) => ({
           ...m,
           media_type: type
         })) || []);
@@ -199,12 +208,14 @@ export default function MovieModal({
   // 4. Handle Scroll Lock & Details Fetching
   useEffect(() => {
     if (movie) {
-      fetchDetails(movie.id, movie.media_type || "movie");
+      queueMicrotask(() => fetchDetails(movie.id, movie.media_type || "movie"));
       document.body.style.overflow = "hidden";
     } else {
-      setDetails(null);
-      setWatchProviders(null);
-      setPlayingTrailer(false);
+      queueMicrotask(() => {
+        setDetails(null);
+        setWatchProviders(null);
+        setPlayingTrailer(false);
+      });
       // Clean up overflow only if no other modals explicitly exist
       const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
       if (activeDialogs <= 1) {
@@ -260,7 +271,6 @@ export default function MovieModal({
   ) || details?.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
 
   const currentProviders = watchProviders?.[region] || null;
-  const releaseYear = movie.release_date?.split("-")[0] || movie.first_air_date?.split("-")[0] || "";
   const glassWatchedActionClass = watched
     ? "p-2 rounded-full transition-all text-emerald-300 shadow-[0_10px_28px_rgba(5,150,105,0.18)]"
     : "p-2 rounded-full transition-all text-white hover:bg-white/10";
@@ -578,7 +588,7 @@ export default function MovieModal({
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2" : "text-[9px] font-mono font-bold text-brutal-lime uppercase tracking-widest mb-2.5 px-0.5"}>STREAM</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.flatrate.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="flatrate" movie={movie} releaseYear={releaseYear} region={region} isGlass={isGlass} />)}
+                          {currentProviders.flatrate.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="flatrate" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
@@ -586,7 +596,7 @@ export default function MovieModal({
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2 mt-4" : "text-[9px] font-mono font-bold text-brutal-yellow uppercase tracking-widest mb-2.5 px-0.5"}>RENT</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.rent.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="rent" movie={movie} releaseYear={releaseYear} region={region} isGlass={isGlass} />)}
+                          {currentProviders.rent.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="rent" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
@@ -594,7 +604,7 @@ export default function MovieModal({
                       <div className="flex-none">
                         <p className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-2 mt-4" : "text-[9px] font-mono font-bold text-brutal-cyan uppercase tracking-widest mb-2.5 px-0.5"}>BUY</p>
                         <div className="flex flex-wrap gap-2">
-                          {currentProviders.buy.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="buy" movie={movie} releaseYear={releaseYear} region={region} isGlass={isGlass} />)}
+                          {currentProviders.buy.map((p: TMDBWatchProvider) => <ProviderItem key={p.provider_id} provider={p} category="buy" movie={movie} isGlass={isGlass} />)}
                         </div>
                       </div>
                     )}
@@ -625,7 +635,7 @@ export default function MovieModal({
                           {activeCategory && currentProviders?.[activeCategory]?.length > 0 && (
                             <div className="flex flex-wrap gap-2 pb-1.5 min-h-[44px]">
                               {currentProviders[activeCategory].map((p: TMDBWatchProvider) => (
-                                <ProviderItem key={p.provider_id} provider={p} category={activeCategory} movie={movie} releaseYear={releaseYear} region={region} isMobile isGlass={isGlass} />
+                                <ProviderItem key={p.provider_id} provider={p} category={activeCategory} movie={movie} isMobile isGlass={isGlass} />
                               ))}
                             </div>
                           )}
@@ -831,7 +841,7 @@ function getOttUrl(providerName: string, title: string): string {
   return `https://www.google.com/search?q=${q}+watch+on+${encodeURIComponent(providerName)}`;
 }
 
-function ProviderItem({ provider, category, movie, releaseYear, region, isMobile = false, isGlass = false }: { provider: TMDBWatchProvider, category: "flatrate" | "rent" | "buy", movie: TMDBMovie, releaseYear: string, region: string, isMobile?: boolean, isGlass?: boolean }) {
+function ProviderItem({ provider, category, movie, isMobile = false, isGlass = false }: { provider: TMDBWatchProvider, category: "flatrate" | "rent" | "buy", movie: TMDBMovie, isMobile?: boolean, isGlass?: boolean }) {
   const title = movie.title ?? movie.name ?? "";
   const url = getOttUrl(provider.provider_name, title);
   const colorClass = category === 'flatrate' ? "hover:border-brutal-lime" : category === 'rent' ? "hover:border-brutal-yellow" : "hover:border-brutal-cyan";

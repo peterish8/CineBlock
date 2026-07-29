@@ -9,10 +9,20 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowLeft, Users, Copy, Check, Crown, Popcorn, LogOut, Loader2,
-  Flame, Star, Shield, UserMinus, ChevronDown, ChevronUp,
+  Flame, Star, Shield, UserMinus,
 } from "lucide-react";
 import { posterUrl } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
+
+function getConvexErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object" && "data" in err && (err as { data?: string }).data) {
+    return String((err as { data?: string }).data);
+  }
+  if (err instanceof Error) {
+    return err.message.replace("Uncaught Error: ", "") || fallback;
+  }
+  return fallback;
+}
 
 // ─── Member Card ──────────────────────────────────────────────────────────────
 
@@ -249,8 +259,8 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
       setInviteSuccess(true);
       setInviteUsername("");
       setTimeout(() => setInviteSuccess(false), 3000);
-    } catch (err: any) {
-      setInviteError(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to send invite.");
+    } catch (err: unknown) {
+      setInviteError(getConvexErrorMessage(err, "Failed to send invite."));
     } finally {
       setInviteLoading(false);
     }
@@ -259,18 +269,18 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
   const handlePromote = async (targetUserId: string) => {
     if (!confirm("Make this member an admin?")) return;
     try {
-      await promoteToAdmin({ roomId: blockId, targetUserId: targetUserId as any });
-    } catch (err: any) {
-      alert(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to promote.");
+      await promoteToAdmin({ roomId: blockId, targetUserId: targetUserId as Id<"users"> });
+    } catch (err: unknown) {
+      alert(getConvexErrorMessage(err, "Failed to promote."));
     }
   };
 
   const handleRemoveMember = async (targetUserId: string) => {
     if (!confirm("Remove this member from the Block?")) return;
     try {
-      await removeMember({ roomId: blockId, targetUserId: targetUserId as any });
-    } catch (err: any) {
-      alert(err.data ?? err.message?.replace("Uncaught Error: ", "") ?? "Failed to remove.");
+      await removeMember({ roomId: blockId, targetUserId: targetUserId as Id<"users"> });
+    } catch (err: unknown) {
+      alert(getConvexErrorMessage(err, "Failed to remove."));
     }
   };
 
@@ -426,7 +436,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
                   </button>
                 </div>
                 {inviteError && <p className="text-brutal-red text-[10px] font-mono mt-2 leading-snug">{inviteError}</p>}
-                {inviteSuccess && <p className="text-brutal-lime text-[10px] font-mono mt-2">Invite sent! They'll see it in their Blocks page.</p>}
+                {inviteSuccess && <p className="text-brutal-lime text-[10px] font-mono mt-2">Invite sent! They&apos;ll see it in their Blocks page.</p>}
               </div>
             </div>
 

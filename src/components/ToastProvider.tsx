@@ -77,8 +77,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const isNetflix = theme === "netflix";
 
   useEffect(() => {
+    const timeouts = timeoutsRef.current;
     return () => {
-      timeoutsRef.current.forEach((id) => clearTimeout(id));
+      timeouts.forEach((id) => clearTimeout(id));
     };
   }, []);
 

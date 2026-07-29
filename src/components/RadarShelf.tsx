@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { Radio, Sparkles, ChevronRight, AlertCircle, Film } from "lucide-react";
+import { ChevronRight, AlertCircle, Film } from "lucide-react";
 import { useRadar } from "@/hooks/useRadar";
 import { posterUrl } from "@/lib/constants";
 import RadarSkeleton from "./RadarSkeleton";
@@ -11,7 +11,7 @@ import { RadarMovie } from "@/lib/types";
 import { FRANCHISE_MAP } from "@/lib/franchises";
 
 interface RadarShelfProps {
-  onMovieClick: (movie: any) => void;
+  onMovieClick: (movie: RadarMovie) => void;
 }
 
 export default function RadarShelf({ onMovieClick }: RadarShelfProps) {

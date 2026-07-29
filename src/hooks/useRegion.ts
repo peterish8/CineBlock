@@ -55,16 +55,14 @@ function detectRegionFallback(): string {
 }
 
 export function useRegion() {
-  // Always initialize with a consistent server-safe default to avoid hydration mismatches.
-  // The stored/detected region is applied client-side in the effect below.
-  const [region, setRegionState] = useState<string>("US");
+  const [region, setRegionState] = useState<string>(() => {
+    if (typeof window === "undefined") return "US";
+    return localStorage.getItem("cineblock_region") || "US";
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem("cineblock_region");
-    if (stored) {
-      if (stored !== region) setRegionState(stored);
-      return;
-    }
+    if (stored) return;
 
     // No cached region — detect via server-side API (avoids CSP/CORS issues)
     fetch("/api/region")

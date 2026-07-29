@@ -405,7 +405,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               transition={{ delay: 0.45 }}
               whileTap={{ scale: 0.97 }}
             >
-              Let's Go 🍿
+              Let&apos;s Go 🍿
             </motion.button>
 
             {/* Step indicator */}

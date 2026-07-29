@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RadarMovie } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
+
+type TmdbRadarResult = {
+  id: number;
+  title?: string;
+  release_date?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  genre_ids?: number[];
+  overview?: string;
+  vote_average?: number;
+  popularity?: number;
+};
 
 // Map common IP-country headers (Vercel/Cloudflare) to ISO region codes
 function getRegionFromRequest(req: NextRequest, fallback: string): string {
@@ -42,12 +55,12 @@ export async function GET(req: NextRequest) {
       url.searchParams.set("page", page.toString());
       const res = await fetch(url.toString(), { headers });
       const data = await res.json();
-      return (data.results || []) as any[];
+      return (data.results || []) as TmdbRadarResult[];
     };
 
     const [page1, page2] = await Promise.all([fetchPage(1), fetchPage(2)]);
 
-    const movieMap = new Map<number, any>();
+    const movieMap = new Map<number, RadarMovie>();
     for (const m of [...page1, ...page2]) {
       if (!m.release_date || m.release_date < today) continue;
       if (movieMap.has(m.id)) continue;

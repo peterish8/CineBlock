@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Platform } from "@/app/streaming/page";
-import { TMDBMovie } from "@/lib/types";
+import { TMDBMovie, TMDBVideo } from "@/lib/types";
 import { posterUrl, backdropUrl } from "@/lib/constants";
 import NetflixMovieModal from "@/components/streaming/NetflixMovieModal";
 import {
@@ -50,9 +50,10 @@ function setProgress(id: number, pct: number) {
 function useProviderMovies(providerId: string, region: string, sort: string, genre: string) {
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => { if (!cancelled) setLoading(true); });
     const params = new URLSearchParams({ action: "stream-discover", provider_id: providerId, region, sort });
     if (genre) params.set("genre", genre);
     fetch(`/api/movies?${params}`)
@@ -99,8 +100,8 @@ function NetflixCard({
       if (!res.ok) return;
       const data = await res.json();
       const vid = data.videos?.results?.find(
-        (v: any) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
-      ) || data.videos?.results?.find((v: any) => v.site === "YouTube");
+        (v: TMDBVideo) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
+      ) || data.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
       if (vid) setTrailerKey(vid.key);
     } catch { /* silent */ }
   }, [movie.id, movie.media_type, movie.first_air_date]);
@@ -467,22 +468,26 @@ export default function NetflixLayout({ platform, country, onBack }: Props) {
   useEffect(() => {
     if (!hero) return;
     let cancelled = false;
-    setHeroTrailerKey(null);
-    setHeroVideoReady(false);
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setHeroTrailerKey(null);
+        setHeroVideoReady(false);
+      }
+    });
     const action = hero.first_air_date ? "tv-details" : "details";
     fetch(`/api/movies?action=${action}&id=${hero.id}`)
       .then(r => r.json())
       .then(data => {
         if (cancelled) return;
         const vid = data.videos?.results?.find(
-          (v: any) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
-        ) || data.videos?.results?.find((v: any) => v.site === "YouTube");
+          (v: TMDBVideo) => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser")
+        ) || data.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
         if (vid) setHeroTrailerKey(vid.key);
       })
       .catch(() => {});
     const t = setTimeout(() => !cancelled && setHeroVideoReady(true), 2200);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [hero?.id]);
+  }, [hero]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);

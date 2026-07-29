@@ -63,6 +63,7 @@ export default function NewsArticleCard({
         style={isGlass ? { borderBottom: "1px solid rgba(255,255,255,0.08)" } : undefined}
       >
         {article.thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external RSS thumbnail URLs
           <img
             src={article.thumbnail}
             alt=""

@@ -24,7 +24,7 @@ function getRegion(): string {
 
 export function useRadar() {
   const [guestMovies, setGuestMovies] = useState<RadarMovie[]>([]);
-  const [loadingGuest, setLoadingGuest] = useState(false);
+  const [loadingGuest, setLoadingGuest] = useState(true);
   const [guestError, setGuestError] = useState<string | null>(null);
 
   const user = useQuery(api.users.currentUser);
@@ -81,21 +81,20 @@ export function useRadar() {
 
   // 3. Guest mode — pass region, server detects from IP or falls back to query param
   useEffect(() => {
-    if (user === null && (!hasFetched.current || fetchedRegion.current !== region)) {
-      setLoadingGuest((prev) => (prev ? prev : true));
-      hasFetched.current = true;
-      fetchedRegion.current = region;
-      const params = new URLSearchParams({ region });
+    if (user !== null) return;
+    if (hasFetched.current && fetchedRegion.current === region) return;
 
-      fetch(`/api/radar?${params.toString()}`)
-        .then(res => res.json())
-        .then(data => {
-          setGuestMovies(data.movies || []);
-          setGuestError(null);
-        })
-        .catch(err => setGuestError(err.message))
-        .finally(() => setLoadingGuest(false));
-    }
+    hasFetched.current = true;
+    fetchedRegion.current = region;
+
+    fetch(`/api/radar?${new URLSearchParams({ region }).toString()}`)
+      .then(res => res.json())
+      .then(data => {
+        setGuestMovies(data.movies || []);
+        setGuestError(null);
+      })
+      .catch(err => setGuestError(err.message))
+      .finally(() => setLoadingGuest(false));
   }, [user, region]);
 
   // 4. Consolidate
@@ -117,7 +116,7 @@ export function useRadar() {
     return guestMovies;
   }, [user, dbRadar, guestMovies]);
 
-  const isLoading = user === undefined || (user !== null && !dbRadar) || (user === null && loadingGuest);
+  const isLoading = user === undefined || (user !== null && !dbRadar) || (user === null && loadingGuest && guestMovies.length === 0 && !guestError);
 
   return {
     movies,

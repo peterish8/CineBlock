@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMovieLists } from "@/hooks/useMovieLists";
-import { useThemeMode } from "@/hooks/useThemeMode";
 import NetflixLayout from "@/components/streaming/NetflixLayout";
 import PrimeVideoLayout from "@/components/streaming/PrimeVideoLayout";
 import DisneyLayout from "@/components/streaming/DisneyLayout";
@@ -158,7 +156,7 @@ function CountrySelector({ onSelect }: { onSelect: (code: string) => void }) {
         <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
           Where are you watching from?
         </h1>
-        <p className="text-white/50 text-lg">We'll show you what's available in your region</p>
+        <p className="text-white/50 text-lg">We&apos;ll show you what&apos;s available in your region</p>
       </div>
 
       {/* Country Grid */}

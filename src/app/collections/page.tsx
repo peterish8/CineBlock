@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Info, Box, ExternalLink, Trophy, Filter, ChevronLeft } from "lucide-react";
+import { Search, Box, Trophy, ChevronLeft } from "lucide-react";
 import CollectionCard from "@/components/CollectionCard";
 import CollectionModal from "@/components/CollectionModal";
 import MovieModal from "@/components/MovieModal";
 import { TMDBMovie, TMDBCollection } from "@/lib/types";
-import { useMovieLists } from "@/hooks/useMovieLists";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 // Curated top-tier franchises for the landing page
@@ -230,8 +229,6 @@ export default function CollectionsPage() {
   const [selectedCollectionId, setSelectedCollectionId] = useState<number | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
 
-  const { watched } = useMovieLists();
-
   // Handle Search
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,19 +246,6 @@ export default function CollectionsPage() {
       setIsLoading(false);
     }, 400);
   };
-
-  // Curated collections with real progress
-  const curatedWithProgress = useMemo(() => {
-      return CURATED_COLLECTIONS.map(c => {
-          // Note: In a real app we'd fetch the parts to get accurate IDs, 
-          // but for curated ones we can approximate or use a simple heuristic 
-          // (or just rely on the Detail Modal to show the real bar while keeping the preview clean)
-          return {
-              ...c,
-              progress: { watched: 0, total: c.movieCount || 1 }
-          };
-      });
-  }, []);
 
   return (
     <main
@@ -311,7 +295,7 @@ export default function CollectionsPage() {
             FRANCHISE <span className={isGlass ? "text-violet-400" : "text-brutal-violet"} style={isGlass ? { WebkitTextFillColor: "#A78BFA" } : undefined}>VAULT</span>
           </h1>
           <p className={`max-w-xl text-sm sm:text-lg font-bold mt-4 leading-relaxed ${isGlass ? "text-slate-400" : "text-brutal-muted font-mono uppercase"}`}>
-            Track your progress through history's greatest cinematic empires. Complete the sagas. Earn your badges.
+            Track your progress through history&apos;s greatest cinematic empires. Complete the sagas. Earn your badges.
           </p>
         </div>
 
@@ -408,7 +392,7 @@ export default function CollectionsPage() {
                 {CURATED_COLLECTIONS.map((c) => (
                   <CollectionCard
                     key={c.id}
-                    collection={c as any}
+                    collection={c as TMDBCollection}
                     onClick={() => setSelectedCollectionId(c.id)}
                   />
                 ))}

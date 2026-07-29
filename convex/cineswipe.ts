@@ -1,6 +1,7 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type { Id } from "./_generated/dataModel";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -10,15 +11,15 @@ const SWIPE_MIN_INTERVAL_MS = 400; // rate-limit between swipes
 // ─── Rate-limit helper (reuses same pattern as cineblocks.ts) ─────────────────
 
 async function enforceSwipeRateLimit(
-  ctx: any,
-  userId: any,
+  ctx: MutationCtx,
+  userId: Id<"users">,
   action: string,
   minIntervalMs: number
 ) {
   const now = Date.now();
   const row = await ctx.db
     .query("mutation_throttles")
-    .withIndex("by_userId_action", (q: any) =>
+    .withIndex("by_userId_action", (q) =>
       q.eq("userId", userId).eq("action", action)
     )
     .first();

@@ -18,7 +18,7 @@ interface WatchlistPanelProps {
 type TabId = "liked" | "queue" | "watched";
 
 export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: WatchlistPanelProps) {
-  const { liked, toggleLiked, watchlist, toggleWatchlist, moveToWatched, watched } = useMovieLists() as any;
+  const { liked, toggleLiked, watchlist, toggleWatchlist, moveToWatched, watched } = useMovieLists();
   const theme = useThemeMode();
   const isGlass = theme === "glass";
 
@@ -29,18 +29,19 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
 
   useEffect(() => {
     if (isOpen) {
-      setMounted(true);
-      setClosing(false);
-      // default to first non-empty tab
-      if (liked.length > 0) setActiveTab("liked");
-      else if (watchlist.length > 0) setActiveTab("queue");
-      else setActiveTab("watched");
+      queueMicrotask(() => {
+        setMounted(true);
+        setClosing(false);
+        if (liked.length > 0) setActiveTab("liked");
+        else if (watchlist.length > 0) setActiveTab("queue");
+        else setActiveTab("watched");
+      });
     } else if (mounted) {
-      setClosing(true);
+      queueMicrotask(() => setClosing(true));
       const t = setTimeout(() => { setMounted(false); setClosing(false); }, 280);
       return () => clearTimeout(t);
     }
-  }, [isOpen]);
+  }, [isOpen, liked.length, mounted, watchlist.length, watched.length]);
 
   if (!mounted) return null;
 

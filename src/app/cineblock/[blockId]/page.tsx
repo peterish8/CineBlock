@@ -18,6 +18,7 @@ import {
   Plus, Loader2, Star, ChevronRight, User,
 } from "lucide-react";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import type { TMDBMovie } from "@/lib/types";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -136,7 +137,7 @@ function SearchPosterCard({
 function SearchPanel({
   movies, blockMovieIds, isFull, addingMovieId, onAdd, onDragStart, inputRef,
 }: {
-  movies: any[];
+  movies: TMDBMovie[];
   blockMovieIds: Set<number>;
   isFull: boolean;
   addingMovieId: number | null;
@@ -516,7 +517,7 @@ export default function CineBlockViewPage() {
   const [importingBlock, setImportingBlock] = useState(false);
   const [removingMovieId, setRemovingMovieId] = useState<number | null>(null);
   const [addingMovieId, setAddingMovieId] = useState<number | null>(null);
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [copied, setCopied] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");

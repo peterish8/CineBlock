@@ -14,7 +14,7 @@ import MovieModal from "@/components/MovieModal";
 const ANIMATION_GENRE_ID = 16; // TMDB Animation
 
 function RecommendationsContent() {
-  const { watchlist, isInWatchlist, toggleWatchlist } = useMovieLists();
+  const { watchlist, listsReady, isInWatchlist, toggleWatchlist } = useMovieLists();
   const [movies, setMovies] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -133,8 +133,9 @@ function RecommendationsContent() {
     }
   }, [watchlist, watchlistAnalysis, includeCartoons]);
 
-  // Initial load
+  // Initial load — wait for list hydration before treating watchlist as empty
   useEffect(() => {
+    if (!listsReady) return;
     if (watchlist.length === 0 || hasFetchedInitialRef.current) {
       if (watchlist.length === 0) setLoading(false);
       return;
@@ -142,7 +143,7 @@ function RecommendationsContent() {
     hasFetchedInitialRef.current = true;
     setLoading(true);
     fetchPage(1).finally(() => setLoading(false));
-  }, [watchlist, fetchPage]);
+  }, [watchlist, listsReady, fetchPage]);
 
   // Infinite scroll sentinel
   useEffect(() => {
@@ -313,7 +314,14 @@ function RecommendationsContent() {
 
       {/* Content */}
       <div className="flex-1 max-w-[1600px] mx-auto w-full px-4 sm:px-6 py-6">
-        {watchlist.length === 0 ? (
+        {!listsReady ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-6">
+            <Loader2 className={`w-10 h-10 animate-spin ${isGlass ? "text-blue-400" : "text-brutal-yellow"}`} />
+            <p className={`text-sm ${isGlass ? "text-slate-400" : "text-brutal-dim font-mono"}`}>
+              Loading your watchlist…
+            </p>
+          </div>
+        ) : watchlist.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <div
               className={isGlass ? "p-8 max-w-md w-full rounded-2xl" : "brutal-card p-8 max-w-md w-full"}

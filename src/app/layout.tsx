@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { MovieListsProvider } from "@/hooks/useMovieLists";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
@@ -75,7 +76,9 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <head />
         <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
-          <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem('theme');if(!t){t='glass';localStorage.setItem('theme','glass');}var allowNetflix=${ENABLE_NETFLIX_THEME ? "true" : "false"};if(t==='glass')document.body.classList.add('theme-glass');else if(allowNetflix&&t==='netflix')document.body.classList.add('theme-netflix');}catch(e){}` }} />
+          <Script id="theme-init" strategy="beforeInteractive">
+            {`try{var t=localStorage.getItem('theme');if(!t){t='glass';localStorage.setItem('theme','glass');}var allowNetflix=${ENABLE_NETFLIX_THEME ? "true" : "false"};if(t==='glass')document.body.classList.add('theme-glass');else if(allowNetflix&&t==='netflix')document.body.classList.add('theme-netflix');}catch(e){}`}
+          </Script>
           <ConvexClientProvider>
             <ToastProvider>
               <BlockModalProvider>

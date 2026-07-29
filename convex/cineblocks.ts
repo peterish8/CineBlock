@@ -1,6 +1,7 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import type { Id } from "./_generated/dataModel";
 
 const MAX_BLOCKS_PER_USER = 15;
 const MAX_MOVIES_PER_BLOCK = 35;
@@ -33,15 +34,15 @@ function normalizeOptionalString(input: string | undefined) {
 }
 
 async function enforceRateLimit(
-  ctx: any,
-  userId: any,
+  ctx: MutationCtx,
+  userId: Id<"users">,
   action: string,
   minIntervalMs: number
 ) {
   const now = Date.now();
   const row = await ctx.db
     .query("mutation_throttles")
-    .withIndex("by_userId_action", (q: any) => q.eq("userId", userId).eq("action", action))
+    .withIndex("by_userId_action", (q) => q.eq("userId", userId).eq("action", action))
     .first();
 
   if (row && now - row.lastAt < minIntervalMs) {
@@ -384,7 +385,7 @@ export const getSavedBlocks = query({
           ...save,
           block: {
             ...block,
-            ownerName: (owner as any)?.username ?? (owner as any)?.name ?? "Unknown creator",
+            ownerName: owner?.username ?? owner?.name ?? "Unknown creator",
             movieCount: block.movieCount ?? 0,
             previewPosters: previewMovies.map((m) => m.posterPath),
           },

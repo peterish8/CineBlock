@@ -307,7 +307,7 @@ function BlocksContent() {
   const handleRespond = async (invitationId: string, accept: boolean) => {
     setRespondingId(invitationId);
     try {
-      const roomId = await respondToInvitation({ invitationId: invitationId as any, accept });
+      const roomId = await respondToInvitation({ invitationId: invitationId as Id<"block_invitations">, accept });
       if (accept && roomId) router.push(`/blocks/${roomId}`);
     } finally {
       setRespondingId(null);

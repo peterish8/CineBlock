@@ -19,9 +19,9 @@ export default function StepMood({ value, onChange }: StepMoodProps) {
   return (
     <div>
       <h2 className="font-display font-bold text-xl text-brutal-white uppercase tracking-tight mb-1">
-        WHAT'S YOUR MOOD?
+        WHAT&apos;S YOUR MOOD?
       </h2>
-      <p className="text-brutal-muted text-xs font-mono mb-5">Pick the vibe you're going for tonight</p>
+      <p className="text-brutal-muted text-xs font-mono mb-5">Pick the vibe you&apos;re going for tonight</p>
       <div className="grid grid-cols-2 gap-3">
         {MOODS.map((mood) => (
           <button

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useMemo } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { Film, Calendar } from "lucide-react";
 import { RadarMovie } from "@/lib/types";
@@ -10,7 +10,7 @@ import { FRANCHISE_MAP } from "@/lib/franchises";
 
 interface ReleaseTimelineProps {
   movies: RadarMovie[];
-  onMovieClick: (movie: any) => void;
+  onMovieClick: (movie: RadarMovie) => void;
 }
 
 export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelineProps) {
@@ -93,7 +93,7 @@ export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelin
         <div className="absolute top-[130px] left-0 right-0 h-[4px] bg-brutal-border/40 z-0" />
 
         <div className="flex px-[15%] gap-8 items-start relative z-10 w-max min-w-full">
-          {groups.map((group, groupIdx) => (
+          {groups.map((group) => (
             <div key={group.label} className="flex gap-6 items-start">
               {group.movies.map((movie, movieIdx) => {
                 const date = new Date(movie.release_date);
@@ -144,7 +144,7 @@ export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelin
                       transition={{ type: "spring", stiffness: 200, damping: 20, delay: movieIdx * 0.05 }}
                       viewport={{ once: true, margin: "-50px" }}
                       whileHover={{ scale: 1.05, zIndex: 100, transition: { duration: 0.2 } }}
-                      onClick={(e) => {
+                      onClick={() => {
                         // Prevent click if we were dragging
                         onMovieClick(movie);
                       }}
@@ -210,7 +210,7 @@ export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelin
 
       {/* ── MOBILE TIMELINE (Vertical) ── */}
       <div className="md:hidden flex flex-col gap-8 px-4 pb-20">
-        {groups.map((group, groupIdx) => (
+        {groups.map((group) => (
           <div key={group.label} className="flex flex-col gap-6">
             <motion.div 
                initial={{ opacity: 0 }}

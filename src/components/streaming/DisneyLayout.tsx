@@ -23,7 +23,7 @@ function useProviderMovies(providerId: string, region: string, sort: string, gen
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    queueMicrotask(() => { if (!cancelled) setLoading(true); });
     const params = new URLSearchParams({ action: "stream-discover", provider_id: providerId, region, sort });
     if (genre) params.set("genre", genre);
     fetch(`/api/movies?${params}`).then(r => r.json()).then(d => {
@@ -175,6 +175,7 @@ export default function DisneyLayout({ platform, country, onBack }: Props) {
         <div className="absolute inset-0 bg-gradient-to-t from-[#020A16] via-transparent to-transparent h-full" />
         
         <div className="absolute bottom-[20%] lg:left-28 left-24 max-w-xl z-10 drop-shadow-2xl">
+           {/* eslint-disable-next-line @next/next/no-img-element -- external brand SVG */}
            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Disney%2B_logo.svg/200px-Disney%2B_logo.svg.png" 
              className="w-16 opacity-80 mb-4 mix-blend-screen grayscale brightness-200" alt="brand" />
            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] leading-tight">{hero?.title}</h1>
