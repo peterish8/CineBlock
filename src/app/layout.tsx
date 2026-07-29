@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { MovieListsProvider } from "@/hooks/useMovieLists";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
@@ -64,7 +63,27 @@ export const viewport: Viewport = {
 import { BlockModalProvider } from "@/components/BlockModalProvider";
 import { StampProvider } from "@/components/StampProvider";
 import { ToastProvider } from "@/components/ToastProvider";
-import { ENABLE_NETFLIX_THEME } from "@/lib/themeConfig";
+import { THEME_INIT_SCRIPT } from "@/lib/themeConfig";
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "CineBlock",
+  url: "https://cineblock.in",
+  description: "Free cinema discovery app to find, track and match movies with friends.",
+  applicationCategory: "EntertainmentApplication",
+  operatingSystem: "Web",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  featureList: [
+    "Movie discovery by genre, language and mood",
+    "Personal watchlist and liked movies tracker",
+    "Blocks to match movies with friends",
+    "Box office charts and trending films",
+    "Personalised movie recommendations",
+    "Cinema news feed",
+  ],
+  keywords: "cineblock, cinema discovery, find movies, movie finder, cinema app, watch together, movie recommendations",
+};
 
 export default function RootLayout({
   children,
@@ -74,11 +93,14 @@ export default function RootLayout({
   return (
     <ConvexAuthNextjsServerProvider>
       <html lang="en" suppressHydrationWarning>
-        <head />
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        </head>
         <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
-          <Script id="theme-init" strategy="beforeInteractive">
-            {`try{var t=localStorage.getItem('theme');if(!t){t='glass';localStorage.setItem('theme','glass');}var allowNetflix=${ENABLE_NETFLIX_THEME ? "true" : "false"};if(t==='glass')document.body.classList.add('theme-glass');else if(allowNetflix&&t==='netflix')document.body.classList.add('theme-netflix');}catch(e){}`}
-          </Script>
           <ConvexClientProvider>
             <ToastProvider>
               <BlockModalProvider>

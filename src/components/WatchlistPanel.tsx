@@ -28,6 +28,15 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null);
 
   useEffect(() => {
+    if (!mounted) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
     if (isOpen) {
       queueMicrotask(() => {
         setMounted(true);
@@ -197,7 +206,7 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
         </div>
 
         {/* Active list content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
           {activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-24 px-6 text-center">
               {activeTab === "liked" && <Heart className={`w-12 h-12 mb-4 ${isGlass ? "text-white/15" : "text-brutal-dim"}`} strokeWidth={1.5} />}

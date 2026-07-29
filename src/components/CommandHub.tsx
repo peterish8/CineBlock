@@ -10,8 +10,7 @@ import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 import StampSearchModal from "./StampSearchModal";
-import type { ThemeName } from "@/lib/types";
-import { applyThemeToDocument, readStoredTheme, useThemeMode } from "@/hooks/useThemeMode";
+import { applyThemeToDocument, useThemeMode } from "@/hooks/useThemeMode";
 import { getNextTheme } from "@/lib/themeConfig";
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
@@ -43,12 +42,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [stampSearchOpen, setStampSearchOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>(() => {
-    if (typeof window === "undefined") return "default";
-    const saved = readStoredTheme();
-    applyThemeToDocument(saved);
-    return saved;
-  });
+  const currentTheme = useThemeMode();
   const [browseOpen, setBrowseOpen] = useState(false);
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -121,11 +115,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   }, [emitFilters, query, year, language, runtime]);
 
   const toggleTheme = () => {
-    setCurrentTheme((prev) => {
-      const next = getNextTheme(prev);
-      applyThemeToDocument(next);
-      return next;
-    });
+    applyThemeToDocument(getNextTheme(currentTheme));
   };
 
   useEffect(() => {

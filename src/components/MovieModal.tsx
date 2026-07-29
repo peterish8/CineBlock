@@ -103,11 +103,30 @@ export default function MovieModal({
       .finally(() => setActorLoading(false));
   }, [selectedActorId]);
 
+  useEffect(() => {
+    const panel = actorPanelRef.current;
+    if (!panel || !selectedActorId) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      const { scrollTop, scrollHeight, clientHeight } = panel;
+      const atTop = scrollTop <= 0;
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 1;
+      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    panel.addEventListener("wheel", handleWheel, { passive: false });
+    return () => panel.removeEventListener("wheel", handleWheel);
+  }, [selectedActorId]);
+
   const { region, setRegion } = useRegion();
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const { openBlockModal } = useBlockModal();
   const regionBtnRef = useRef<HTMLButtonElement>(null);
   const regionDropRef = useRef<HTMLDivElement>(null);
+  const actorPanelRef = useRef<HTMLDivElement>(null);
   const theme = useThemeMode();
   const isGlass = theme === "glass";
   const isNetflix = theme === "netflix";
@@ -209,7 +228,17 @@ export default function MovieModal({
   useEffect(() => {
     if (movie) {
       queueMicrotask(() => fetchDetails(movie.id, movie.media_type || "movie"));
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      const prevBodyOverflow = document.body.style.overflow;
+      document.documentElement.style.overflow = "hidden";
       document.body.style.overflow = "hidden";
+      return () => {
+        const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
+        if (activeDialogs <= 1) {
+          document.documentElement.style.overflow = prevHtmlOverflow;
+          document.body.style.overflow = prevBodyOverflow;
+        }
+      };
     } else {
       queueMicrotask(() => {
         setDetails(null);
@@ -219,6 +248,7 @@ export default function MovieModal({
       // Clean up overflow only if no other modals explicitly exist
       const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
       if (activeDialogs <= 1) {
+        document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
       }
     }
@@ -227,6 +257,7 @@ export default function MovieModal({
       // Unmount cleanup (handles Back Button navigation)
       const activeDialogs = document.querySelectorAll('[role="dialog"]').length;
       if (activeDialogs <= 1) {
+        document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
       }
     };
@@ -302,7 +333,7 @@ export default function MovieModal({
 
   return (
     <div
-      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0"
+      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 overscroll-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -768,7 +799,8 @@ export default function MovieModal({
 
       {/* Actor panel */}
       <div 
-        className={isGlass ? "glass-actor-panel relative z-10 flex-none overflow-y-auto overflow-x-hidden backdrop-blur-3xl bg-[rgba(4,12,36,0.65)] saturate-150 h-[92svh] sm:h-[85vh] sm:rounded-r-3xl no-scrollbar" : "glass-actor-panel relative z-10 flex-none overflow-y-auto overflow-x-hidden bg-bg h-[92svh] sm:h-[85vh] border-brutal-border no-scrollbar"} 
+        ref={actorPanelRef}
+        className={isGlass ? "glass-actor-panel relative z-10 flex-none overflow-y-auto overflow-x-hidden overscroll-y-contain backdrop-blur-3xl bg-[rgba(4,12,36,0.65)] saturate-150 h-[92svh] sm:h-[85vh] sm:rounded-3xl no-scrollbar" : "glass-actor-panel relative z-10 flex-none overflow-y-auto overflow-x-hidden overscroll-y-contain bg-bg h-[92svh] sm:h-[85vh] sm:rounded-3xl border-brutal-border no-scrollbar"} 
         style={{ 
           width: selectedActorId ? "22rem" : "0px", 
           overflowY: selectedActorId ? "auto" : "hidden", 

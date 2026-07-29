@@ -30,3 +30,6 @@ export function getThemeDisplayName(theme: ThemeName): string {
       return "CineBlock Default";
   }
 }
+
+/** Blocking inline script — injected in root layout <head> (server-only, not a React Script). */
+export const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(!t){t='glass';localStorage.setItem('theme','glass');}var allowNetflix=${ENABLE_NETFLIX_THEME};function apply(){if(t==='glass')document.body.classList.add('theme-glass');else if(allowNetflix&&t==='netflix')document.body.classList.add('theme-netflix');}if(document.body)apply();else document.addEventListener('DOMContentLoaded',apply);}catch(e){}})();`;
