@@ -11,6 +11,40 @@ import MovieModal from "@/components/MovieModal";
 import { GENRES, LANGUAGES, generateYearRange } from "@/lib/constants";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
+const formatGrossExact = (v: number) => `$${v.toLocaleString("en-US")}`;
+
+function formatGrossShort(v: number): string {
+  if (v >= 1_000_000_000) {
+    const b = v / 1_000_000_000;
+    return `$${b >= 10 ? b.toFixed(1) : b.toFixed(2)}B`;
+  }
+  if (v >= 1_000_000) return `$${Math.round(v / 1_000_000)}M`;
+  if (v >= 1_000) return `$${Math.round(v / 1_000)}K`;
+  return `$${v}`;
+}
+
+/** Bottom-right gross badge: rounded by default, exact figure on hover (or tap on touch). */
+function GrossBadge({ revenue, isGlass }: { revenue: number; isGlass: boolean }) {
+  const [showExact, setShowExact] = useState(false);
+  const exact = formatGrossExact(revenue);
+
+  return (
+    <div
+      onClick={(e) => { e.stopPropagation(); setShowExact(v => !v); }}
+      onMouseEnter={() => setShowExact(true)}
+      onMouseLeave={() => setShowExact(false)}
+      title={exact}
+      className={`absolute bottom-0 right-0 z-20 px-2.5 py-1.5 text-[12px] sm:text-[13px] font-black leading-none tabular-nums whitespace-nowrap cursor-default select-none transition-colors ${
+        isGlass
+          ? "rounded-tl-lg bg-black/75 text-amber-300 backdrop-blur-sm"
+          : "font-mono border-t-3 border-l-3 border-brutal-border bg-brutal-yellow text-black"
+      }`}
+    >
+      {showExact ? exact : formatGrossShort(revenue)}
+    </div>
+  );
+}
+
 function BoxOfficeContent() {
   const { isLiked, toggleLiked, isInWatchlist, toggleWatchlist, isWatched, toggleWatched } = useMovieLists();
   const isGlass = useThemeMode() === "glass";
@@ -178,6 +212,7 @@ function BoxOfficeContent() {
               const mYear = (movie.release_date || movie.first_air_date || "").split("-")[0] || "—";
               const rating = movie.vote_average?.toFixed(1) || "0";
               const rank = i + 1;
+              const gross = movie.revenue ?? 0;
               const liked_ = isLiked(movie.id);
               const inWl = isInWatchlist(movie.id);
               const watched_ = isWatched(movie.id);
@@ -212,7 +247,7 @@ function BoxOfficeContent() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-100">
-                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <div className={`absolute bottom-0 left-0 right-0 p-3 ${gross > 0 ? "pr-[4.5rem]" : ""}`}>
                         <p className="text-white text-xs font-bold leading-tight line-clamp-2">{title}</p>
                         <div className="flex items-center gap-3 mt-2">
                           <span className="flex items-center gap-1 text-amber-400"><Star className="w-3.5 h-3.5 fill-current" strokeWidth={2.5} /><span className="text-[11px] font-bold">{rating}</span></span>
@@ -256,6 +291,9 @@ function BoxOfficeContent() {
                         <CheckCircle className={`w-3.5 h-3.5 ${watched_ ? "fill-current" : ""}`} strokeWidth={2.5} />
                       </div>
                     </div>
+
+                    {/* Worldwide gross */}
+                    {gross > 0 && <GrossBadge revenue={gross} isGlass={isGlass} />}
                   </div>
                 </div>
               );

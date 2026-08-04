@@ -14,6 +14,7 @@ import { useStampModal } from "@/components/StampProvider";
 import type { ThemeName } from "@/lib/types";
 import { applyThemeToDocument, readStoredTheme, useThemeMode } from "@/hooks/useThemeMode";
 import { getNextTheme, getThemeDisplayName } from "@/lib/themeConfig";
+import { ENABLE_CLI } from "@/lib/featureFlags";
 
 type ImportDataPreview = {
   watched?: unknown[];
@@ -59,8 +60,6 @@ export default function ProfilePage() {
   const [cliTokenVisible, setCliTokenVisible] = useState(false);
   const [copiedCliToken, setCopiedCliToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState(false);
-
-  // Import/Export State
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState({ watched: true, liked: true, watchlist: true, blocks: true, stamps: true });
   const [isExporting, setIsExporting] = useState(false);
@@ -825,7 +824,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ── CineBlock Terminal ────────────────────────────── */}
-        {(() => {
+        {ENABLE_CLI && (() => {
           const todayStart = new Date();
           todayStart.setUTCHours(0, 0, 0, 0);
           const todaySearches = (user?.cliSearchesResetAt ?? 0) >= todayStart.getTime()

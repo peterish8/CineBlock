@@ -8,24 +8,93 @@ const headers: HeadersInit = {
   "Content-Type": "application/json;charset=utf-8",
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// How many requests we're willing to have in flight against TMDB at once
+const TMDB_CONCURRENCY = 6;
+
+/**
+ * TMDB drops connections (ECONNRESET) fairly often, especially when we fan out,
+ * which used to surface as a 500 on an otherwise healthy request. Retry those and
+ * rate limits; hand 4xx straight back since retrying won't change the answer.
+ * Returns null when every attempt failed at the network level.
+ */
+async function tmdbFetch(url: string, attempts = 3): Promise<Response | null> {
+  let lastResponse: Response | null = null;
+  let lastError: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, { headers });
+      if (res.ok || (res.status !== 429 && res.status < 500)) return res;
+      lastResponse = res;
+    } catch (err) {
+      lastResponse = null; // network drop — retry below
+      lastError = err;
+    }
+    if (i < attempts - 1) await sleep(200 * (i + 1));
+  }
+  if (!lastResponse) {
+    console.error(`TMDB unreachable after ${attempts} attempts: ${url.split("?")[0]}`, lastError);
+  }
+  return lastResponse;
+}
+
+async function tmdbJson<T = Record<string, unknown>>(url: string): Promise<T | null> {
+  const res = await tmdbFetch(url);
+  if (!res?.ok) return null;
+  return res.json().catch(() => null);
+}
+
+// A TMDB movie payload, kept loose — these endpoints return far more than we read here
+type TmdbPart = {
+  id?: number;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  status_code?: number;
+  [key: string]: unknown;
+};
+
+// Firing 20 requests at TMDB at once drops a few connections, so keep the fan-out bounded
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let cursor = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (cursor < items.length) {
+        const i = cursor++;
+        out[i] = await fn(items[i]);
+      }
+    })
+  );
+  return out;
+}
+
 // Batch-fetch clearlogos for an array of movies and attach logo_path to each
 async function attachLogos<T extends { id: number }>(movies: T[]): Promise<(T & { logo_path: string | null })[]> {
   if (!movies.length) return movies.map((m) => ({ ...m, logo_path: null }));
-  const results = await Promise.allSettled(
-    movies.map((m) =>
-      fetch(`${TMDB_BASE}/movie/${m.id}/images?include_image_language=en,null`, { headers })
-        .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)
-    )
+  const images = await mapWithConcurrency(movies, TMDB_CONCURRENCY, (m) =>
+    tmdbJson(`${TMDB_BASE}/movie/${m.id}/images?include_image_language=en,null`)
   );
   return movies.map((m, i) => {
-    const settled = results[i];
-    const logos: { file_path: string; iso_639_1: string | null }[] =
-      settled.status === "fulfilled" && settled.value?.logos ? settled.value.logos : [];
+    const logos = (images[i]?.logos ?? []) as { file_path: string; iso_639_1: string | null }[];
     const best = logos.find((l) => l.iso_639_1 === "en") ?? logos[0] ?? null;
     return { ...m, logo_path: best?.file_path ?? null };
   });
 }
+
+// Batch-fetch worldwide gross for an array of movies. /discover results omit `revenue`,
+// so it has to come from the details endpoint one movie at a time.
+async function attachRevenue<T extends { id: number }>(movies: T[]): Promise<(T & { revenue: number })[]> {
+  if (!movies.length) return [];
+  const details = await mapWithConcurrency(movies, TMDB_CONCURRENCY, (m) => tmdbJson(`${TMDB_BASE}/movie/${m.id}`));
+  return movies.map((m, i) => {
+    const revenue = typeof details[i]?.revenue === "number" ? (details[i]!.revenue as number) : 0;
+    return { ...m, revenue };
+  });
+}
+
+const TMDB_UNREACHABLE = () =>
+  NextResponse.json({ error: "TMDB is unreachable, please retry" }, { status: 502 });
 
 // --- Rate limiting: 60 requests per minute per IP ---
 const rateLimitMap = new Map<string, number[]>();
@@ -90,7 +159,8 @@ export async function GET(request: NextRequest) {
         if (year) params.set("year", year);
         url = `${TMDB_BASE}/search/movie?${params.toString()}`;
         // lang is not supported by TMDB search endpoint — filter results below
-        const searchRes = await fetch(url, { headers });
+        const searchRes = await tmdbFetch(url);
+        if (!searchRes) return TMDB_UNREACHABLE();
         if (!searchRes.ok) return NextResponse.json({ error: `TMDB API error: ${searchRes.status}` }, { status: searchRes.status });
         const searchData = await searchRes.json();
         if (lang) {
@@ -108,7 +178,8 @@ export async function GET(request: NextRequest) {
         const query = (searchParams.get("query") || "").slice(0, 150);
         if (!query.trim()) return NextResponse.json({ results: [] });
         const params = new URLSearchParams({ query, language: "en-US", include_adult: "false", page });
-        const res = await fetch(`${TMDB_BASE}/search/person?${params.toString()}`, { headers });
+        const res = await tmdbFetch(`${TMDB_BASE}/search/person?${params.toString()}`);
+        if (!res) return TMDB_UNREACHABLE();
         if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
         const data = await res.json();
         // Return only relevant fields, top 8
@@ -140,7 +211,8 @@ export async function GET(request: NextRequest) {
         } else {
           params.set("with_cast", personId);
         }
-        const res = await fetch(`${TMDB_BASE}/discover/movie?${params.toString()}`, { headers });
+        const res = await tmdbFetch(`${TMDB_BASE}/discover/movie?${params.toString()}`);
+        if (!res) return TMDB_UNREACHABLE();
         if (!res.ok) return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
         const data = await res.json();
         if (includeLogos) data.results = await attachLogos((data.results || []).slice(0, 20));
@@ -211,7 +283,8 @@ export async function GET(request: NextRequest) {
       case "trending": {
         const window = searchParams.get("window") || "week";
         url = `${TMDB_BASE}/trending/movie/${window}?language=en-US`;
-        const trendingRes = await fetch(url, { headers });
+        const trendingRes = await tmdbFetch(url);
+        if (!trendingRes) return TMDB_UNREACHABLE();
         if (!trendingRes.ok) return NextResponse.json({ error: `TMDB API error: ${trendingRes.status}` }, { status: trendingRes.status });
         const trendingData = await trendingRes.json();
         if (includeLogos) trendingData.results = await attachLogos(trendingData.results?.slice(0, 20) || []);
@@ -275,12 +348,11 @@ export async function GET(request: NextRequest) {
             822119    // Captain America: Brave New World
           ];
           
-          const moviePromises = mcuMovieIds.map(id => 
-            fetch(`${TMDB_BASE}/movie/${id}?language=en-US`, { headers }).then(r => r.json())
+          const fetched = await mapWithConcurrency(mcuMovieIds, TMDB_CONCURRENCY, (id) =>
+            tmdbJson<TmdbPart>(`${TMDB_BASE}/movie/${id}?language=en-US`)
           );
-          
-          const parts = await Promise.all(moviePromises);
-          
+          const parts = fetched.filter((p): p is TmdbPart => p !== null);
+
           return NextResponse.json({
             id: 9999999,
             name: "Marvel Cinematic Universe (Chronological)",
@@ -306,14 +378,12 @@ export async function GET(request: NextRequest) {
             { id: 569094, era: "Miles Morales (Spider-Verse Animated)" }
           ];
           
-          const moviePromises = spideyEras.map(item => 
-            fetch(`${TMDB_BASE}/movie/${item.id}?language=en-US`, { headers })
-              .then(r => r.json())
-              .then(data => ({ ...data, custom_era: item.era }))
-          );
-          
-          const parts = await Promise.all(moviePromises);
-          
+          const fetched = await mapWithConcurrency(spideyEras, TMDB_CONCURRENCY, async (item): Promise<TmdbPart | null> => {
+            const data = await tmdbJson<TmdbPart>(`${TMDB_BASE}/movie/${item.id}?language=en-US`);
+            return data ? { ...data, custom_era: item.era } : null;
+          });
+          const parts = fetched.filter((p): p is TmdbPart => p !== null);
+
           // Use No Way Home for posters/backdrop if available
           const nwh = parts.find(p => p.id === 634649);
           
@@ -471,7 +541,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const res = await fetch(url, { headers });
+    const res = await tmdbFetch(url);
+    if (!res) return TMDB_UNREACHABLE();
     if (!res.ok) {
       return NextResponse.json({ error: `TMDB API error: ${res.status}` }, { status: res.status });
     }
@@ -481,6 +552,11 @@ export async function GET(request: NextRequest) {
     const resolvedAction = action === "discover" || !action ? "discover" : action;
     if (includeLogos && MOVIE_LIST_ACTIONS.has(resolvedAction) && Array.isArray(data.results)) {
       data.results = await attachLogos(data.results);
+    }
+
+    // The box-office grid renders gross per card, which /discover doesn't return
+    if (resolvedAction === "box-office" && Array.isArray(data.results)) {
+      data.results = await attachRevenue(data.results);
     }
 
     // Cache TMDB responses at CDN for 5 min, serve stale for up to 10 min

@@ -21,6 +21,8 @@ export interface TMDBMovie {
   name?: string;
   first_air_date?: string;
   custom_era?: string;
+  /** Worldwide gross. Not returned by /discover — attached server-side for the box-office action. */
+  revenue?: number;
 }
 
 export interface TMDBDiscoverResponse {
