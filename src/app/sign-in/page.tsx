@@ -21,15 +21,20 @@ export default function SignInPage() {
   const { signIn } = useAuthActions();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
+  const [returnTo] = useState(() => {
+    if (typeof window === "undefined") return "/";
+    const value = new URLSearchParams(window.location.search).get("returnTo");
+    return value?.startsWith("/") ? value : "/";
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/");
+      router.replace(returnTo);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, router, returnTo]);
 
   const handleDevSignIn = async () => {
     setError("");

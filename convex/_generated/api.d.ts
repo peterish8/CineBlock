@@ -17,6 +17,7 @@ import type * as dataExport from "../dataExport.js";
 import type * as http from "../http.js";
 import type * as lists from "../lists.js";
 import type * as maintenance from "../maintenance.js";
+import type * as mcp from "../mcp.js";
 import type * as news from "../news.js";
 import type * as radar from "../radar.js";
 import type * as stamps from "../stamps.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   lists: typeof lists;
   maintenance: typeof maintenance;
+  mcp: typeof mcp;
   news: typeof news;
   radar: typeof radar;
   stamps: typeof stamps;

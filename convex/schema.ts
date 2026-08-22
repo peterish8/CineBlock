@@ -30,10 +30,17 @@ const schema = defineSchema({
     cliToken: v.optional(v.string()),
     cliSearchesUsed: v.optional(v.number()),
     cliSearchesResetAt: v.optional(v.number()),
+    // Remote MCP access token. Kept separate from the CLI token so either
+    // integration can be revoked without affecting the other.
+    mcpToken: v.optional(v.string()),
+    mcpTokenHash: v.optional(v.string()),
+    mcpTokenLast4: v.optional(v.string()),
   })
     .index("email", ["email"])
     .index("by_username", ["username"])
     .index("by_cliToken", ["cliToken"])
+    .index("by_mcpToken", ["mcpToken"])
+    .index("by_mcpTokenHash", ["mcpTokenHash"])
     .searchIndex("search_by_username", { searchField: "username" })
     .searchIndex("search_by_name", { searchField: "name" }),
 
@@ -102,6 +109,7 @@ const schema = defineSchema({
   stamps: defineTable({
     userId: v.id("users"),
     movieId: v.number(),
+    mediaType: v.optional(v.union(v.literal("movie"), v.literal("tv"))),
     movieTitle: v.string(),
     posterPath: v.string(),
     reviewText: v.string(),
@@ -120,6 +128,57 @@ const schema = defineSchema({
   })
     .index("by_userId_action", ["userId", "action"])
     .index("by_lastAt", ["lastAt"]),
+
+  // Durable one-time receipts for stateless MCP write confirmations. The
+  // signed preview carries actionId; this table makes the write idempotent.
+  mcp_action_receipts: defineTable({
+    userId: v.id("users"),
+    actionId: v.string(),
+    kind: v.union(v.literal("playlist"), v.literal("stamp")),
+    blockId: v.optional(v.id("blocks")),
+    stampId: v.optional(v.id("stamps")),
+    movieCount: v.optional(v.number()),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId_actionId", ["userId", "actionId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  mcp_oauth_clients: defineTable({
+    clientId: v.string(),
+    clientName: v.optional(v.string()),
+    redirectUris: v.array(v.string()),
+    createdAt: v.number(),
+  }).index("by_clientId", ["clientId"]),
+
+  mcp_oauth_codes: defineTable({
+    codeHash: v.string(),
+    clientId: v.string(),
+    redirectUri: v.string(),
+    codeChallenge: v.string(),
+    resource: v.string(),
+    userId: v.id("users"),
+    scope: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_codeHash", ["codeHash"]),
+
+  mcp_oauth_tokens: defineTable({
+    accessTokenHash: v.string(),
+    refreshTokenHash: v.string(),
+    clientId: v.string(),
+    resource: v.string(),
+    userId: v.id("users"),
+    scope: v.string(),
+    accessExpiresAt: v.number(),
+    refreshExpiresAt: v.number(),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_accessTokenHash", ["accessTokenHash"])
+    .index("by_refreshTokenHash", ["refreshTokenHash"])
+    .index("by_userId", ["userId"]),
 
   news_feed: defineTable({
     fetchedDate: v.string(),

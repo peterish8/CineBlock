@@ -217,7 +217,14 @@ export const currentUser = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
-    return await ctx.db.get(userId);
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    const { mcpToken, mcpTokenHash, ...safeUser } = user;
+    return {
+      ...safeUser,
+      hasMcpToken: Boolean(mcpToken || mcpTokenHash),
+      mcpTokenLast4: user.mcpTokenLast4 ?? (mcpToken ? mcpToken.slice(-4) : undefined),
+    };
   },
 });
 
@@ -297,6 +304,73 @@ export const validateCliSearch = mutation({
       searchesUsed: searchesUsed + 1,
       searchesRemaining: DAILY_LIMIT - searchesUsed - 1,
       name: user.name ?? "User",
+    };
+  },
+});
+
+// ── REMOTE MCP TOKEN ─────────────────────────────────────────────────────────
+
+async function hashMcpToken(token: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export const generateMcpToken = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
+
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const token = "mcp_" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    const mcpTokenHash = await hashMcpToken(token);
+
+    await ctx.db.patch(userId, { mcpToken: undefined, mcpTokenHash, mcpTokenLast4: token.slice(-4) });
+    const oauthTokens = await ctx.db.query("mcp_oauth_tokens").withIndex("by_userId", (q) => q.eq("userId", userId)).collect();
+    for (const oauthToken of oauthTokens) {
+      if (!oauthToken.revokedAt) await ctx.db.patch(oauthToken._id, { revokedAt: Date.now() });
+    }
+    return token;
+  },
+});
+
+export const pingMcpToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const tokenHash = await hashMcpToken(token);
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_mcpTokenHash", (q) => q.eq("mcpTokenHash", tokenHash))
+      .first()
+      ?? await ctx.db
+        .query("users")
+        .withIndex("by_mcpToken", (q) => q.eq("mcpToken", token))
+        .first();
+    if (user) {
+      return {
+        ok: true,
+        name: user.name ?? user.username ?? "CineBlock user",
+        username: user.username ?? null,
+        scopes: ["cineblock"],
+      };
+    }
+
+    const oauthToken = await ctx.db.query("mcp_oauth_tokens")
+      .withIndex("by_accessTokenHash", (q) => q.eq("accessTokenHash", tokenHash))
+      .first();
+    if (!oauthToken || oauthToken.revokedAt || oauthToken.accessExpiresAt <= Date.now()) {
+      return { ok: false, error: "Invalid MCP token" };
+    }
+    const oauthUser = await ctx.db.get(oauthToken.userId);
+    if (!oauthUser) return { ok: false, error: "Invalid MCP token" };
+
+    return {
+      ok: true,
+      name: oauthUser.name ?? oauthUser.username ?? "CineBlock user",
+      username: oauthUser.username ?? null,
+      resource: oauthToken.resource,
+      scopes: oauthToken.scope.split(" ").filter(Boolean),
     };
   },
 });

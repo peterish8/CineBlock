@@ -60,6 +60,11 @@ export default function ProfilePage() {
   const [cliTokenVisible, setCliTokenVisible] = useState(false);
   const [copiedCliToken, setCopiedCliToken] = useState(false);
   const [generatingToken, setGeneratingToken] = useState(false);
+  const generateMcpToken = useMutation(api.users.generateMcpToken);
+  const [mcpTokenVisible, setMcpTokenVisible] = useState(false);
+  const [mcpTokenValue, setMcpTokenValue] = useState<string | null>(null);
+  const [copiedMcpToken, setCopiedMcpToken] = useState(false);
+  const [generatingMcpToken, setGeneratingMcpToken] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState({ watched: true, liked: true, watchlist: true, blocks: true, stamps: true });
   const [isExporting, setIsExporting] = useState(false);
@@ -168,6 +173,17 @@ export default function ProfilePage() {
       setCliTokenVisible(true);
     } finally {
       setGeneratingToken(false);
+    }
+  };
+
+  const handleGenerateMcpToken = async () => {
+    setGeneratingMcpToken(true);
+    try {
+      const token = await generateMcpToken();
+      setMcpTokenValue(token);
+      setMcpTokenVisible(true);
+    } finally {
+      setGeneratingMcpToken(false);
     }
   };
 
@@ -931,6 +947,44 @@ export default function ProfilePage() {
             </div>
           );
         })()}
+
+        {/* ── ChatGPT / MCP connection ─────────────────────── */}
+        <div
+          className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4 border-2 border-brutal-cyan"}
+          style={isGlass ? {
+            ...glassCard,
+            background: "rgba(4,22,36,0.82)",
+            border: "1px solid rgba(34,211,238,0.35)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(34,211,238,0.10), inset 0 1px 0 rgba(34,211,238,0.12)",
+          } : undefined}
+        >
+          <div className="flex items-center gap-2">
+            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(34,211,238,0.9), rgba(52,211,153,0.6))" }} />}
+            <Link2 className={`w-4 h-4 ${isGlass ? "text-cyan-300" : "text-brutal-cyan"}`} />
+            <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>ChatGPT / MCP</h2>
+            <span className={isGlass ? "text-[9px] font-mono px-2 py-0.5 rounded-full text-emerald-300 bg-emerald-400/10 border border-emerald-400/25" : "brutal-chip text-[9px] text-brutal-lime border-brutal-lime"}>STATELESS</span>
+          </div>
+          <p className={`text-[11px] font-mono ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>
+            Connect ChatGPT to your CineBlock library with OAuth or a one-time bearer token. It can read liked, watchlist, and watched titles, preview the exact poster before every write, create public/private playlists, and prepare 1,000-character stamps.
+          </p>
+          <div className={isGlass ? "p-3 rounded-xl space-y-2 text-[10px] font-mono" : "p-3 bg-black/40 border border-brutal-border space-y-2 text-[10px] font-mono text-brutal-dim"} style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(34,211,238,0.16)", borderRadius: "12px" } : undefined}>
+            <p className={isGlass ? "text-cyan-300" : "text-brutal-cyan"}>MCP URL</p>
+            <p className={isGlass ? "text-slate-300 break-all" : "text-brutal-white break-all"}>{typeof window !== "undefined" ? `${window.location.origin}/api/mcp` : "/api/mcp"}</p>
+            <p className={isGlass ? "text-slate-500" : "text-brutal-dim"}>In ChatGPT, add a custom connector using this URL and choose OAuth when available. The manual bearer token is shown only when generated.</p>
+          </div>
+          {user?.hasMcpToken || mcpTokenValue ? (
+            <div className="space-y-3">
+              <div className={isGlass ? "flex items-center gap-2 p-3 rounded-xl font-mono text-sm" : "flex items-center gap-2 p-3 bg-surface-2 border-2 border-brutal-border font-mono text-sm"} style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(34,211,238,0.20)", borderRadius: "12px" } : undefined}>
+                <span className={`flex-1 truncate select-all ${isGlass ? "text-slate-300" : "text-brutal-white"} ${mcpTokenVisible && mcpTokenValue ? "" : "blur-sm select-none"}`}>{mcpTokenValue ?? "Token stored securely — regenerate to reveal it once"}</span>
+                {mcpTokenValue && <button onClick={() => setMcpTokenVisible(v => !v)} className={isGlass ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full shrink-0" : "brutal-chip text-brutal-dim border-brutal-border text-[9px] shrink-0"} style={isGlass ? glassChip("default") : undefined}>{mcpTokenVisible ? "HIDE" : "SHOW"}</button>}
+                {mcpTokenValue && <button onClick={() => { void navigator.clipboard.writeText(mcpTokenValue).then(() => { setCopiedMcpToken(true); setTimeout(() => setCopiedMcpToken(false), 2000); }); }} className={isGlass ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0" : "brutal-chip text-brutal-cyan border-brutal-cyan text-[9px] flex items-center gap-1 shrink-0"} style={isGlass ? glassChip("blue") : undefined}>{copiedMcpToken ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}{copiedMcpToken ? "COPIED!" : "COPY"}</button>}
+              </div>
+              <button onClick={() => void handleGenerateMcpToken()} disabled={generatingMcpToken} className={isGlass ? "px-3 py-2 text-[10px] font-display font-semibold rounded-xl text-slate-400 hover:text-cyan-300 disabled:opacity-50 transition-all" : "brutal-btn px-3 py-2 text-[10px] font-mono font-bold text-brutal-dim border-brutal-border hover:border-brutal-cyan hover:text-brutal-cyan disabled:opacity-50"} style={isGlass ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}>{generatingMcpToken ? "REGENERATING..." : "⟳ REGENERATE / REVOKE OLD TOKEN"}</button>
+            </div>
+          ) : (
+            <button onClick={() => void handleGenerateMcpToken()} disabled={generatingMcpToken} className={isGlass ? "w-full py-3 text-xs font-display font-semibold rounded-xl text-cyan-300 hover:text-cyan-200 disabled:opacity-50 transition-all" : "brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-cyan !text-black !border-brutal-cyan hover:opacity-80 disabled:opacity-50"} style={isGlass ? glassBtn("blue") : undefined}>{generatingMcpToken ? "GENERATING..." : "🔗 GENERATE MCP TOKEN"}</button>
+          )}
+        </div>
 
         {/* ── Data & Privacy ────────────────────────────────── */}
         <div
