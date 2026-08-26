@@ -11,7 +11,30 @@ const MAX_BODY_BYTES = 64 * 1024;
 const clientMetadataSchema = z.object({
   client_name: z.string().trim().max(120).optional(),
   redirect_uris: z.array(z.string().min(1).max(2048)).min(1).max(10),
-}).strict();
+  grant_types: z.array(z.string().trim().max(64)).min(1).max(4).optional(),
+  response_types: z.array(z.string().trim().max(64)).min(1).max(4).optional(),
+  token_endpoint_auth_method: z.string().trim().max(64).optional(),
+  scope: z.string().trim().max(256).optional(),
+}).superRefine((metadata, context) => {
+  if (metadata.grant_types && !metadata.grant_types.includes("authorization_code")) {
+    context.addIssue({ code: "custom", path: ["grant_types"], message: "authorization_code is required." });
+  }
+  if (metadata.grant_types && metadata.grant_types.some((grantType) => !["authorization_code", "refresh_token"].includes(grantType))) {
+    context.addIssue({ code: "custom", path: ["grant_types"], message: "Unsupported grant type." });
+  }
+  if (metadata.response_types && !metadata.response_types.includes("code")) {
+    context.addIssue({ code: "custom", path: ["response_types"], message: "code is required." });
+  }
+  if (metadata.response_types && metadata.response_types.some((responseType) => responseType !== "code")) {
+    context.addIssue({ code: "custom", path: ["response_types"], message: "Unsupported response type." });
+  }
+  if (metadata.token_endpoint_auth_method && metadata.token_endpoint_auth_method !== "none") {
+    context.addIssue({ code: "custom", path: ["token_endpoint_auth_method"], message: "Only public clients are supported." });
+  }
+  if (metadata.scope && metadata.scope.split(/\s+/).some((scope) => scope !== "cineblock")) {
+    context.addIssue({ code: "custom", path: ["scope"], message: "Unsupported scope." });
+  }
+});
 
 export async function OPTIONS(request: NextRequest) {
   if (!isMcpTransportAllowed(request)) return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
@@ -44,9 +67,10 @@ export async function POST(request: NextRequest) {
       client_id_issued_at: Math.floor(Date.now() / 1000),
       client_name: parsed.data.client_name,
       redirect_uris: result.redirectUris,
-      grant_types: ["authorization_code", "refresh_token"],
-      response_types: ["code"],
-      token_endpoint_auth_method: "none",
+      grant_types: parsed.data.grant_types ?? ["authorization_code", "refresh_token"],
+      response_types: parsed.data.response_types ?? ["code"],
+      token_endpoint_auth_method: parsed.data.token_endpoint_auth_method ?? "none",
+      ...(parsed.data.scope ? { scope: parsed.data.scope } : {}),
     }, { status: 201, headers: responseHeaders });
   } catch (error) {
     console.error("MCP OAuth client registration failed:", error instanceof Error ? error.name : "unknown error");

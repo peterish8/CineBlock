@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, KeyRound, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { Check, Copy, LogIn, RefreshCw, ShieldCheck, X } from "lucide-react";
 
 type HealthState = "idle" | "checking" | "healthy" | "unavailable";
 
@@ -133,7 +133,7 @@ export default function IntegrationAccessModal({
           <div>
             <p className={isGlass ? "text-[9px] font-display font-semibold uppercase tracking-[0.24em] text-cyan-300/80" : "text-[9px] font-mono uppercase"}>Connected tools</p>
             <h2 id="integration-access-title" className={isGlass ? "mt-1 text-xl font-display font-black text-white sm:text-2xl" : "mt-1 text-xl font-black"}>MCP access</h2>
-            <p className={isGlass ? "mt-1 max-w-xl text-[11px] leading-5 text-slate-400" : "mt-1 max-w-xl text-xs"}>Connect ChatGPT to your CineBlock library with a protected, separate credential.</p>
+            <p className={isGlass ? "mt-1 max-w-xl text-[11px] leading-5 text-slate-400" : "mt-1 max-w-xl text-xs"}>Connect ChatGPT with OAuth sign-in. Your CineBlock account stays linked without copying a bearer token.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close access settings" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:text-white" style={surface}>
             <X className="h-4 w-4" />
@@ -154,26 +154,27 @@ export default function IntegrationAccessModal({
             </div>
           </div>
 
-          <section className="space-y-4 rounded-2xl p-4 sm:p-5" style={isGlass ? { ...surface, border: "1px solid rgba(34,211,238,0.20)", background: "rgba(8,30,44,0.50)" } : undefined}>
+          <section className="space-y-4 rounded-2xl p-4 sm:p-5" style={isGlass ? { ...surface, border: "1px solid rgba(52,211,153,0.24)", background: "rgba(8,36,38,0.50)" } : undefined}>
             <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={isGlass ? { background: "rgba(34,211,238,0.14)", border: "1px solid rgba(34,211,238,0.28)" } : undefined}><KeyRound className="h-4 w-4 text-cyan-300" /></div>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={isGlass ? { background: "rgba(52,211,153,0.14)", border: "1px solid rgba(52,211,153,0.28)" } : undefined}><LogIn className="h-4 w-4 text-emerald-300" /></div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className={isGlass ? "text-sm font-display font-bold text-white" : "text-sm font-bold"}>ChatGPT / MCP</h3>
-                  <span className="rounded-full px-2 py-0.5 text-[8px] font-mono font-bold tracking-[0.12em] text-cyan-200" style={isGlass ? { background: "rgba(34,211,238,0.13)", border: "1px solid rgba(34,211,238,0.25)" } : undefined}>STATELESS</span>
+                  <h3 className={isGlass ? "text-sm font-display font-bold text-white" : "text-sm font-bold"}>OAuth sign-in</h3>
+                  <span className="rounded-full px-2 py-0.5 text-[8px] font-mono font-bold tracking-[0.12em] text-emerald-200" style={isGlass ? { background: "rgba(52,211,153,0.13)", border: "1px solid rgba(52,211,153,0.25)" } : undefined}>RECOMMENDED</span>
                 </div>
-                <p className={isGlass ? "mt-1 text-[11px] leading-5 text-slate-400" : "mt-1 text-xs"}>Use with ChatGPT to access your library, preview exact titles/posters, build CineBlocks, and save personal Markdown stamps.</p>
+                <p className={isGlass ? "mt-1 text-[11px] leading-5 text-slate-400" : "mt-1 text-xs"}>When ChatGPT connects, CineBlock opens its sign-in and consent page. Sign in with Google, approve access, and the connection is linked to this account.</p>
               </div>
             </div>
 
             <div className="space-y-1 rounded-xl p-3 font-mono text-[10px]" style={tokenSurface}>
-              <p className="text-cyan-300">MCP ENDPOINT</p>
+              <p className="text-emerald-300">MCP ENDPOINT</p>
               <p className="break-all text-slate-300">{mcpUrl}</p>
-              <p className="pt-1 text-slate-500">OAuth is preferred. The manual mcp_ token is shown only immediately after generation.</p>
+              <p className="pt-1 text-slate-500">OAuth is the primary connection. The manual mcp_ token below is a fallback for clients without OAuth.</p>
             </div>
 
             {hasMcpToken || mcpTokenValue ? (
               <div className="space-y-2">
+                <p className={isGlass ? "text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-slate-400" : "text-[10px] font-mono font-bold uppercase"}>Manual fallback token</p>
                 <div className="flex items-center gap-2 rounded-xl p-3 font-mono text-xs" style={tokenSurface}>
                   <span className={`min-w-0 flex-1 truncate text-slate-300 ${mcpTokenVisible && mcpTokenValue ? "select-all" : "blur-sm select-none"}`}>{mcpTokenValue ?? "Token stored securely — regenerate to reveal it once"}</span>
                   {mcpTokenValue && <button type="button" onClick={onToggleMcpToken} className="shrink-0 rounded-full px-2 py-1 text-[9px] font-display font-semibold text-slate-300" style={surface}>{mcpTokenVisible ? "HIDE" : "SHOW"}</button>}

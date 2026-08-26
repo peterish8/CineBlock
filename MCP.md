@@ -14,6 +14,8 @@ The server follows the 2026-07-28 MCP shape through `createMcpHandler`, with sta
 4. Prefer OAuth when ChatGPT offers it: the flow opens CineBlock's consent page, uses S256 PKCE, and returns a short-lived access token plus rotating refresh token. The manual bearer-token option remains available for clients that do not support OAuth.
 5. Regenerating the manual token revokes the previous manual token and all OAuth sessions immediately.
 
+Opening `/api/mcp` directly in a browser is not a login screen; the expected `401` response is the protected-resource challenge that tells ChatGPT where to discover OAuth. In ChatGPT, create the custom app in Developer Mode, provide the MCP endpoint, and choose OAuth when prompted.
+
 ChatGPT's current full MCP write support is rolling out on the web for Business and Enterprise/Edu workspaces. In ChatGPT, create a custom app in developer mode, provide the remote endpoint and authentication mechanism, scan the tools, and approve the write actions.
 
 The token is a bearer credential. Keep it private and never paste it into a movie review or a shared chat.
@@ -73,4 +75,4 @@ Writes intentionally require a preview followed by the exact confirmation token.
 
 Set `NEXT_PUBLIC_APP_URL` to the public CineBlock origin for canonical share links and host validation. Set `MCP_ALLOWED_ORIGIN` to the exact browser client origin (or a comma-separated allowlist) when using a browser-based MCP client. In production, the route fails closed when neither a configured origin nor a configured canonical host is available. Poster proxying is restricted to `image.tmdb.org`.
 
-The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is not currently installed in this workspace; install it with `npm i -g vercel` before using `vercel env pull`, `vercel deploy`, or `vercel logs`.
+The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; install it with `npm i -g vercel` before using `vercel env pull`, `vercel deploy`, or `vercel logs` directly.

@@ -24,11 +24,12 @@ export default function SignInPage() {
   const [returnTo] = useState(() => {
     if (typeof window === "undefined") return "/";
     const value = new URLSearchParams(window.location.search).get("returnTo");
-    return value?.startsWith("/") ? value : "/";
+    return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState(false);
+  const isOAuthConnection = returnTo.startsWith("/oauth/authorize");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -77,8 +78,8 @@ export default function SignInPage() {
         </Link>
 
         <div className="brutal-card p-8">
-          <h1 className="font-display font-bold text-2xl text-brutal-white uppercase tracking-tight mb-1">SIGN IN</h1>
-          <p className="text-brutal-muted text-sm font-mono mb-6">Use Google to access CineBlock</p>
+          <h1 className="font-display font-bold text-2xl text-brutal-white uppercase tracking-tight mb-1">{isOAuthConnection ? "CONNECT CINEBLOCK" : "SIGN IN"}</h1>
+          <p className="text-brutal-muted text-sm font-mono mb-6">{isOAuthConnection ? "Sign in to link your CineBlock account with ChatGPT." : "Use Google to access CineBlock"}</p>
 
           {error && (
             <div className="brutal-chip text-brutal-red border-brutal-red px-3 py-2 mb-3 text-xs w-full text-center">
