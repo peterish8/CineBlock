@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
-import { Star, Bookmark, Play, ChevronLeft, ChevronRight, TrendingUp, Info } from "lucide-react";
+import { Star, Bookmark, Play, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { TMDBMovie } from "@/lib/types";
 import { backdropUrl, logoUrl } from "@/lib/constants";
@@ -80,7 +80,6 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   const { isInWatchlist, toggleWatchlist } = useMovieLists();
 
   const isGlass = theme === "glass";
-  const isNetflix = theme === "netflix";
 
   const { scrollY } = useScroll();
   const backdropY = useTransform(scrollY, [0, 500], [0, 80]);
@@ -133,125 +132,6 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
   const year = movie.release_date?.split("-")[0] || movie.first_air_date?.split("-")[0] || "—";
   const rating = movie.vote_average?.toFixed(1) || "0";
   const saved = isInWatchlist(movie.id);
-
-  if (isNetflix) {
-    return (
-      <section ref={heroRef} className="relative w-full overflow-hidden bg-[#141414]">
-        <div className="relative aspect-[4/5] w-full sm:aspect-[21/9] lg:aspect-[2.4/1]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={movie.id}
-              className="absolute inset-0"
-              initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: 0.55, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {movie.backdrop_path ? (
-                <Image
-                  src={backdropUrl(movie.backdrop_path)}
-                  alt={movie.title || movie.name || "Trending movie"}
-                  fill
-                  className="object-cover object-center"
-                  sizes="100vw"
-                  priority
-                />
-              ) : (
-                <div className="h-full w-full bg-[#1a1a1a]" />
-              )}
-              <div className="absolute inset-0 bg-[linear-gradient(77deg,rgba(20,20,20,0.96)_0%,rgba(20,20,20,0.78)_32%,rgba(20,20,20,0.25)_65%,rgba(20,20,20,0.82)_100%)]" />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,20,20,0.15)_0%,rgba(20,20,20,0.65)_72%,#141414_100%)]" />
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="absolute inset-0 flex items-end">
-            <div className="w-full px-4 pb-8 sm:px-6 sm:pb-10 lg:px-12 lg:pb-14">
-              <div className="max-w-xl lg:max-w-2xl">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-sm bg-[#E50914] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white">
-                  <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
-                  Trending Now
-                </div>
-
-                {movie.logo_path ? (
-                  <LogoGlow
-                    src={logoUrl(movie.logo_path, "large")}
-                    alt={movie.title || movie.name || "Movie logo"}
-                    wrapClassName="mb-3 max-w-[220px] sm:max-w-sm lg:max-w-md"
-                    imgClassName="h-auto max-h-20 w-full object-contain object-left drop-shadow-[0_2px_18px_rgba(0,0,0,0.9)] sm:max-h-28 lg:max-h-36"
-                  />
-                ) : (
-                  <h2 className="mb-3 text-3xl font-black leading-none tracking-tight text-white sm:text-5xl lg:text-6xl">
-                    {movie.title || movie.name}
-                  </h2>
-                )}
-
-                <div className="mb-3 flex flex-wrap items-center gap-3 text-sm font-semibold">
-                  <span className="text-[#46D369]">{Math.max(62, Math.min(99, Math.round((movie.vote_average || 7) * 10)))}% Match</span>
-                  <span className="text-white/85">{year}</span>
-                  <span className="rounded-sm border border-white/35 px-1.5 py-0.5 text-[10px] text-white/70">HD</span>
-                  <span className="flex items-center gap-1 text-white/80">
-                    <Star className="h-3.5 w-3.5 fill-current text-white/85" strokeWidth={2.2} />
-                    {rating}
-                  </span>
-                </div>
-
-                <p className="max-w-xl text-sm leading-relaxed text-white/78 sm:text-base" style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-                  {movie.overview}
-                </p>
-
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => onMovieClick(movie)}
-                    className="flex items-center gap-2 rounded-sm bg-white px-6 py-2.5 text-sm font-bold text-black transition-colors hover:bg-white/85"
-                  >
-                    <Play className="h-4 w-4 fill-current" strokeWidth={2.5} />
-                    Play
-                  </button>
-                  <button
-                    onClick={() => onMovieClick(movie)}
-                    className="flex items-center gap-2 rounded-sm bg-[rgba(109,109,110,0.7)] px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[rgba(109,109,110,0.55)]"
-                  >
-                    <Info className="h-4 w-4" strokeWidth={2.5} />
-                    More Info
-                  </button>
-                  <button
-                    onClick={() => toggleWatchlist(movie)}
-                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white transition-colors hover:border-white"
-                    aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
-                  >
-                    <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={goPrev}
-            className="absolute left-0 top-1/2 z-10 hidden h-28 -translate-y-1/2 items-center justify-center bg-black/25 px-3 text-white/75 transition-colors hover:bg-black/45 hover:text-white md:flex"
-          >
-            <ChevronLeft className="h-7 w-7" strokeWidth={2.5} />
-          </button>
-          <button
-            onClick={goNext}
-            className="absolute right-0 top-1/2 z-10 hidden h-28 -translate-y-1/2 items-center justify-center bg-black/25 px-3 text-white/75 transition-colors hover:bg-black/45 hover:text-white md:flex"
-          >
-            <ChevronRight className="h-7 w-7" strokeWidth={2.5} />
-          </button>
-
-          <div className="absolute bottom-3 right-4 hidden items-center gap-1.5 sm:flex">
-            {movies.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={`h-1.5 transition-all duration-300 ${i === current ? "w-7 bg-[#E50914]" : "w-4 bg-white/30 hover:bg-white/50"}`}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (!isGlass) {
     return (

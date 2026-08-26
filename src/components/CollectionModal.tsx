@@ -79,7 +79,14 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
       role="dialog"
       aria-modal="true"
     >
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in" onClick={onClose} />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in"
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
+      />
       
       <div className="relative w-full max-w-4xl max-h-screen sm:max-h-[90vh] bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up flex flex-col overflow-hidden">
         {/* Header Section */}
@@ -193,10 +200,13 @@ export default function CollectionModal({ collectionId, onClose, onMovieClick }:
                       </div>
                     )}
                     <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => onMovieClick(movie)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMovieClick(movie); } }}
                       className={`group relative flex flex-col border-3 transition-all cursor-pointer ${
-                        watched 
-                          ? "border-brutal-lime bg-brutal-lime/5 hover:bg-brutal-lime/10" 
+                        watched
+                          ? "border-brutal-lime bg-brutal-lime/5 hover:bg-brutal-lime/10"
                           : "border-brutal-border bg-surface hover:border-brutal-violet"
                       }`}
                     >

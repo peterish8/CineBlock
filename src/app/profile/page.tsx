@@ -3,18 +3,15 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth, useConvex } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Stamp, Copy, Link2, Download, Upload } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Copy, Link2, Download, Upload, ShieldCheck } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import StampCard from "@/components/StampCard";
-import { useStampModal } from "@/components/StampProvider";
-import type { ThemeName } from "@/lib/types";
-import { applyThemeToDocument, readStoredTheme, useThemeMode } from "@/hooks/useThemeMode";
-import { getNextTheme, getThemeDisplayName } from "@/lib/themeConfig";
-import { ENABLE_CLI } from "@/lib/featureFlags";
+import { useThemeMode } from "@/hooks/useThemeMode";
+import { getThemeDisplayName } from "@/lib/themeConfig";
+import IntegrationAccessModal from "@/components/IntegrationAccessModal";
 
 type ImportDataPreview = {
   watched?: unknown[];
@@ -31,12 +28,8 @@ export default function ProfilePage() {
   const setUsername = useMutation(api.users.setUsername);
   const setPreferredLanguage = useMutation(api.users.setPreferredLanguage);
   const deleteAccount = useMutation(api.users.deleteAccount);
-  const myStamps = useQuery(api.stamps.getMyStamps);
-  const deleteStamp = useMutation(api.stamps.deleteStamp);
-  const setStampVisibility = useMutation(api.stamps.setStampVisibility);
   const importUserData = useMutation(api.dataExport.importUserData);
   const convex = useConvex();
-  const { openStampModal } = useStampModal();
   const { signOut } = useAuthActions();
   const router = useRouter();
 
@@ -50,21 +43,17 @@ export default function ProfilePage() {
   const [usernameValue, setUsernameValue] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState("");
-  const [currentTheme, setCurrentTheme] = useState<ThemeName>("default");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [copiedProfileLink, setCopiedProfileLink] = useState(false);
-  const generateCliToken = useMutation(api.users.generateCliToken);
-  const [cliTokenVisible, setCliTokenVisible] = useState(false);
-  const [copiedCliToken, setCopiedCliToken] = useState(false);
-  const [generatingToken, setGeneratingToken] = useState(false);
   const generateMcpToken = useMutation(api.users.generateMcpToken);
   const [mcpTokenVisible, setMcpTokenVisible] = useState(false);
   const [mcpTokenValue, setMcpTokenValue] = useState<string | null>(null);
   const [copiedMcpToken, setCopiedMcpToken] = useState(false);
   const [generatingMcpToken, setGeneratingMcpToken] = useState(false);
+  const [showIntegrationAccess, setShowIntegrationAccess] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportOptions, setExportOptions] = useState({ watched: true, liked: true, watchlist: true, blocks: true, stamps: true });
   const [isExporting, setIsExporting] = useState(false);
@@ -75,22 +64,10 @@ export default function ProfilePage() {
   const [importError, setImportError] = useState("");
 
   useEffect(() => {
-    setCurrentTheme(readStoredTheme());
-  }, []);
-
-  useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/sign-in");
     }
   }, [isLoading, isAuthenticated, router]);
-
-  const toggleTheme = () => {
-    setCurrentTheme((prev) => {
-      const next = getNextTheme(prev);
-      applyThemeToDocument(next);
-      return next;
-    });
-  };
 
   if (isLoading) {
     return (
@@ -166,16 +143,6 @@ export default function ProfilePage() {
     setUsernameError("");
   };
 
-  const handleGenerateToken = async () => {
-    setGeneratingToken(true);
-    try {
-      await generateCliToken();
-      setCliTokenVisible(true);
-    } finally {
-      setGeneratingToken(false);
-    }
-  };
-
   const handleGenerateMcpToken = async () => {
     setGeneratingMcpToken(true);
     try {
@@ -185,6 +152,14 @@ export default function ProfilePage() {
     } finally {
       setGeneratingMcpToken(false);
     }
+  };
+
+  const copyMcpToken = () => {
+    if (!mcpTokenValue) return;
+    void navigator.clipboard.writeText(mcpTokenValue).then(() => {
+      setCopiedMcpToken(true);
+      setTimeout(() => setCopiedMcpToken(false), 2000);
+    });
   };
 
   const handleDeleteAccount = async () => {
@@ -666,25 +641,19 @@ export default function ProfilePage() {
                 <Palette className={`w-4 h-4 shrink-0 ${isGlass ? "text-violet-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
                 <div>
                   <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Theme</p>
-                  <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{getThemeDisplayName(currentTheme)}</p>
+                  <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{getThemeDisplayName("glass")}</p>
                 </div>
               </div>
-              <button
-                onClick={toggleTheme}
-                className={`text-[9px] flex items-center gap-1 transition-all px-2.5 py-1 rounded-full ${isGlass
+              <span
+                className={`text-[9px] flex items-center gap-1 px-2.5 py-1 rounded-full ${isGlass
                   ? "font-display font-semibold"
-                  : `brutal-chip ${
-                    currentTheme === "netflix"
-                      ? "bg-[#E50914] text-white border-[#E50914] hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
-                      : currentTheme === "glass"
-                      ? "bg-blue-500/20 text-blue-300 border-blue-400/50 hover:bg-blue-500/30 hover:border-blue-400"
-                      : "text-brutal-violet border-brutal-violet hover:bg-brutal-violet hover:text-black"
-                  }`}`}
+                  : "brutal-chip text-brutal-violet border-brutal-violet"}`}
                 style={isGlass ? glassChip("default") : undefined}
+                aria-label="Glass theme is permanently enabled"
               >
                 <Palette className="w-2.5 h-2.5" />
-                {getNextTheme(currentTheme) === "glass" ? "GLASS" : getNextTheme(currentTheme) === "netflix" ? "NETFLIX" : "RESET"}
-              </button>
+                GLASS DEFAULT
+              </span>
             </div>
 
             {/* Preferred Languages */}
@@ -794,197 +763,49 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* ── Stamps section ────────────────────────────────── */}
-        <div
-          className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4"}
-          style={isGlass ? glassCard : undefined}
-        >
-          <div className="flex items-center gap-2">
-            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(251,191,36,0.9), rgba(249,115,22,0.6))" }} />}
-            <Stamp className={`w-4 h-4 ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
-            <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Stamps</h2>
-            {myStamps && myStamps.length > 0 && (
-              <span
-                className={isGlass ? "text-[10px] font-display font-semibold px-2.5 py-0.5 rounded-full" : "brutal-chip text-brutal-yellow border-brutal-yellow text-[10px]"}
-                style={isGlass ? { background: "rgba(251,191,36,0.18)", border: "1px solid rgba(251,191,36,0.40)", color: "#FCD34D" } : undefined}
-              >
-                {myStamps.length}
-              </span>
-            )}
-          </div>
-
-          {myStamps === undefined ? (
-            <div className={`py-4 text-center font-mono text-xs uppercase ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Loading stamps...</div>
-          ) : myStamps.length === 0 ? (
-            <div
-              className={`py-6 text-center font-mono text-xs uppercase ${isGlass ? "text-slate-500 rounded-xl" : "border-2 border-dashed border-brutal-border text-brutal-dim"}`}
-              style={isGlass ? { border: "1px dashed rgba(255,255,255,0.15)" } : undefined}
-            >
-              No stamps yet. Mark a film as watched to write your first stamp.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {myStamps.map((stamp) => (
-                <StampCard
-                  key={stamp._id}
-                  stamp={stamp}
-                  isOwner={true}
-                  isGlass={isGlass}
-                  onDelete={(stampId) => void deleteStamp({ stampId })}
-                  onToggleVisibility={(stampId, isPublic) => void setStampVisibility({ stampId, isPublic })}
-                  onContinue={(s) => openStampModal({ id: s.movieId, title: s.movieTitle, posterPath: s.posterPath })}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* ── CineBlock Terminal ────────────────────────────── */}
-        {ENABLE_CLI && (() => {
-          const todayStart = new Date();
-          todayStart.setUTCHours(0, 0, 0, 0);
-          const todaySearches = (user?.cliSearchesResetAt ?? 0) >= todayStart.getTime()
-            ? (user?.cliSearchesUsed ?? 0)
-            : 0;
-          const remaining = Math.max(0, 15 - todaySearches);
-
-          return (
-            <div
-              className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4 border-2 border-brutal-yellow"}
-              style={isGlass ? {
-                ...glassCard,
-                background: "rgba(4,12,36,0.82)",
-                border: "1px solid rgba(96,165,250,0.35)",
-                boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(96,165,250,0.10), inset 0 1px 0 rgba(96,165,250,0.12)",
-              } : undefined}
-            >
-              <div className="flex items-center gap-2">
-                {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(96,165,250,0.9), rgba(139,92,246,0.6))" }} />}
-                <span className={`text-lg ${isGlass ? "" : "text-brutal-yellow"}`} style={isGlass ? { color: "#60A5FA" } : undefined}>⌨</span>
-                <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>CineBlock Terminal</h2>
-                <span
-                  className={isGlass
-                    ? "text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full"
-                    : `brutal-chip text-[10px] font-mono font-black ${remaining > 0 ? "text-brutal-lime border-brutal-lime" : "text-brutal-red border-brutal-red"}`}
-                  style={isGlass ? (remaining > 0
-                    ? { background: "rgba(52,211,153,0.18)", border: "1px solid rgba(52,211,153,0.40)", color: "#6EE7B7" }
-                    : { background: "rgba(239,68,68,0.18)", border: "1px solid rgba(239,68,68,0.40)", color: "#FCA5A5" }
-                  ) : undefined}
-                >
-                  {todaySearches}/15 TODAY
-                </span>
-              </div>
-
-              <p className={`text-[11px] font-mono ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>
-                Use this token to search movies from your terminal. You get{" "}
-                <span className={isGlass ? "text-blue-300 font-bold" : "text-brutal-yellow font-bold"}>15 searches per day</span>. Token resets at midnight UTC.
-              </p>
-
-              <div
-                className={isGlass ? "p-3 rounded-xl font-mono text-[10px] space-y-1" : "p-3 bg-black/40 border border-brutal-border font-mono text-[10px] text-brutal-dim space-y-1"}
-                style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(96,165,250,0.15)", borderRadius: "12px", boxShadow: "inset 0 1px 0 rgba(96,165,250,0.08)" } : undefined}
-              >
-                <p className={isGlass ? "text-blue-400/80" : "text-brutal-muted"}><span className="text-slate-500">$</span> npx cineblock</p>
-                <p className={isGlass ? "text-slate-600" : "text-brutal-dim"}>or set env var manually:</p>
-                <p className={isGlass ? "text-blue-400/80" : "text-brutal-muted"}><span className="text-slate-500">$</span> CINEBLOCK_TOKEN=cb_... npx cineblock</p>
-              </div>
-
-              {user?.cliToken ? (
-                <div className="space-y-3">
-                  <div
-                    className={isGlass ? "flex items-center gap-2 p-3 rounded-xl font-mono text-sm" : "flex items-center gap-2 p-3 bg-surface-2 border-2 border-brutal-border font-mono text-sm"}
-                    style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(96,165,250,0.20)", borderRadius: "12px", boxShadow: "inset 0 1px 0 rgba(96,165,250,0.08)" } : undefined}
-                  >
-                    <span className={`flex-1 truncate transition-all select-all ${isGlass ? "text-slate-300" : "text-brutal-white"} ${cliTokenVisible ? "" : "blur-sm select-none"}`}>
-                      {user.cliToken}
-                    </span>
-                    <button
-                      onClick={() => setCliTokenVisible(v => !v)}
-                      className={isGlass ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full shrink-0" : "brutal-chip text-brutal-dim border-brutal-border text-[9px] shrink-0"}
-                      style={isGlass ? glassChip("default") : undefined}
-                    >
-                      {cliTokenVisible ? "HIDE" : "SHOW"}
-                    </button>
-                    <button
-                      onClick={() => {
-                        void navigator.clipboard.writeText(user.cliToken!).then(() => {
-                          setCopiedCliToken(true);
-                          setTimeout(() => setCopiedCliToken(false), 2000);
-                        });
-                      }}
-                      className={isGlass
-                        ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0"
-                        : "brutal-chip text-brutal-yellow border-brutal-yellow hover:bg-brutal-yellow hover:text-black transition-colors text-[9px] flex items-center gap-1 shrink-0"}
-                      style={isGlass ? glassChip("blue") : undefined}
-                    >
-                      {copiedCliToken ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}
-                      {copiedCliToken ? "COPIED!" : "COPY"}
-                    </button>
-                  </div>
-                  <button
-                    onClick={() => void handleGenerateToken()}
-                    disabled={generatingToken}
-                    className={isGlass
-                      ? "px-3 py-2 text-[10px] font-display font-semibold rounded-xl text-slate-400 hover:text-blue-300 disabled:opacity-50 transition-all"
-                      : "brutal-btn px-3 py-2 text-[10px] font-mono font-bold text-brutal-dim border-brutal-border hover:border-brutal-yellow hover:text-brutal-yellow disabled:opacity-50"}
-                    style={isGlass ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
-                  >
-                    {generatingToken ? "REGENERATING..." : "⟳ REGENERATE TOKEN"}
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => void handleGenerateToken()}
-                  disabled={generatingToken}
-                  className={isGlass
-                    ? "w-full py-3 text-xs font-display font-semibold rounded-xl text-blue-300 hover:text-blue-200 disabled:opacity-50 transition-all"
-                    : "brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-yellow !text-black !border-brutal-yellow hover:opacity-80 disabled:opacity-50"}
-                  style={isGlass ? glassBtn("blue") : undefined}
-                >
-                  {generatingToken ? "GENERATING..." : "⌨ GENERATE CLI TOKEN"}
-                </button>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── ChatGPT / MCP connection ─────────────────────── */}
-        <div
-          className={isGlass ? "rounded-2xl p-6 space-y-4" : "brutal-card p-6 space-y-4 border-2 border-brutal-cyan"}
+        {/* MCP is the only integration exposed in Profile. The future CLI package
+            keeps its backend route, but its token UI remains intentionally hidden. */}
+        <button
+          type="button"
+          onClick={() => setShowIntegrationAccess(true)}
+          className={isGlass
+            ? "group flex w-full items-center justify-between gap-4 rounded-2xl p-5 text-left transition-all duration-200 hover:brightness-110"
+            : "brutal-card flex w-full items-center justify-between gap-4 p-5 text-left"}
           style={isGlass ? {
             ...glassCard,
-            background: "rgba(4,22,36,0.82)",
-            border: "1px solid rgba(34,211,238,0.35)",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(34,211,238,0.10), inset 0 1px 0 rgba(34,211,238,0.12)",
+            background: "linear-gradient(120deg, rgba(34,211,238,0.10), rgba(96,165,250,0.10))",
+            border: "1px solid rgba(96,165,250,0.28)",
           } : undefined}
         >
-          <div className="flex items-center gap-2">
-            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(34,211,238,0.9), rgba(52,211,153,0.6))" }} />}
-            <Link2 className={`w-4 h-4 ${isGlass ? "text-cyan-300" : "text-brutal-cyan"}`} />
-            <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>ChatGPT / MCP</h2>
-            <span className={isGlass ? "text-[9px] font-mono px-2 py-0.5 rounded-full text-emerald-300 bg-emerald-400/10 border border-emerald-400/25" : "brutal-chip text-[9px] text-brutal-lime border-brutal-lime"}>STATELESS</span>
-          </div>
-          <p className={`text-[11px] font-mono ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>
-            Connect ChatGPT to your CineBlock library with OAuth or a one-time bearer token. It can read liked, watchlist, and watched titles, preview the exact poster before every write, create public/private playlists, and prepare 1,000-character stamps.
-          </p>
-          <div className={isGlass ? "p-3 rounded-xl space-y-2 text-[10px] font-mono" : "p-3 bg-black/40 border border-brutal-border space-y-2 text-[10px] font-mono text-brutal-dim"} style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(34,211,238,0.16)", borderRadius: "12px" } : undefined}>
-            <p className={isGlass ? "text-cyan-300" : "text-brutal-cyan"}>MCP URL</p>
-            <p className={isGlass ? "text-slate-300 break-all" : "text-brutal-white break-all"}>{typeof window !== "undefined" ? `${window.location.origin}/api/mcp` : "/api/mcp"}</p>
-            <p className={isGlass ? "text-slate-500" : "text-brutal-dim"}>In ChatGPT, add a custom connector using this URL and choose OAuth when available. The manual bearer token is shown only when generated.</p>
-          </div>
-          {user?.hasMcpToken || mcpTokenValue ? (
-            <div className="space-y-3">
-              <div className={isGlass ? "flex items-center gap-2 p-3 rounded-xl font-mono text-sm" : "flex items-center gap-2 p-3 bg-surface-2 border-2 border-brutal-border font-mono text-sm"} style={isGlass ? { background: "rgba(2,6,18,0.80)", border: "1px solid rgba(34,211,238,0.20)", borderRadius: "12px" } : undefined}>
-                <span className={`flex-1 truncate select-all ${isGlass ? "text-slate-300" : "text-brutal-white"} ${mcpTokenVisible && mcpTokenValue ? "" : "blur-sm select-none"}`}>{mcpTokenValue ?? "Token stored securely — regenerate to reveal it once"}</span>
-                {mcpTokenValue && <button onClick={() => setMcpTokenVisible(v => !v)} className={isGlass ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full shrink-0" : "brutal-chip text-brutal-dim border-brutal-border text-[9px] shrink-0"} style={isGlass ? glassChip("default") : undefined}>{mcpTokenVisible ? "HIDE" : "SHOW"}</button>}
-                {mcpTokenValue && <button onClick={() => { void navigator.clipboard.writeText(mcpTokenValue).then(() => { setCopiedMcpToken(true); setTimeout(() => setCopiedMcpToken(false), 2000); }); }} className={isGlass ? "text-[9px] font-display font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0" : "brutal-chip text-brutal-cyan border-brutal-cyan text-[9px] flex items-center gap-1 shrink-0"} style={isGlass ? glassChip("blue") : undefined}>{copiedMcpToken ? <Check className="w-2.5 h-2.5" /> : <Copy className="w-2.5 h-2.5" />}{copiedMcpToken ? "COPIED!" : "COPY"}</button>}
-              </div>
-              <button onClick={() => void handleGenerateMcpToken()} disabled={generatingMcpToken} className={isGlass ? "px-3 py-2 text-[10px] font-display font-semibold rounded-xl text-slate-400 hover:text-cyan-300 disabled:opacity-50 transition-all" : "brutal-btn px-3 py-2 text-[10px] font-mono font-bold text-brutal-dim border-brutal-border hover:border-brutal-cyan hover:text-brutal-cyan disabled:opacity-50"} style={isGlass ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}>{generatingMcpToken ? "REGENERATING..." : "⟳ REGENERATE / REVOKE OLD TOKEN"}</button>
-            </div>
-          ) : (
-            <button onClick={() => void handleGenerateMcpToken()} disabled={generatingMcpToken} className={isGlass ? "w-full py-3 text-xs font-display font-semibold rounded-xl text-cyan-300 hover:text-cyan-200 disabled:opacity-50 transition-all" : "brutal-btn w-full py-3 text-xs font-mono font-bold !bg-brutal-cyan !text-black !border-brutal-cyan hover:opacity-80 disabled:opacity-50"} style={isGlass ? glassBtn("blue") : undefined}>{generatingMcpToken ? "GENERATING..." : "🔗 GENERATE MCP TOKEN"}</button>
-          )}
-        </div>
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={isGlass ? { background: "rgba(34,211,238,0.14)", border: "1px solid rgba(34,211,238,0.28)" } : undefined}>
+              <ShieldCheck className={isGlass ? "h-5 w-5 text-cyan-300" : "h-5 w-5"} />
+            </span>
+            <span className="min-w-0">
+              <span className={isGlass ? "block text-[10px] font-display font-semibold uppercase tracking-[0.2em] text-cyan-200" : "block text-[10px] font-mono font-bold uppercase"}>Connected access</span>
+              <span className={isGlass ? "mt-1 block truncate text-sm font-display font-semibold text-white" : "mt-1 block truncate text-sm font-semibold"}>MCP access</span>
+              <span className={isGlass ? "mt-1 block text-[10px] text-slate-500" : "mt-1 block text-[10px]"}>Connect ChatGPT to your CineBlock library with a separate MCP credential.</span>
+            </span>
+          </span>
+          <span className={isGlass ? "flex shrink-0 items-center gap-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-cyan-200" : "flex shrink-0 items-center gap-2 text-xs font-bold"}>
+            <Link2 className="h-3.5 w-3.5" /> Manage
+          </span>
+        </button>
+
+        <IntegrationAccessModal
+          open={showIntegrationAccess}
+          onClose={() => setShowIntegrationAccess(false)}
+          isGlass={isGlass}
+          mcpUrl={typeof window !== "undefined" ? `${window.location.origin}/api/mcp` : "/api/mcp"}
+          hasMcpToken={Boolean(user?.hasMcpToken)}
+          mcpTokenValue={mcpTokenValue}
+          mcpTokenVisible={mcpTokenVisible}
+          copiedMcpToken={copiedMcpToken}
+          generatingMcpToken={generatingMcpToken}
+          onToggleMcpToken={() => setMcpTokenVisible((value) => !value)}
+          onCopyMcpToken={copyMcpToken}
+          onGenerateMcpToken={() => void handleGenerateMcpToken()}
+        />
 
         {/* ── Data & Privacy ────────────────────────────────── */}
         <div
@@ -1206,7 +1027,6 @@ export default function ProfilePage() {
                   { key: "watched",   label: "Watched Movies (incl. Franchise Progress)", count: user?.watchedCount || 0 },
                   { key: "liked",     label: "Liked Movies",                              count: user?.likedCount || 0   },
                   { key: "watchlist", label: "Watchlist (Queue)",                         count: user?.watchlistCount || 0 },
-                  { key: "stamps",    label: "Profile Stamps",                            count: myStamps?.length || 0   },
                   { key: "blocks",    label: "CineBlocks (Playlists)",                    count: "-"                     },
                 ].map(({ key, label, count }) => (
                   <label key={key} className="flex items-center gap-3 cursor-pointer group">

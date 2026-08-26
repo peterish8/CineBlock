@@ -145,6 +145,9 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
     <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
       {/* Overlay */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close"
         className="absolute inset-0 animate-fade-in motion-reduce:animate-none"
         style={isGlass ? {
           background: "rgba(2,5,18,0.88)",
@@ -152,6 +155,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
         } : { background: "rgba(0,0,0,0.70)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)" }}
         onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
       />
 
       <div
@@ -190,7 +194,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
           }}
         >
           <h2 id={titleId} className={`flex items-center gap-2 ${isGlass ? "font-display font-semibold text-base text-white tracking-tight" : "font-outfit text-lg font-black uppercase tracking-wider text-black"}`}>
-            <Image src="/stamped_cineblock.png" alt="" width={isGlass ? 24 : 28} height={isGlass ? 24 : 28} unoptimized className={isGlass ? "opacity-90" : ""} />
+            <Image src="/stamps/stamped-glass.png" alt="" width={isGlass ? 24 : 28} height={isGlass ? 24 : 28} unoptimized className={isGlass ? "opacity-90" : ""} />
             {isGlass ? "Stamp a Film" : "STAMP A FILM"}
           </h2>
           <button
@@ -287,7 +291,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
                     ) : watched ? (
                       <CheckCircle className="w-5 h-5 text-brutal-cyan" strokeWidth={2.5} />
                     ) : (
-                      <Image src="/stamped_cineblock.png" alt="" width={24} height={24} className="opacity-40" unoptimized />
+                      <Image src="/stamps/stamped-glass.png" alt="" width={24} height={24} className="opacity-40" unoptimized />
                     )}
                   </div>
                 </button>

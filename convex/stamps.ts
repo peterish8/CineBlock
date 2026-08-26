@@ -3,6 +3,16 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 
+const STAMP_REVIEW_MAX = 1000;
+const STAMP_TITLE_MAX = 200;
+const STAMP_POSTER_PATH_MAX = 2048;
+
+function validateStampIdentity(movieId: number, movieTitle: string, posterPath: string) {
+  if (!Number.isSafeInteger(movieId) || movieId <= 0) throw new ConvexError("Invalid movie ID");
+  if (!movieTitle.trim() || movieTitle.trim().length > STAMP_TITLE_MAX) throw new ConvexError("Movie title must be between 1 and 200 characters");
+  if (posterPath.length > STAMP_POSTER_PATH_MAX) throw new ConvexError("Poster path is too long");
+}
+
 // Publish a stamp. If a draft exists for this movie, it becomes the published stamp.
 // Stamp date (createdAt) is set at publish time, not draft time.
 export const createStamp = mutation({
@@ -17,9 +27,10 @@ export const createStamp = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Not authenticated");
 
+    validateStampIdentity(args.movieId, args.movieTitle, args.posterPath);
     const trimmed = args.reviewText.trim();
     if (trimmed.length === 0) throw new ConvexError("Review text cannot be empty");
-    if (trimmed.length > 280) throw new ConvexError("Review text exceeds 280 characters");
+    if (trimmed.length > STAMP_REVIEW_MAX) throw new ConvexError(`Review text exceeds ${STAMP_REVIEW_MAX} characters`);
 
     const existing = await ctx.db
       .query("stamps")
@@ -65,8 +76,9 @@ export const saveDraft = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Not authenticated");
 
+    validateStampIdentity(args.movieId, args.movieTitle, args.posterPath);
     const trimmed = args.reviewText.trim();
-    if (trimmed.length > 280) throw new ConvexError("Review text exceeds 280 characters");
+    if (trimmed.length > STAMP_REVIEW_MAX) throw new ConvexError(`Review text exceeds ${STAMP_REVIEW_MAX} characters`);
 
     const existing = await ctx.db
       .query("stamps")
@@ -105,6 +117,51 @@ export const deleteStamp = mutation({
     if (stamp.userId !== userId) throw new ConvexError("Not authorized");
 
     await ctx.db.delete(args.stampId);
+  },
+});
+
+// Restore a stamp during the short undo window after deletion.
+export const restoreStamp = mutation({
+  args: {
+    movieId: v.number(),
+    mediaType: v.optional(v.union(v.literal("movie"), v.literal("tv"))),
+    movieTitle: v.string(),
+    posterPath: v.string(),
+    reviewText: v.string(),
+    isPublic: v.boolean(),
+    isDraft: v.optional(v.boolean()),
+    createdAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
+
+    validateStampIdentity(args.movieId, args.movieTitle, args.posterPath);
+    const now = Date.now();
+    if (!Number.isSafeInteger(args.createdAt) || args.createdAt <= 0 || args.createdAt > now) {
+      throw new ConvexError("Invalid stamp timestamp");
+    }
+    const trimmed = args.reviewText.trim();
+    if (trimmed.length > STAMP_REVIEW_MAX) throw new ConvexError(`Review text exceeds ${STAMP_REVIEW_MAX} characters`);
+    if (args.isDraft !== true && trimmed.length === 0) throw new ConvexError("Review text cannot be empty");
+
+    const existing = await ctx.db
+      .query("stamps")
+      .withIndex("by_userId_movieId", (q) => q.eq("userId", userId).eq("movieId", args.movieId))
+      .first();
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("stamps", {
+      userId,
+      movieId: args.movieId,
+      mediaType: args.mediaType,
+      movieTitle: args.movieTitle,
+      posterPath: args.posterPath,
+      reviewText: trimmed,
+      isPublic: args.isDraft === true ? false : args.isPublic,
+      isDraft: args.isDraft,
+      createdAt: args.createdAt,
+    });
   },
 });
 

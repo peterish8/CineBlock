@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://cineblock.in",
     siteName: "CineBlock",
-    title: "CineBlock — Find Movies Together",
+    title: "CineBlock",
     description: "Discover, track and match movies with friends. Free cinema discovery app with mood-based recommendations, blocks and personalised lists.",
     images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "CineBlock — Cinema Discovery" }],
   },
@@ -49,9 +49,9 @@ export const metadata: Metadata = {
     canonical: "https://cineblock.in",
   },
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-    shortcut: "/logo.png",
+    icon: "/brand/cineblock-favicon.png",
+    apple: "/brand/cineblock-icon-256.png",
+    shortcut: "/brand/cineblock-favicon.png",
   },
 };
 
@@ -100,7 +100,7 @@ export default function RootLayout({
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
         </head>
-        <body className="min-h-screen bg-bg antialiased" suppressHydrationWarning>
+        <body className="theme-glass min-h-screen bg-bg antialiased" suppressHydrationWarning>
           <ConvexClientProvider>
             <ToastProvider>
               <BlockModalProvider>

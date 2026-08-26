@@ -130,7 +130,6 @@ export default function MovieModal({
   const actorPanelRef = useRef<HTMLDivElement>(null);
   const theme = useThemeMode();
   const isGlass = theme === "glass";
-  const isNetflix = theme === "netflix";
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true));
@@ -313,16 +312,22 @@ export default function MovieModal({
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 overscroll-none outline-none"
+    <motion.div
+      role="button"
+      tabIndex={0}
+      aria-label="Close"
+      className="fixed inset-0 z-[300] flex items-center justify-center p-3 overscroll-none outline-none sm:p-0"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
     >
       {/* Overlay — glass gets stronger blur */}
       <div className={`absolute inset-0 animate-fade-in ${
         isGlass
           ? "bg-[rgba(2,8,23,0.75)] backdrop-blur-[10px]"
-          : isNetflix
-          ? "bg-[rgba(0,0,0,0.78)]"
           : "bg-black/60 backdrop-blur-sm"
       }`} />
 
@@ -331,12 +336,11 @@ export default function MovieModal({
         aria-modal="true"
         className={`relative w-[calc(100%-1.5rem)] sm:w-full mx-auto sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar outline-none focus:outline-none focus-visible:outline-none ${
           isGlass
-            ? "animate-glass-enter-bottom bg-[rgba(4,12,36,0.70)] backdrop-blur-[48px] saturate-[1.6] border border-white/[0.10] rounded-t-[28px] sm:rounded-3xl shadow-[0_32px_80px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.10)]"
-            : isNetflix
-            ? "animate-slide-up bg-[#181818] border border-white/[0.08] rounded-t-[24px] sm:rounded-md shadow-[0_28px_90px_rgba(0,0,0,0.75)]"
-            : "animate-slide-up bg-bg border-3 border-brutal-border shadow-brutal-lg rounded-2xl sm:rounded-none"
+            ? "bg-[rgba(4,12,36,0.70)] backdrop-blur-[48px] saturate-[1.6] border border-white/[0.10] rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.10)]"
+            : "bg-bg border-3 border-brutal-border shadow-brutal-lg rounded-2xl sm:rounded-none"
         }`}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -354,12 +358,12 @@ export default function MovieModal({
         </div>
 
         {/* Top Header Controls Area */}
-        <div className={`absolute top-0 left-0 right-0 z-50 h-32 p-3 flex justify-between items-start ${playingTrailer ? "pointer-events-none" : "pointer-events-none"}`}>
+        <div className="absolute top-0 left-0 right-0 z-50 h-32 p-3 flex justify-between items-start pointer-events-none">
           <div className={`flex flex-col gap-2 ${playingTrailer ? "pointer-events-none opacity-0" : "pointer-events-auto"}`}>
             {(history.length > 1 || onBack) && (
               <button 
                 onClick={(e) => { e.stopPropagation(); if (history.length > 1) { setHistory(prev => prev.slice(0, -1)); } else { onBack?.(); } }} 
-                className={isGlass ? "p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/5 shadow-sm" : isNetflix ? "p-2 rounded-full bg-[rgba(42,42,42,0.92)] text-white border border-white/20 hover:border-white transition-all" : "brutal-btn p-2 bg-black/50 text-white hover:bg-brutal-white hover:text-black transition-all"}
+                className={isGlass ? "p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/5 shadow-sm" : "brutal-btn p-2 bg-black/50 text-white hover:bg-brutal-white hover:text-black transition-all"}
               >
                 <ArrowLeft className="w-4 h-4" strokeWidth={3} />
               </button>
@@ -370,32 +374,32 @@ export default function MovieModal({
             <div className={`flex items-start gap-2 transition-opacity duration-300 ${playingTrailer ? "opacity-0" : ""}`}>
               {showActions && (
                 <div className="flex flex-row-reverse gap-0.5 animate-slide-up-faint">
-                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleLiked(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${liked ? "text-rose-400" : "text-white"}` : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${liked ? "text-[#E50914] border-[#E50914]/60" : "text-white hover:border-white"}` : `brutal-btn border-none p-2 transition-all ${liked ? "text-brutal-pink" : "text-white"}`} title="Like">
+                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleLiked(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${liked ? "text-rose-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all ${liked ? "text-brutal-pink" : "text-white"}`} title="Like">
                     <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} strokeWidth={2.5} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleWatchlist(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${inWl ? "text-blue-400" : "text-white"}` : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${inWl ? "text-white border-white/70" : "text-white hover:border-white"}` : `brutal-btn border-none p-2 transition-all ${inWl ? "text-brutal-lime" : "text-white"}`} title="Watchlist">
+                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleWatchlist(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${inWl ? "text-blue-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all ${inWl ? "text-brutal-lime" : "text-white"}`} title="Watchlist">
                     <Bookmark className={`w-4 h-4 ${inWl ? "fill-current" : ""}`} strokeWidth={2.5} />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleWatched(movie); }}
-                    className={isGlass ? glassWatchedActionClass : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${watched ? "text-[#46D369] border-[#46D369]/60" : "text-white hover:border-white"}` : `brutal-btn border-none p-2 transition-all ${watched ? "text-brutal-cyan" : "text-white"}`}
+                    className={isGlass ? glassWatchedActionClass : `brutal-btn border-none p-2 transition-all ${watched ? "text-brutal-cyan" : "text-white"}`}
                     style={isGlass ? glassWatchedActionStyle : undefined}
                     title="Watched"
                   >
                     <CheckCircle className={`w-4 h-4 ${watched ? "fill-current" : ""}`} strokeWidth={2.5} />
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleShare(e); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${copied ? "text-orange-400" : "text-white"}` : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${copied ? "text-[#E50914] border-[#E50914]/60" : "text-white hover:border-white"}` : `brutal-btn border-none p-2 transition-all text-white hover:text-brutal-yellow ${copied ? "text-brutal-yellow" : ""}`} title="Share">
+                  <button onClick={(e) => { e.stopPropagation(); handleShare(e); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${copied ? "text-orange-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all text-white hover:text-brutal-yellow ${copied ? "text-brutal-yellow" : ""}`} title="Share">
                     <LinkIcon className="w-4 h-4" strokeWidth={2.5} />
                   </button>
                 </div>
               )}
               <button 
                 onClick={(e) => { e.stopPropagation(); setShowActions(!showActions); }} 
-                className={isGlass ? `p-2 rounded-full transition-all backdrop-blur-md border border-white/5 shadow-sm ${showActions ? "bg-white/20 text-white" : "bg-white/10 text-white hover:bg-white/20"}` : isNetflix ? `p-2 rounded-full transition-all border border-white/20 bg-[rgba(42,42,42,0.92)] ${showActions ? "text-white border-white" : "text-white hover:border-white"}` : `brutal-btn p-2 transition-all ${showActions ? "bg-brutal-white text-black" : "bg-black/50 text-white hover:bg-black/70"}`}
+                className={isGlass ? `p-2 rounded-full transition-all backdrop-blur-md border border-white/5 shadow-sm ${showActions ? "bg-white/20 text-white" : "bg-white/10 text-white hover:bg-white/20"}` : `brutal-btn p-2 transition-all ${showActions ? "bg-brutal-white text-black" : "bg-black/50 text-white hover:bg-black/70"}`}
               >
                 <MoreVertical className="w-4 h-4" strokeWidth={3} />
               </button>
-              <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={isGlass ? "p-2 rounded-full transition-all backdrop-blur-md bg-white/10 text-white hover:bg-rose-500/80 hover:text-white border border-white/5 shadow-sm" : isNetflix ? "p-2 rounded-full border border-white/20 bg-[rgba(42,42,42,0.92)] text-white hover:border-white transition-all" : "brutal-btn p-2 bg-black/50 text-white hover:bg-red-500 hover:text-white transition-all"}>
+              <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={isGlass ? "p-2 rounded-full transition-all backdrop-blur-md bg-white/10 text-white hover:bg-rose-500/80 hover:text-white border border-white/5 shadow-sm" : "brutal-btn p-2 bg-black/50 text-white hover:bg-red-500 hover:text-white transition-all"}>
                 <X className="w-4.5 h-4.5" strokeWidth={3} />
               </button>
             </div>
@@ -403,7 +407,7 @@ export default function MovieModal({
         </div>
 
         {/* Hero Section */}
-        <div className={`relative w-full aspect-video overflow-hidden ${isGlass ? "bg-[rgba(4,12,36,1)]" : isNetflix ? "bg-black border-b border-white/10" : "bg-black border-b-3 border-brutal-border"}`}>
+        <div className={`relative w-full aspect-video overflow-hidden ${isGlass ? "bg-[rgba(4,12,36,1)]" : "bg-black border-b-3 border-brutal-border"}`}>
           {playingTrailer && trailer ? (
             <>
               <iframe
@@ -430,7 +434,7 @@ export default function MovieModal({
                   src={backdropUrl(movie.backdrop_path || details?.backdrop_path || "", "large")}
                   alt={movie.title}
                   fill
-                  className={`object-cover ${isGlass ? "animate-backdrop-reveal" : isNetflix ? "animate-fade-in" : "opacity-80 animate-fade-in"}`}
+                  className={`object-cover ${isGlass ? "animate-backdrop-reveal" : "opacity-80 animate-fade-in"}`}
                   sizes="(max-width: 1280px) 100vw, 1280px"
                   priority
                 />
@@ -441,8 +445,6 @@ export default function MovieModal({
               )}
               <div className={isGlass
                 ? "absolute bottom-0 left-0 right-0 h-3/5 bg-gradient-to-t from-[rgba(4,12,36,1)] to-transparent"
-                : isNetflix
-                ? "absolute inset-0 bg-gradient-to-t from-[#181818] via-transparent to-transparent"
                 : "absolute inset-0 bg-gradient-to-t from-bg via-transparent to-transparent"
               } />
               
@@ -451,18 +453,18 @@ export default function MovieModal({
                 {trailer && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setPlayingTrailer(true); }}
-                    className={isGlass ? "group p-2.5 sm:p-4 rounded-full bg-orange-500/80 hover:bg-orange-400 text-white backdrop-blur-md border border-white/20 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(249,115,22,0.4)]" : isNetflix ? "group rounded-full bg-white text-black hover:bg-white/85 transition-all hover:scale-110 active:scale-95 p-2.5 sm:p-4" : "group brutal-btn p-2.5 sm:p-5 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all shadow-brutal-sm sm:shadow-brutal"}
+                    className={isGlass ? "group p-2.5 sm:p-4 rounded-full bg-orange-500/80 hover:bg-orange-400 text-white backdrop-blur-md border border-white/20 transition-all hover:scale-110 active:scale-95 shadow-[0_0_20px_rgba(249,115,22,0.4)]" : "group brutal-btn p-2.5 sm:p-5 bg-brutal-yellow text-black hover:!text-black hover:scale-110 active:scale-95 transition-all shadow-brutal-sm sm:shadow-brutal"}
                   >
                     <Play className="w-4 h-4 sm:w-7 sm:h-7 fill-current" />
                   </button>
                 )}
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : isNetflix ? "bg-black/55 border border-white/15 rounded-full backdrop-blur-sm" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
-                  <Star className={`w-3.5 h-3.5 fill-current ${isGlass ? "text-orange-400" : isNetflix ? "text-white" : "text-brutal-yellow"}`} />
-                  <span className={isGlass ? "text-xs font-semibold text-white tracking-wide" : isNetflix ? "text-xs font-semibold text-white" : "text-sm font-mono font-black text-brutal-yellow"}>{rating}</span>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
+                  <Star className={`w-3.5 h-3.5 fill-current ${isGlass ? "text-orange-400" : "text-brutal-yellow"}`} />
+                  <span className={isGlass ? "text-xs font-semibold text-white tracking-wide" : "text-sm font-mono font-black text-brutal-yellow"}>{rating}</span>
                 </div>
-                <div className={`flex items-center gap-2 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : isNetflix ? "bg-black/55 border border-white/15 rounded-full backdrop-blur-sm" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
-                  <span className={isGlass ? "text-xs font-medium text-white/90" : isNetflix ? "text-xs font-semibold text-white/90" : "text-xs font-mono font-bold text-brutal-white"}>{year}</span>
-                  {runtime && <span className={isGlass ? "text-xs font-medium text-white/60" : isNetflix ? "text-xs font-medium text-white/60" : "text-xs font-mono font-bold text-brutal-muted"}>{Math.floor(runtime / 60)}H {runtime % 60}M</span>}
+                <div className={`flex items-center gap-2 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
+                  <span className={isGlass ? "text-xs font-medium text-white/90" : "text-xs font-mono font-bold text-brutal-white"}>{year}</span>
+                  {runtime && <span className={isGlass ? "text-xs font-medium text-white/60" : "text-xs font-mono font-bold text-brutal-muted"}>{Math.floor(runtime / 60)}H {runtime % 60}M</span>}
                 </div>
               </div>
             </>
@@ -474,9 +476,9 @@ export default function MovieModal({
               {movie.logo_path ? (
                 <Image src={logoUrl(movie.logo_path, "original")} alt={movie.title} width={800} height={320} className="object-contain object-left drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]" style={{ width: "100%", height: "auto", maxHeight: "130px" }} />
               ) : (
-                <h2 className={isGlass ? "text-3xl sm:text-5xl font-display font-bold text-white tracking-tight leading-none drop-shadow-2xl" : isNetflix ? "text-2xl sm:text-4xl font-display font-black text-white tracking-tight leading-none drop-shadow-lg" : "text-2xl sm:text-4xl font-display font-black text-brutal-white uppercase tracking-tight leading-none drop-shadow-lg"}>{movie.title}</h2>
+                <h2 className={isGlass ? "text-3xl sm:text-5xl font-display font-bold text-white tracking-tight leading-none drop-shadow-2xl" : "text-2xl sm:text-4xl font-display font-black text-brutal-white uppercase tracking-tight leading-none drop-shadow-lg"}>{movie.title}</h2>
               )}
-              {details?.tagline && <p className={isGlass ? "text-orange-300 text-xs font-medium mt-2 tracking-wide drop-shadow-md" : isNetflix ? "text-white/72 text-xs font-medium mt-2 tracking-wide" : "text-brutal-yellow text-[10px] font-mono font-bold uppercase mt-1 tracking-widest"}>{details.tagline}</p>}
+              {details?.tagline && <p className={isGlass ? "text-orange-300 text-xs font-medium mt-2 tracking-wide drop-shadow-md" : "text-brutal-yellow text-[10px] font-mono font-bold uppercase mt-1 tracking-widest"}>{details.tagline}</p>}
             </div>
           </div>
         </div>
@@ -760,7 +762,14 @@ export default function MovieModal({
                   <h3 className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider uppercase mb-1" : "text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest"}>MORE LIKE THIS</h3>
                   <div className="flex gap-4 overflow-x-auto pb-4 snap-x overscroll-x-contain hide-scrollbar">
                     {similar.map((sim) => (
-                      <div key={sim.id} onClick={() => setHistory(prev => [...prev, sim])} className={isGlass ? "flex-none w-[120px] sm:w-[140px] snap-start group bg-white/5 rounded-xl aspect-[2/3] relative cursor-pointer hover:shadow-orange-500/30 transition-transform duration-300 transform hover:scale-105 overflow-hidden" : "flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"}>
+                      <div
+                        key={sim.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setHistory(prev => [...prev, sim])}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistory(prev => [...prev, sim]); } }}
+                        className={isGlass ? "flex-none w-[120px] sm:w-[140px] snap-start group bg-white/5 rounded-xl aspect-[2/3] relative cursor-pointer hover:shadow-orange-500/30 transition-transform duration-300 transform hover:scale-105 overflow-hidden" : "flex-none w-[120px] sm:w-[140px] snap-start group border-2 border-brutal-border bg-black aspect-[2/3] relative cursor-pointer hover:border-brutal-yellow transition-all overflow-hidden"}
+                      >
                         <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; openBlockModal({ id: sim.id, title: sim.title || sim.name || "Untitled", posterPath: sim.poster_path || "" }); }} className={isGlass ? "absolute top-2 left-2 z-20 bg-black/40 backdrop-blur-md rounded-full p-1.5 text-white/70 hover:bg-white/20 hover:text-white border border-white/10 transition-all opacity-0 group-hover:opacity-100" : "absolute top-0 left-0 z-20 border-b-2 border-r-2 border-brutal-border bg-black/80 p-1.5 text-brutal-dim transition-colors hover:bg-brutal-violet hover:text-brutal-white"}>
                           <Plus className="h-3.5 w-3.5" strokeWidth={3} />
                         </button>
@@ -790,8 +799,9 @@ export default function MovieModal({
           borderLeftWidth: selectedActorId && !isGlass ? "3px" : isGlass && selectedActorId ? "1px" : "0px", 
           borderTopWidth: selectedActorId && !isGlass ? "3px" : "0px",
           borderLeftColor: "rgba(255,255,255,0.1)"
-        }}  
+        }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         <div className="w-[22rem]">
           <div className={isGlass ? "sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-transparent border-b border-white/10" : "sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-bg border-b-3 border-brutal-border"}>
@@ -819,7 +829,14 @@ export default function MovieModal({
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {(actorPerson.movie_credits?.cast || []).filter((m) => m.poster_path).sort((a, b) => b.popularity - a.popularity).slice(0, 12).map((m) => (
-                    <div key={m.id} className={isGlass ? "glass-actor-movie group relative aspect-[2/3] rounded-xl bg-white/5 cursor-pointer shadow-md overflow-hidden transition-transform duration-300 transform hover:scale-105 hover:shadow-orange-500/30" : "glass-actor-movie group relative aspect-[2/3] border-2 border-brutal-border bg-surface cursor-pointer hover:border-brutal-violet transition-all overflow-hidden"} onClick={() => { setHistory((prev) => [...prev, { ...m, original_title: m.title, genre_ids: [], adult: false, popularity: m.popularity } as TMDBMovie]); setSelectedActorId(null); }}>
+                    <div
+                      key={m.id}
+                      role="button"
+                      tabIndex={0}
+                      className={isGlass ? "glass-actor-movie group relative aspect-[2/3] rounded-xl bg-white/5 cursor-pointer shadow-md overflow-hidden transition-transform duration-300 transform hover:scale-105 hover:shadow-orange-500/30" : "glass-actor-movie group relative aspect-[2/3] border-2 border-brutal-border bg-surface cursor-pointer hover:border-brutal-violet transition-all overflow-hidden"}
+                      onClick={() => { setHistory((prev) => [...prev, { ...m, original_title: m.title, genre_ids: [], adult: false, popularity: m.popularity } as TMDBMovie]); setSelectedActorId(null); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistory((prev) => [...prev, { ...m, original_title: m.title, genre_ids: [], adult: false, popularity: m.popularity } as TMDBMovie]); setSelectedActorId(null); } }}
+                    >
                       <Image src={posterUrl(m.poster_path, "small")} alt={m.title} fill className="object-cover transition-transform group-hover:scale-105" sizes="100px" />
                     </div>
                   ))}
@@ -829,7 +846,7 @@ export default function MovieModal({
           ) : null}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

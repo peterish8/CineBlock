@@ -4,6 +4,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
+import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,10 @@ const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const MCP_TOKEN_REGEX = /^mcp_[0-9a-f]{64}$/;
 const CONFIRMATION_TTL_MS = 10 * 60 * 1000;
+const MAX_MCP_BODY_BYTES = 1024 * 1024;
+const MAX_TMDB_BODY_BYTES = 2 * 1024 * 1024;
+const MAX_POSTER_BYTES = 4 * 1024 * 1024;
+const TMDB_TIMEOUT_MS = 10_000;
 
 type MediaType = "movie" | "tv";
 type TitlePreview = {
@@ -31,23 +36,20 @@ function extractToken(request: Request): string | null {
   return MCP_TOKEN_REGEX.test(token) ? token : null;
 }
 
-async function authenticate(token: string | null, resource: string) {
-  if (!token) throw new Error("MCP authentication required. Add your CineBlock MCP bearer token.");
-  const result = await convex.query(api.users.pingMcpToken, { token });
-  if (!result.ok) throw new Error("Invalid or revoked MCP token.");
-  if (result.resource && result.resource !== resource) throw new Error("This OAuth token was issued for a different MCP resource.");
-  return result;
-}
-
 async function tmdbFetch<T>(path: string): Promise<T> {
   const apiKey = process.env.TMDB_API_KEY;
   if (!apiKey) throw new Error("TMDB_API_KEY is not configured on the server.");
   const response = await fetch(`${TMDB_BASE_URL}${path}`, {
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     next: { revalidate: 300 },
+    signal: AbortSignal.timeout(TMDB_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`TMDB request failed (${response.status}).`);
-  return response.json() as Promise<T>;
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_TMDB_BODY_BYTES) throw new Error("TMDB response was too large.");
+  const body = await response.text();
+  if (new TextEncoder().encode(body).byteLength > MAX_TMDB_BODY_BYTES) throw new Error("TMDB response was too large.");
+  return JSON.parse(body) as T;
 }
 
 function titleFromResult(item: {
@@ -102,10 +104,15 @@ async function posterContent(posterUrl: string | null): Promise<ContentBlock | n
   }
   if (parsed.protocol !== "https:" || parsed.hostname !== "image.tmdb.org" || !parsed.pathname.startsWith("/t/p/")) return null;
   try {
-    const response = await fetch(posterUrl, { next: { revalidate: 3600 } });
+    const response = await fetch(posterUrl, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(TMDB_TIMEOUT_MS) });
     if (!response.ok) return null;
     const mimeType = response.headers.get("content-type")?.split(";")[0] || "image/jpeg";
-    const data = Buffer.from(await response.arrayBuffer()).toString("base64");
+    if (!mimeType.startsWith("image/")) return null;
+    const contentLength = Number(response.headers.get("content-length") ?? 0);
+    if (contentLength > MAX_POSTER_BYTES) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.byteLength > MAX_POSTER_BYTES) return null;
+    const data = bytes.toString("base64");
     return { type: "image", data, mimeType };
   } catch {
     return null;
@@ -124,8 +131,21 @@ function decodeConfirmation<T>(token: string, confirmationToken: string, kind: "
   const expected = createHmac("sha256", token).update(payload).digest();
   const received = Buffer.from(signature, "base64url");
   if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error("Confirmation expired or invalid. Please preview again.");
-  const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { kind: string; data: T; expiresAt: number };
-  if (decoded.kind !== kind || decoded.expiresAt < Date.now()) throw new Error("Confirmation expired or invalid. Please preview again.");
+  let decoded: { kind?: string; data?: T; expiresAt?: number };
+  try {
+    decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as typeof decoded;
+  } catch {
+    throw new Error("Confirmation expired or invalid. Please preview again.");
+  }
+  const expiresAt = decoded.expiresAt;
+  if (
+    decoded.kind !== kind ||
+    typeof expiresAt !== "number" ||
+    !Number.isSafeInteger(expiresAt) ||
+    expiresAt <= Date.now() ||
+    !decoded.data ||
+    typeof decoded.data !== "object"
+  ) throw new Error("Confirmation expired or invalid. Please preview again.");
   return decoded.data;
 }
 
@@ -139,7 +159,7 @@ function errorResult(error: unknown) {
 }
 
 function getBaseUrl(request: Request | undefined) {
-  return process.env.NEXT_PUBLIC_APP_URL || (request ? new URL(request.url).origin : "http://localhost:3000");
+  return (process.env.NEXT_PUBLIC_APP_URL || (request ? new URL(request.url).origin : "http://localhost:3000")).trim().replace(/\/+$/, "");
 }
 
 function toPosterUrl(path: string | null | undefined) {
@@ -153,10 +173,48 @@ function toPosterUrl(path: string | null | undefined) {
   }
 }
 
+function escapeMarkdown(value: string) {
+  return value.replace(/\s+/g, " ").replace(/[\\`*_{}[\]()#+.!|>]/g, "\\$&");
+}
+
+function stampInterview(title: TitlePreview) {
+  const safeTitle = escapeMarkdown(title.title);
+  const hook = escapeMarkdown(title.overview.trim().replace(/\s+/g, " ").slice(0, 280));
+  return [
+    `# Stamp interview: ${safeTitle}`,
+    "",
+    "Before writing, ask the user these questions conversationally. Do not invent answers or turn this into a critic review.",
+    "",
+    "## Ask these four questions",
+    "1. **What did this film make you feel, and what caused that feeling?**",
+    "2. **What stayed with you after the ending — an idea, image, relationship, or question?**",
+    "3. **Which scene or moment did you like most, and why did it land for you?**",
+    "4. **Did it change, confirm, or challenge anything for you?**",
+    "",
+    "## Optional movie-specific question",
+    hook ? `The story hook is: _${hook}_\nAsk one creative follow-up only if it adds something: **What part of that idea, character, or world felt most personally yours — and why?**` : "Ask one creative follow-up only if useful: **What detail from this film felt unexpectedly personal to you — and why?**",
+    "",
+    "## Markdown stamp format",
+    "Use first person and stay under 1,000 characters. Keep it personal, specific, and spoiler-light:",
+    "",
+    "```md",
+    "## What stayed with me",
+    "[the feeling, image, idea, or question]",
+    "",
+    "## The moment",
+    "[the scene or detail that landed, and why]",
+    "",
+    "## After the credits",
+    "[what it changed, confirmed, or left unresolved]",
+    "```",
+    "",
+    "Do not use HTML. Do not claim the user felt something they did not say. Call `preview_stamp` only after the user approves the exact title and the finished Markdown.",
+  ].join("\n");
+}
+
 const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const token = requestInfo ? extractToken(requestInfo) : null;
   const baseUrl = getBaseUrl(requestInfo);
-  const resource = `${baseUrl}/api/mcp`;
   const server = new McpServer({ name: "cineblock-mcp", version: "1.0.0" });
 
   server.registerTool(
@@ -164,16 +222,15 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     {
       description: "Search movies and TV series and show poster-backed candidates. Always use this before preparing a stamp for a title the user named in natural language.",
       annotations: { readOnlyHint: true, destructiveHint: false },
-      inputSchema: z.object({ query: z.string().min(1).max(120), mediaType: z.enum(["movie", "tv"]).optional() }),
+      inputSchema: z.object({ query: z.string().trim().min(1).max(120), mediaType: z.enum(["movie", "tv"]).optional() }),
     },
     async ({ query, mediaType }) => {
       try {
-        await authenticate(token, resource);
         const titles = await findTitles(query, mediaType);
         const images = await Promise.all(titles.slice(0, 4).map((title) => posterContent(title.posterUrl)));
         return textResult(
           titles.length
-            ? `Choose the exact title before any write:\n${titles.map((title, index) => `${index + 1}. ${title.title} (${title.year ?? "year unknown"}) · ${title.mediaType} · TMDB ${title.id}\n   ${title.posterUrl ?? "No poster available"}\n   ${title.overview.slice(0, 180)}`).join("\n")}`
+            ? `Choose the exact title before any write:\n${titles.map((title, index) => `${index + 1}. ${escapeMarkdown(title.title)} (${escapeMarkdown(title.year ?? "year unknown")}) · ${title.mediaType} · TMDB ${title.id}\n   ${title.posterUrl ?? "No poster available"}\n   ${escapeMarkdown(title.overview.slice(0, 180))}`).join("\n")}`
             : "No matching movie or series was found.",
           images,
         );
@@ -192,7 +249,6 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async () => {
       try {
-        await authenticate(token, resource);
         const library = await convex.query(api.mcp.getLibrary, { token: token! });
         return textResult(JSON.stringify({
           user: library.user,
@@ -212,8 +268,8 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
       description: "Build a dry-run preview for a CineBlock playlist from liked, watchlist, and/or watched items. This is required before create_playlist and returns a signed confirmation token.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
-        title: z.string().min(1).max(60),
-        description: z.string().max(280).optional(),
+        title: z.string().trim().min(1).max(60),
+        description: z.string().trim().max(280).optional(),
         isPublic: z.boolean(),
         sources: z.array(z.enum(["liked", "watchlist", "watched"])).min(1).optional(),
         movieIds: z.array(z.number().int().positive()).max(35).optional(),
@@ -221,7 +277,6 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ title, description, isPublic, sources, movieIds }) => {
       try {
-        await authenticate(token, resource);
         const library = await convex.query(api.mcp.getLibrary, { token: token! });
         const selectedSources = sources?.length ? sources : ["liked", "watchlist", "watched"] as const;
         const byId = new Map<number, { movieId: number; movieTitle: string; posterPath: string }>();
@@ -239,7 +294,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         const confirmationToken = encodeConfirmation(token!, "playlist", previewData);
         const images = await Promise.all(selected.slice(0, 8).map((item) => posterContent(toPosterUrl(item.posterPath))));
         return textResult(
-          `PLAYLIST PREVIEW — ${previewData.title}\nVisibility: ${isPublic ? "public" : "private"}\nTitles: ${selected.length}\nSources: ${selectedSources.join(", ")}\n\n${selected.map((item, index) => `${index + 1}. ${item.movieTitle} · TMDB ${item.movieId}\n   ${toPosterUrl(item.posterPath) ?? "No poster available"}`).join("\n")}\n\nNothing has been saved. Call create_playlist with confirmationToken only after the user approves this exact preview.\nconfirmationToken: ${confirmationToken}`,
+          `PLAYLIST PREVIEW — ${escapeMarkdown(previewData.title)}\nVisibility: ${isPublic ? "public" : "private"}\nTitles: ${selected.length}\nSources: ${selectedSources.join(", ")}\n\n${selected.map((item, index) => `${index + 1}. ${escapeMarkdown(item.movieTitle)} · TMDB ${item.movieId}\n   ${toPosterUrl(item.posterPath) ?? "No poster available"}`).join("\n")}\n\nNothing has been saved. Call create_playlist with confirmationToken only after the user approves this exact preview.\nconfirmationToken: ${confirmationToken}`,
           images,
         );
       } catch (error) {
@@ -257,7 +312,6 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ confirmationToken }) => {
       try {
-        await authenticate(token, resource);
         const data = decodeConfirmation<{ actionId: string; title: string; description?: string; isPublic: boolean; movies: Array<{ movieId: number; movieTitle: string; posterPath: string }> }>(token!, confirmationToken, "playlist");
         const result = await convex.mutation(api.mcp.createPlaylist, { token: token!, ...data });
         const link = `${baseUrl}/cineblock/${result.blockId}`;
@@ -269,26 +323,46 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   );
 
   server.registerTool(
-    "preview_stamp",
+    "get_stamp_questions",
     {
-      description: "Resolve one exact movie or series from TMDB and preview the user's AI-written stamp. The poster, title, year, and media type are shown before save_stamp can write anything. Keep reviewText at or under 1,000 characters.",
+      description: "After find_titles identifies the exact movie or series, return a short Markdown interview for a personal CineBlock stamp. The assistant should ask the four standard questions, optionally ask one title-specific creative follow-up, and never invent the user's feelings. This is read-only and saves nothing.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),
         mediaType: z.enum(["movie", "tv"]),
-        reviewText: z.string().min(1).max(1000),
+      }),
+    },
+    async ({ tmdbId, mediaType }) => {
+      try {
+        const title = await getTitle(tmdbId, mediaType);
+        const image = await posterContent(title.posterUrl);
+        return textResult(stampInterview(title), [image]);
+      } catch (error) {
+        return errorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "preview_stamp",
+    {
+      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. Before calling this, ask the four questions from get_stamp_questions and optionally one movie-specific question. Never invent a reaction, never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters. The poster, title, year, media type, visibility, and exact Markdown are shown before save_stamp can write anything.",
+      annotations: { readOnlyHint: true, destructiveHint: false },
+      inputSchema: z.object({
+        tmdbId: z.number().int().positive(),
+        mediaType: z.enum(["movie", "tv"]),
+        reviewText: z.string().trim().min(1).max(1000).describe("The user's first-person personal feeling in Markdown, maximum 1,000 characters. No HTML, invented reactions, or critic-style summary."),
         isPublic: z.boolean(),
       }),
     },
     async ({ tmdbId, mediaType, reviewText, isPublic }) => {
       try {
-        await authenticate(token, resource);
         const title = await getTitle(tmdbId, mediaType);
         const data = { movieId: title.id, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic, mediaType, posterUrl: title.posterUrl, year: title.year };
         const confirmationToken = encodeConfirmation(token!, "stamp", data);
         const image = await posterContent(title.posterUrl);
         return textResult(
-          `STAMP PREVIEW\nTitle: ${title.title}\nYear: ${title.year ?? "unknown"}\nType: ${mediaType === "tv" ? "TV series" : "movie"}\nTMDB ID: ${title.id}\nVisibility: ${isPublic ? "public" : "private"}\nCharacters: ${reviewText.trim().length}/1000\n\nReview:\n${reviewText.trim()}\n\nNothing has been saved. Call save_stamp with confirmationToken only after the user approves this exact title, poster, visibility, and text.\nconfirmationToken: ${confirmationToken}`,
+          `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/1000\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
           [image],
         );
       } catch (error) {
@@ -300,13 +374,12 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "save_stamp",
     {
-      description: "Commit an approved preview_stamp as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp.",
+      description: "Commit an approved Markdown personal feeling as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp; do not rewrite, sanitize, or replace the approved text between preview and save.",
       annotations: { readOnlyHint: false, destructiveHint: false },
       inputSchema: z.object({ confirmationToken: z.string().min(20) }),
     },
     async ({ confirmationToken }) => {
       try {
-        await authenticate(token, resource);
         const data = decodeConfirmation<{ actionId: string; movieId: number; mediaType?: "movie" | "tv"; movieTitle: string; posterPath: string; reviewText: string; isPublic: boolean }>(token!, confirmationToken, "stamp");
         const result = await convex.mutation(api.mcp.createStamp, { token: token!, ...data });
         const link = `${baseUrl}/profile`;
@@ -320,77 +393,48 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   return server;
 }, { legacy: "stateless", responseMode: "json" });
 
-function configuredOrigins() {
-  return [process.env.MCP_ALLOWED_ORIGIN, process.env.NEXT_PUBLIC_APP_URL]
-    .flatMap((value) => value?.split(",") ?? [])
-    .map((value) => value.trim().replace(/\/$/, ""))
-    .filter(Boolean);
-}
-
-function isTransportAllowed(request: Request) {
-  const configured = configuredOrigins();
-  const requestUrl = new URL(request.url);
-  const origin = request.headers.get("origin");
-  if (origin) {
-    if (configured.length) return configured.includes(origin);
-    return process.env.NODE_ENV !== "production" && origin === requestUrl.origin;
-  }
-
-  const host = request.headers.get("host");
-  const configuredHosts = configured.flatMap((value) => {
-    try {
-      return [new URL(value).host];
-    } catch {
-      return [];
-    }
-  });
-  if (configuredHosts.length) return !!host && configuredHosts.includes(host);
-  return process.env.NODE_ENV !== "production";
-}
-
-function corsHeaders(request?: Request) {
-  const origin = request?.headers.get("origin");
-  const allowedOrigin = origin && request && isTransportAllowed(request) ? origin : undefined;
-  return {
-    ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
-    "Access-Control-Allow-Headers": "Authorization, Content-Type, Mcp-Method, Mcp-Name, Mcp-Protocol-Version",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Vary": "Origin",
-  };
-}
-
 function oauthChallenge(request: Request) {
   const origin = getBaseUrl(request);
   return `Bearer realm="cineblock", resource_metadata="${origin}/.well-known/oauth-protected-resource", scope="cineblock"`;
 }
 
 async function handle(request: NextRequest): Promise<Response> {
-  if (!isTransportAllowed(request)) {
-    return NextResponse.json({ error: "MCP origin or host is not allowed." }, { status: 403, headers: corsHeaders(request) });
+  if (!isMcpTransportAllowed(request)) {
+    return NextResponse.json({ error: "MCP origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
   }
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request) });
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: mcpCorsHeaders(request) });
+  const contentLengthHeader = request.headers.get("content-length");
+  const contentLength = contentLengthHeader === null ? 0 : Number(contentLengthHeader);
+  if (!Number.isSafeInteger(contentLength) || contentLength < 0 || contentLength > MAX_MCP_BODY_BYTES) {
+    return NextResponse.json({ error: "MCP request body is too large or invalid." }, { status: 413, headers: mcpCorsHeaders(request) });
+  }
 
   const token = extractToken(request);
   if (!token) {
-    return NextResponse.json({ error: "MCP bearer token required." }, { status: 401, headers: { ...corsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
+    return NextResponse.json({ error: "MCP bearer token required." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
   let auth: { ok: boolean; error?: string; resource?: string };
   try {
     auth = await convex.query(api.users.pingMcpToken, { token });
   } catch (error) {
     console.error("MCP auth backend error:", error);
-    return NextResponse.json({ error: "MCP authentication backend is unavailable. Deploy the latest Convex functions first." }, { status: 503, headers: corsHeaders(request) });
+    return NextResponse.json({ error: "MCP authentication backend is unavailable. Deploy the latest Convex functions first." }, { status: 503, headers: mcpCorsHeaders(request) });
   }
   if (!auth.ok) {
-    return NextResponse.json({ error: "Invalid or revoked MCP token." }, { status: 401, headers: { ...corsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
+    return NextResponse.json({ error: "Invalid or revoked MCP token." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
   if (auth.resource && auth.resource !== `${getBaseUrl(request)}/api/mcp`) {
-    return NextResponse.json({ error: "This OAuth token was issued for a different MCP resource." }, { status: 401, headers: { ...corsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
+    return NextResponse.json({ error: "This OAuth token was issued for a different MCP resource." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
 
-  const response = await mcpHandler.fetch(request);
-  for (const [key, value] of Object.entries(corsHeaders(request))) response.headers.set(key, value);
-  return response;
+  try {
+    const response = await mcpHandler.fetch(request);
+    for (const [key, value] of Object.entries(mcpCorsHeaders(request))) response.headers.set(key, value);
+    return response;
+  } catch (error) {
+    console.error("MCP request handling failed:", error instanceof Error ? error.name : "unknown error");
+    return NextResponse.json({ error: "MCP request could not be completed." }, { status: 500, headers: mcpCorsHeaders(request) });
+  }
 }
 
 export async function GET(request: NextRequest) {

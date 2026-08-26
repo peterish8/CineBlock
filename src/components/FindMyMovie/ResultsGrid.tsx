@@ -149,7 +149,7 @@ export default function ResultsGrid({
                 </p>
               </div>
 
-              <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+              <div className="mt-2" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                 <UserListButtons movie={{ id: movie.id, title: movie.title, poster_path: movie.poster_path }} isGlass={isGlass} />
               </div>
             </div>

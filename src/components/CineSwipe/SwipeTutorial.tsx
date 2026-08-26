@@ -279,7 +279,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="h-1.5 w-6 rounded-full cursor-pointer transition-transform"
-                style={isGlass ? { background: "rgba(236,72,153,0.8)" } : { background: "rgba(236,72,153,0.8)" }}
+                style={{ background: "rgba(236,72,153,0.8)" }}
                 onClick={() => { setDirection(-1); setSlide(1); }}
               />
               <motion.button
@@ -420,7 +420,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="h-1.5 w-6 rounded-full cursor-pointer transition-transform"
-                style={isGlass ? { background: "rgba(236,72,153,0.8)" } : { background: "rgba(236,72,153,0.8)" }}
+                style={{ background: "rgba(236,72,153,0.8)" }}
                 onClick={() => { setDirection(1); setSlide(2); }}
               />
             </div>

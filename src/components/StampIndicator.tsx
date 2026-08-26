@@ -24,7 +24,7 @@ export default function StampIndicator({ hasStamp, reviewText }: StampIndicatorP
       onBlur={() => setShowTooltip(false)}
     >
       <Image
-        src="/stamped_cineblock.png"
+        src="/stamps/stamped-glass.png"
         alt="Stamped"
         width={36}
         height={36}

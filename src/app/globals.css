@@ -18,147 +18,6 @@
   --color-surface-2: #1E1E1E;
 }
 
-body.theme-netflix {
-  --theme-primary: #E50914;
-  --theme-accent: #B20710;
-  --theme-match: #46D369;
-  --color-surface: #181818;
-  --color-surface-2: #222222;
-  background: #141414;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, sans-serif;
-}
-
-body.theme-netflix main {
-  background: #141414 !important;
-}
-
-body.theme-netflix ::selection {
-  background: #E50914;
-  color: #ffffff;
-}
-
-body.theme-netflix::-webkit-scrollbar { width: 8px; height: 8px; }
-body.theme-netflix::-webkit-scrollbar-track { background: #141414; }
-body.theme-netflix::-webkit-scrollbar-thumb {
-  background: #2f2f2f;
-  border: 1px solid #141414;
-}
-body.theme-netflix::-webkit-scrollbar-thumb:hover { background: #4a4a4a; }
-
-body.theme-netflix .bg-bg { background: #141414 !important; }
-body.theme-netflix .bg-surface { background: #181818 !important; }
-body.theme-netflix .bg-surface-2 { background: #222222 !important; }
-body.theme-netflix .text-brutal-white { color: #ffffff !important; }
-body.theme-netflix .text-brutal-muted { color: rgba(255,255,255,0.68) !important; }
-body.theme-netflix .text-brutal-dim { color: rgba(255,255,255,0.45) !important; }
-body.theme-netflix .border-brutal-border { border-color: rgba(255,255,255,0.10) !important; }
-body.theme-netflix .divide-brutal-border > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,0.10) !important; }
-body.theme-netflix .text-brutal-yellow { color: #ffffff !important; }
-body.theme-netflix .text-brutal-red { color: #E50914 !important; }
-body.theme-netflix .text-brutal-pink { color: #E50914 !important; }
-body.theme-netflix .text-brutal-lime { color: #46D369 !important; }
-body.theme-netflix .text-brutal-cyan { color: #ffffff !important; }
-body.theme-netflix .text-brutal-violet { color: #ffffff !important; }
-body.theme-netflix .bg-brutal-yellow { background: #ffffff !important; }
-body.theme-netflix .bg-brutal-red { background: #E50914 !important; }
-body.theme-netflix .bg-brutal-pink { background: #E50914 !important; }
-body.theme-netflix .bg-brutal-lime { background: #2b2b2b !important; }
-body.theme-netflix .bg-brutal-cyan { background: #2b2b2b !important; }
-body.theme-netflix .bg-brutal-violet { background: #2b2b2b !important; color: #ffffff !important; }
-body.theme-netflix .border-brutal-yellow { border-color: #ffffff !important; }
-body.theme-netflix .border-brutal-red,
-body.theme-netflix .border-brutal-pink { border-color: #E50914 !important; }
-body.theme-netflix .border-brutal-lime { border-color: #46D369 !important; }
-body.theme-netflix .border-brutal-cyan,
-body.theme-netflix .border-brutal-violet { border-color: rgba(255,255,255,0.20) !important; }
-
-body.theme-netflix .sticky.top-0 {
-  background: linear-gradient(180deg, rgba(20,20,20,0.96), rgba(20,20,20,0.82)) !important;
-  border-bottom-color: rgba(255,255,255,0.08) !important;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.28);
-}
-
-body.theme-netflix .brutal-card {
-  background: #181818;
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 8px;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.32);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-body.theme-netflix .brutal-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 24px 52px rgba(0,0,0,0.42);
-}
-
-body.theme-netflix .brutal-input,
-body.theme-netflix .brutal-select {
-  background: #181818;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: none;
-  color: #ffffff;
-  border-radius: 6px;
-}
-body.theme-netflix .brutal-input:focus,
-body.theme-netflix .brutal-select:focus {
-  border-color: rgba(255,255,255,0.3);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-}
-
-body.theme-netflix .brutal-btn {
-  background: #2a2a2a;
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: none;
-  color: #ffffff;
-  border-radius: 6px;
-  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
-}
-body.theme-netflix .brutal-btn:hover {
-  transform: none;
-  background: #333333;
-  border-color: rgba(255,255,255,0.26);
-  box-shadow: none;
-  color: #ffffff;
-}
-body.theme-netflix .brutal-btn:active {
-  transform: scale(0.97);
-  box-shadow: none;
-}
-
-body.theme-netflix .brutal-chip {
-  background: #202020;
-  border: 1px solid rgba(255,255,255,0.14);
-  color: rgba(255,255,255,0.78);
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 600;
-  border-radius: 999px;
-}
-
-body.theme-netflix .brutal-poster {
-  background: #181818;
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: none;
-  border-radius: 4px;
-}
-body.theme-netflix .brutal-poster:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255,255,255,0.18);
-  box-shadow: 0 16px 36px rgba(0,0,0,0.45);
-}
-
-body.theme-netflix .brutal-shimmer {
-  background: #181818;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-body.theme-netflix .brutal-shimmer::after {
-  background: linear-gradient(110deg, transparent 25%, rgba(255,255,255,0.08) 50%, transparent 75%);
-}
-
-body.theme-netflix .brutal-modal-overlay {
-  background: rgba(0,0,0,0.8);
-}
-
 body.theme-glass {
   /* ── Palette ── */
   --theme-primary: #60A5FA;
@@ -244,7 +103,7 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-/* ─── SELECTION (default + netflix) ─── */
+/* ─── SELECTION ─── */
 ::selection {
   background: var(--theme-primary);
   color: #0D0D0D;
@@ -593,7 +452,7 @@ body.theme-glass .h-\[3px\] {
 
 /* ════════════════════════════════════════════════════════════
    CINEGLASS THEME — body.theme-glass overrides
-   Scoped under body.theme-glass — never fires for default/netflix
+   Scoped under body.theme-glass — never fires for default
    Sits outside @layer so it beats every @layer components rule
    ════════════════════════════════════════════════════════════ */
 
@@ -1196,4 +1055,95 @@ body.theme-glass main .border-b-3 {
 /* Loading bar skins */
 body.theme-glass main .brutal-chip .animate-spin {
   color: #60A5FA !important;
+}
+
+/* Personal stamp letters: a small, safe Markdown reading surface. */
+.stamp-markdown {
+  color: rgba(226, 232, 240, 0.9);
+}
+.stamp-markdown > * + * {
+  margin-top: 1rem;
+}
+.stamp-markdown p {
+  white-space: normal;
+}
+.stamp-markdown h1,
+.stamp-markdown h2,
+.stamp-markdown h3,
+.stamp-markdown h4 {
+  color: #fff;
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+.stamp-markdown h1 { font-size: 1.65rem; }
+.stamp-markdown h2 { font-size: 1.35rem; }
+.stamp-markdown h3 { font-size: 1.15rem; }
+.stamp-markdown h4 { font-size: 1rem; }
+.stamp-markdown ul,
+.stamp-markdown ol {
+  padding-left: 1.4rem;
+}
+.stamp-markdown ul { list-style: disc; }
+.stamp-markdown ol { list-style: decimal; }
+.stamp-markdown li + li { margin-top: 0.35rem; }
+.stamp-markdown blockquote {
+  border-left: 2px solid rgba(125, 211, 252, 0.55);
+  color: rgba(186, 230, 253, 0.9);
+  padding-left: 1rem;
+}
+.stamp-markdown hr {
+  border: 0;
+  border-top: 1px solid rgba(125, 211, 252, 0.18);
+}
+.stamp-markdown pre {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.85rem 1rem;
+  color: rgba(186, 230, 253, 0.9);
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+
+/* Glass horizontal shelves should never fall back to a bright browser scrollbar. */
+.glass-shelf-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.62) rgba(255, 255, 255, 0.06);
+}
+.glass-shelf-scrollbar::-webkit-scrollbar {
+  height: 7px;
+}
+.glass-shelf-scrollbar::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.glass-shelf-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(96, 165, 250, 0.72), rgba(34, 211, 238, 0.58));
+}
+.glass-shelf-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.9), rgba(251, 146, 60, 0.72));
+}
+
+.glass-modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(96, 165, 250, 0.62) rgba(255, 255, 255, 0.06);
+}
+
+.glass-modal-scrollbar::-webkit-scrollbar {
+  width: 7px;
+}
+
+.glass-modal-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.glass-modal-scrollbar::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(2, 8, 23, 0.7);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(34, 211, 238, 0.78), rgba(96, 165, 250, 0.62));
 }

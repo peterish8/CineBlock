@@ -30,7 +30,16 @@ function GrossBadge({ revenue, isGlass }: { revenue: number; isGlass: boolean })
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={(e) => { e.stopPropagation(); setShowExact(v => !v); }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          setShowExact((v) => !v);
+        }
+      }}
       onMouseEnter={() => setShowExact(true)}
       onMouseLeave={() => setShowExact(false)}
       title={exact}
@@ -235,9 +244,12 @@ function BoxOfficeContent() {
                   </div>
 
                   <div
+                    role="button"
+                    tabIndex={0}
                     className={`relative aspect-[2/3] w-full cursor-pointer z-10 block ${isGlass ? "rounded-xl overflow-hidden" : "brutal-poster"}`}
                     style={isGlass ? { border: "1px solid rgba(255,255,255,0.10)" } : undefined}
                     onClick={() => setSelectedMovie(movie)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedMovie(movie); } }}
                   >
                     {movie.poster_path ? (
                       <Image src={posterUrl(movie.poster_path, "medium")} alt={title} fill className="object-cover" sizes="17vw" loading="lazy" />
@@ -258,7 +270,10 @@ function BoxOfficeContent() {
                     {/* Action buttons */}
                     <div className="absolute top-0 right-0 flex flex-col z-10">
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleLiked(movie); } }}
                         className={`px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${
                           isGlass
                             ? liked_ ? "bg-rose-500/70 text-white" : "bg-black/60 text-slate-400 hover:text-rose-400"
@@ -269,7 +284,10 @@ function BoxOfficeContent() {
                         <Heart className={`w-3.5 h-3.5 ${liked_ ? "fill-current" : ""}`} strokeWidth={2.5} />
                       </div>
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleWatchlist(movie); } }}
                         className={`px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${
                           isGlass
                             ? inWl ? "bg-emerald-500/70 text-white" : "bg-black/60 text-slate-400 hover:text-emerald-400"
@@ -280,7 +298,10 @@ function BoxOfficeContent() {
                         <Bookmark className={`w-3.5 h-3.5 ${inWl ? "fill-current" : ""}`} strokeWidth={2.5} />
                       </div>
                       <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => { e.stopPropagation(); toggleWatched(movie); }}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleWatched(movie); } }}
                         className={`px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors ${
                           isGlass
                             ? watched_ ? "bg-cyan-500/70 text-white" : "bg-black/60 text-slate-400 hover:text-cyan-400"

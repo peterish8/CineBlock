@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { AnimatePresence } from "framer-motion";
 import { Bookmark, Sparkles, Film, Tv } from "lucide-react";
 import Link from "next/link";
 import CommandHub from "@/components/CommandHub";
@@ -295,10 +296,15 @@ function HomeContent() {
 
 
       {/* Modals */}
-      <MovieModal
-        movie={selectedMovie}
-        onClose={closeMovie}
-      />
+      <AnimatePresence mode="wait">
+        {selectedMovie && (
+          <MovieModal
+            key={selectedMovie.id}
+            movie={selectedMovie}
+            onClose={closeMovie}
+          />
+        )}
+      </AnimatePresence>
       <WatchlistPanel
         isOpen={watchlistOpen}
         onClose={() => setWatchlistOpen(false)}

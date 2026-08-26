@@ -118,7 +118,6 @@ function isRateLimited(request: NextRequest): boolean {
 const MOVIE_LIST_ACTIONS = new Set([
   "recommendations",
   "similar",
-  "stream-discover",
   "box-office",
   "discover", // default action
 ]);
@@ -436,49 +435,6 @@ export async function GET(request: NextRequest) {
         if (lang) params.set("with_original_language", lang.replace(/,/g, "|"));
         if (rating) params.set("vote_average.gte", rating);
         if (runtime) params.set("with_runtime.lte", runtime);
-        url = `${TMDB_BASE}/discover/tv?${params.toString()}`;
-        break;
-      }
-
-      case "stream-discover": {
-        // Movies available on a specific streaming platform
-        const providerId = searchParams.get("provider_id") || "";
-        const region = searchParams.get("region") || "US";
-        const params = new URLSearchParams({
-          language: "en-US",
-          include_adult: "false",
-          include_video: "false",
-          sort_by: searchParams.get("sort") || "popularity.desc",
-          "vote_count.gte": "20",
-          page,
-        });
-        if (providerId) {
-          params.set("with_watch_providers", providerId);
-          params.set("watch_region", region);
-        }
-        const genre = searchParams.get("genre");
-        if (genre) params.set("with_genres", genre);
-        url = `${TMDB_BASE}/discover/movie?${params.toString()}`;
-        break;
-      }
-
-      case "stream-discover-tv": {
-        // TV shows available on a specific streaming platform
-        const providerId = searchParams.get("provider_id") || "";
-        const region = searchParams.get("region") || "US";
-        const params = new URLSearchParams({
-          language: "en-US",
-          include_adult: "false",
-          sort_by: searchParams.get("sort") || "popularity.desc",
-          "vote_count.gte": "20",
-          page,
-        });
-        if (providerId) {
-          params.set("with_watch_providers", providerId);
-          params.set("watch_region", region);
-        }
-        const genre = searchParams.get("genre");
-        if (genre) params.set("with_genres", genre);
         url = `${TMDB_BASE}/discover/tv?${params.toString()}`;
         break;
       }

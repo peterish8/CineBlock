@@ -45,7 +45,7 @@ export default function SwipeDeckView() {
   if (authLoading) {
     return (
       <div
-        className={`flex min-h-[80vh] items-center justify-center ${isGlass ? "" : ""}`}
+        className="flex min-h-[80vh] items-center justify-center"
         style={isGlass ? { background: "#020817" } : undefined}
       >
         <BackButton isGlass={isGlass} />
@@ -61,7 +61,7 @@ export default function SwipeDeckView() {
   if (!isAuthenticated) {
     return (
       <div
-        className={`flex min-h-[80vh] flex-col items-center justify-center gap-6 px-4 text-center ${isGlass ? "" : ""}`}
+        className="flex min-h-[80vh] flex-col items-center justify-center gap-6 px-4 text-center"
         style={isGlass ? { background: "#020817" } : undefined}
       >
         <BackButton isGlass={isGlass} />

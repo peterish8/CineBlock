@@ -1,5 +1,8 @@
 "use client";
 
+// LEGACY READER: the original envelope/flap/letter animation is intentionally
+// preserved here while Your Film Feelings uses the new Glass card reader.
+
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,15 +69,19 @@ function EnvelopeModal({
 
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-[9999] overflow-y-auto"
       style={{ background: "rgba(0,0,0,0.95)" }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
       onClick={onClose}
     >
       <div
-        style={{ width: "min(440px, 86vw)", position: "relative" }}
+        className="flex min-h-full items-center justify-center py-10 px-4"
+      >
+      <div
+        style={{ width: "min(620px, 94vw)", position: "relative" }}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         {/* ── Close button ── */}
         <motion.button
@@ -117,8 +124,12 @@ function EnvelopeModal({
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 0 }}
             style={{
-              position: "absolute",
-              top: 0, left: 8, right: 8,
+              position: phase >= 2 ? "relative" : "absolute",
+              top: phase >= 2 ? undefined : 0,
+              left: phase >= 2 ? 0 : 8,
+              right: phase >= 2 ? 0 : 8,
+              width: phase >= 2 ? "100%" : undefined,
+              overflow: "visible",
               zIndex: phase >= 2 ? 10 : 1,
               background: "#E8DFC4",
               backgroundImage: `
@@ -154,7 +165,7 @@ function EnvelopeModal({
               `,
             }} />
 
-            <div style={{ padding: "28px 28px 14px", position: "relative" }}>
+            <div style={{ padding: "28px 32px 18px", position: "relative" }}>
               {/* header */}
               <div style={{ marginBottom: 18, paddingBottom: 14, borderBottom: `1px solid ${isDraft ? "#444" : "rgba(160,140,90,0.4)"}` }}>
                 <p style={{ fontFamily: "'Georgia', serif", fontSize: 10, color: isDraft ? "#666" : "#9a8a50", textTransform: "uppercase", letterSpacing: "0.15em" }}>
@@ -166,8 +177,8 @@ function EnvelopeModal({
               </div>
 
               {/* review body */}
-              <p style={{ fontFamily: "'Georgia', serif", fontSize: 14, lineHeight: 1.9, color: isDraft ? "#555" : "#4a4020", whiteSpace: "pre-wrap", wordBreak: "break-word", fontStyle: "italic" }}>
-                {stamp.reviewText || <span style={{ color: "#aaa" }}>No review written yet.</span>}
+              <p style={{ fontFamily: "'Georgia', serif", fontSize: 15, lineHeight: 1.7, color: isDraft ? "#555" : "#4a4020", whiteSpace: "pre-wrap", overflowWrap: "anywhere", wordBreak: "break-word", fontStyle: "italic" }}>
+                {stamp.reviewText || <span style={{ color: "#aaa" }}>No feeling written yet.</span>}
               </p>
 
               {/* signature */}
@@ -175,7 +186,7 @@ function EnvelopeModal({
                 <span style={{ fontFamily: "'Georgia', serif", fontSize: 10, color: isDraft ? "#555" : "#9a8a50", fontStyle: "italic", letterSpacing: "0.1em" }}>
                   — {stamp.movieTitle}
                 </span>
-                <Image src={isDraft ? "/draft_cineblock.png" : "/stamped_cineblock.png"} alt="" width={38} height={38} unoptimized style={{ opacity: 0.55, filter: "sepia(0.3)" }} />
+                <Image src={isDraft ? "/stamps/draft-glass.png" : "/stamps/stamped-glass.png"} alt="" width={38} height={38} unoptimized style={{ opacity: 0.55, filter: "sepia(0.3)" }} />
               </div>
             </div>
 
@@ -211,13 +222,16 @@ function EnvelopeModal({
           <motion.div
             layoutId={`envelope-${stamp._id}`}
             style={{
-              position: "relative",
+              position: phase >= 2 ? "absolute" : "relative",
+              top: 0,
+              left: 0,
               width: "100%",
               aspectRatio: "3/2",
               background: isDraft ? "#1e1e1e" : "#1a1700",
               border: `3px solid ${accent}`,
               overflow: "hidden",
               zIndex: 2,
+              pointerEvents: phase >= 2 ? "none" : "auto",
               willChange: "transform, opacity",
               boxShadow: `0 8px 40px rgba(0,0,0,0.5), 4px 4px 0 ${accentDim}`,
             }}
@@ -270,7 +284,7 @@ function EnvelopeModal({
                   backfaceVisibility: "hidden", /* hides it when flap flips past 90 degrees */
                 }}>
                   <Image
-                    src={isDraft ? "/draft_cineblock.png" : "/stamped_cineblock.png"}
+                    src={isDraft ? "/stamps/draft-glass.png" : "/stamps/stamped-glass.png"}
                     alt="seal" width={84} height={84} unoptimized
                     style={{ opacity: isDraft ? 0.5 : 0.95, filter: isDraft ? "grayscale(1)" : "drop-shadow(0 4px 8px rgba(0,0,0,0.4))" }}
                   />
@@ -311,6 +325,7 @@ function EnvelopeModal({
           </motion.div>
 
         </div>
+      </div>
       </div>
     </motion.div>,
     document.body
@@ -392,7 +407,7 @@ export default function StampCard({ stamp, isOwner, isGlass = false, onDelete, o
 
         {/* seal */}
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <Image src={isDraft ? "/draft_cineblock.png" : "/stamped_cineblock.png"} alt="seal" width={88} height={88} unoptimized
+          <Image src={isDraft ? "/stamps/draft-glass.png" : "/stamps/stamped-glass.png"} alt="seal" width={88} height={88} unoptimized
             style={{ opacity: isDraft ? 0.4 : 0.95, filter: isDraft ? "grayscale(1)" : "drop-shadow(0 0 12px rgba(255,225,86,0.5))" }} />
         </div>
 

@@ -15,7 +15,7 @@ function AuthorizeContent() {
   const state = params.get("state");
   const codeChallenge = params.get("code_challenge") ?? "";
   const codeChallengeMethod = params.get("code_challenge_method") ?? "";
-  const client = useQuery(api.mcp.getMcpClient, clientId ? { clientId } : "skip");
+  const client = useQuery(api.mcp.getMcpClient, clientId.length <= 256 && clientId ? { clientId } : "skip");
   const createCode = useMutation(api.mcp.createMcpAuthorizationCode);
   const [error, setError] = useState("");
   const [authorizing, setAuthorizing] = useState(false);
@@ -39,8 +39,8 @@ function AuthorizeContent() {
     );
   }
 
-  const validRedirect = !!client && client.redirectUris.includes(redirectUri);
-  const validRequest = validRedirect && !!resource && !!codeChallenge && codeChallengeMethod === "S256";
+  const validRedirect = !!client && redirectUri.length <= 2048 && client.redirectUris.includes(redirectUri);
+  const validRequest = validRedirect && resource.length <= 2048 && !!resource && /^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge) && codeChallengeMethod === "S256" && (!state || state.length <= 2048);
 
   const authorize = async () => {
     setError("");

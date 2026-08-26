@@ -67,8 +67,11 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
 
     return (
       <div
+        role="button"
+        tabIndex={0}
         className={`flex gap-3 px-4 py-3 cursor-pointer group transition-colors duration-150 ${isGlass ? "hover:bg-white/5" : "hover:bg-surface"}`}
         onClick={() => onMovieClick(movie)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMovieClick(movie); } }}
       >
         <div className={`w-12 h-[68px] flex-shrink-0 overflow-hidden ${isGlass ? "rounded-lg" : "border-2 border-brutal-border bg-surface-2"}`}>
           {movie.poster_path ? (
@@ -99,7 +102,14 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
   const divider = isGlass ? "1px solid rgba(255,255,255,0.07)" : undefined;
 
   return (
-    <div className="fixed inset-0 z-[90] flex justify-end" onClick={onClose}>
+    <div
+      role="button"
+      tabIndex={0}
+      aria-label="Close"
+      className="fixed inset-0 z-[90] flex justify-end"
+      onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
+    >
       {/* Backdrop */}
       <div
         className={`absolute inset-0 transition-opacity duration-280 ${closing ? "opacity-0" : "opacity-100"}`}
@@ -117,6 +127,7 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
           boxShadow: "-32px 0 80px rgba(0,0,0,0.8)",
         } : undefined}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         {/* Top accent */}
         {isGlass && <div style={{ height: "2px", background: "linear-gradient(90deg, transparent, rgba(96,165,250,0.6), rgba(52,211,153,0.4), transparent)", flexShrink: 0 }} />}

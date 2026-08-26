@@ -20,12 +20,12 @@ Live: **https://cineblock.in**
 ### Glass UI Theme (app-wide)
 A premium visual style using dark semi-transparent surfaces, backdrop-blur, animated depth orbs, and micro-interactions — inspired by visionOS, Linear, and Raycast.
 
-- Toggled globally via a theme switch; every component reads `useThemeMode()` and swaps class sets
+- Permanently enabled for every user; `useThemeMode()` keeps shared components on the Glass visual system
 - Animated depth orbs (`globals.css`) pulse slowly behind all content in glass mode
 - Glass-aware components: `PosterCard`, `MovieModal`, `MobileBottomNav`, `CommandHub`, `TrendingHero`, `ToastProvider`, `MovieActionRail`, `UserListButtons`, `SkeletonCard`, `RadarSkeleton`
-- **Profile page** — all sections (stats, lists, CLI token panel, stamp grid) use glass surfaces
+- **Profile page** — identity, stats, lists, data privacy, and the MCP access panel use glass surfaces; stamps live on the dedicated `/stamps` page
 - **Watch Blocks page** — `CreateBlockModal`, `JoinBlockModal`, room cards, invite panel, and empty state all switch to glass-dark cards with violet/green/cyan accents
-- Brutalist theme fully preserved for non-glass users
+- Legacy brutalist classes remain only for compatibility and are not exposed as a user-selectable theme
 
 ### CineSwipe — Gesture-Based Discovery (`/swipe`)
 Full-screen swipe deck for discovering movies with gestures or keyboard:
@@ -77,8 +77,10 @@ Secure the CLI without exposing your password.
 
 - **Schema fields:** `cliToken`, `cliSearchesUsed`, `cliSearchesResetAt` (convex/schema.ts)
 - **Rate limit:** 15 CLI requests per day, enforced in `/api/cli`
-- **User flow:** Profile page → *Generate Token* → copy `cb_...` token → pass to CLI
+- **User flow:** The CLI token UI is intentionally hidden until the npm package is live; keep the terminal route/package contract separate from the MCP controls shown in Profile.
 - Token is stored locally in `~/.cineblock_token` for subsequent runs
+
+The `cb_...` credential is terminal-only. It is not accepted by `/api/mcp` and is not the credential used by ChatGPT. ChatGPT/custom MCP clients use a separate `mcp_...` token (or OAuth) to read your library, preview exact movie identities, create public/private CineBlocks, and save personal Markdown stamps. The stamp flow asks four feeling-focused questions plus an optional movie-specific prompt before showing the exact poster, title, visibility, and Markdown for approval. CineBlock Terminal offers AI natural-language search with the user’s own Gemini/Groq/OpenRouter key, plus a Guided no-AI mode that asks story signal, language, and release-era questions and returns five server-ranked results.
 
 ### Watch Blocks (Collaborative Rooms)
 Create a named room, share a 6-character invite code with friends, and build a shared movie list together.
@@ -117,7 +119,8 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 | `/watched` | Watched log (filter + multi-select) |
 | `/blocks` | Watch Blocks lobby |
 | `/blocks/[roomId]` | Shared room |
-| `/profile` | User profile, stats, CLI token |
+| `/profile` | User profile, stats, MCP access |
+| `/stamps` | Personal stamped films and drafts |
 | `/radar` | Upcoming releases radar |
 | `/recommendations` | Personalized picks |
 | `/search` | Global movie/TV search |
@@ -126,7 +129,6 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 | `/u/[username]` | Public user profile |
 | `/box-office` | Box office charts |
 | `/news` | Movie news |
-| `/streaming` | Streaming availability |
 
 ---
 
@@ -153,7 +155,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Toggle **Glass** in settings to switch themes.
+Open `http://localhost:3000`. Glass is enabled by default and is the only user-facing theme.
 
 ### CLI Usage
 

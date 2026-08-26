@@ -6,8 +6,11 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 const MAX_BLOCKS_PER_USER = 15;
 const MAX_MOVIES_PER_BLOCK = 35;
 const STAMP_REVIEW_MAX = 1000;
+const MAX_TITLE_LENGTH = 200;
+const MAX_POSTER_PATH_LENGTH = 2048;
 const PLAYLIST_MIN_INTERVAL_MS = 4000;
 const STAMP_MIN_INTERVAL_MS = 2000;
+const MCP_ACCESS_TOKEN_REGEX = /^mcp_[0-9a-f]{64}$/;
 
 async function hashMcpToken(token: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
@@ -15,7 +18,7 @@ async function hashMcpToken(token: string) {
 }
 
 async function getUserByToken(ctx: QueryCtx | MutationCtx, token: string) {
-  if (!token.startsWith("mcp_") || token.length !== 68) return null;
+  if (!MCP_ACCESS_TOKEN_REGEX.test(token)) return null;
   const tokenHash = await hashMcpToken(token);
   const user = await ctx.db.query("users").withIndex("by_mcpTokenHash", (q) => q.eq("mcpTokenHash", tokenHash)).first()
     ?? await ctx.db.query("users").withIndex("by_mcpToken", (q) => q.eq("mcpToken", token)).first();
@@ -54,6 +57,7 @@ const movieValidator = v.object({
 
 function validateRedirectUri(redirectUri: string) {
   try {
+    if (redirectUri.length === 0 || redirectUri.length > 2048) throw new Error("Unsupported redirect URI");
     const url = new URL(redirectUri);
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (url.hash || url.username || url.password || (url.protocol !== "https:" && !(local && url.protocol === "http:"))) {
@@ -66,13 +70,25 @@ function validateRedirectUri(redirectUri: string) {
 
 function validateResource(resource: string) {
   try {
+    if (resource.length > 2048) throw new Error("Unsupported resource");
     const url = new URL(resource);
-    if (!url.pathname.endsWith("/api/mcp") || (url.protocol !== "https:" && !(url.hostname === "localhost" && url.protocol === "http:"))) {
+    const configuredBase = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+    const configuredOrigin = configuredBase ? new URL(configuredBase).origin : null;
+    if (url.pathname !== "/api/mcp" || url.search || url.hash || (configuredOrigin && url.origin !== configuredOrigin) || (url.protocol !== "https:" && !(url.hostname === "localhost" && url.protocol === "http:"))) {
       throw new Error("Unsupported resource");
     }
   } catch {
     throw new ConvexError("Invalid MCP resource.");
   }
+}
+
+function validateMoviePayload(movie: { movieId: number; movieTitle: string; posterPath: string }) {
+  if (!Number.isSafeInteger(movie.movieId) || movie.movieId <= 0) throw new ConvexError("Invalid movie ID.");
+  const movieTitle = movie.movieTitle.trim();
+  if (!movieTitle || movieTitle.length > MAX_TITLE_LENGTH) throw new ConvexError("Every playlist title must be between 1 and 200 characters.");
+  const posterPath = movie.posterPath.trim();
+  if (posterPath.length > MAX_POSTER_PATH_LENGTH) throw new ConvexError("Poster path is too long.");
+  return { movieId: movie.movieId, movieTitle, posterPath };
 }
 
 function randomToken(prefix = "mcp_") {
@@ -153,9 +169,8 @@ export const createPlaylist = mutation({
     const unique = new Map<number, { movieId: number; movieTitle: string; posterPath: string; addedAt: number }>();
     const now = Date.now();
     for (const movie of args.movies) {
-      const movieTitle = movie.movieTitle.trim();
-      if (!movieTitle) throw new ConvexError("Every playlist title must have a name.");
-      if (!unique.has(movie.movieId)) unique.set(movie.movieId, { movieId: movie.movieId, movieTitle, posterPath: movie.posterPath, addedAt: now });
+      const normalized = validateMoviePayload(movie);
+      if (!unique.has(normalized.movieId)) unique.set(normalized.movieId, { ...normalized, addedAt: now });
     }
     const movies = Array.from(unique.values());
     const blockId = await ctx.db.insert("blocks", {
@@ -208,8 +223,11 @@ export const createStamp = mutation({
     }
 
     const reviewText = args.reviewText.trim();
-    if (!reviewText) throw new ConvexError("Review text cannot be empty.");
-    if (reviewText.length > STAMP_REVIEW_MAX) throw new ConvexError(`Review text exceeds ${STAMP_REVIEW_MAX} characters.`);
+    if (!reviewText) throw new ConvexError("Feeling text cannot be empty.");
+    if (reviewText.length > STAMP_REVIEW_MAX) throw new ConvexError(`Feeling text exceeds ${STAMP_REVIEW_MAX} characters.`);
+    const movieTitle = args.movieTitle.trim();
+    if (!Number.isSafeInteger(args.movieId) || args.movieId <= 0 || !movieTitle || movieTitle.length > MAX_TITLE_LENGTH) throw new ConvexError("Invalid stamp title or movie ID.");
+    if (args.posterPath.trim().length > MAX_POSTER_PATH_LENGTH) throw new ConvexError("Poster path is too long.");
 
     await enforceMcpRateLimit(ctx, user._id as Id<"users">, "mcpCreateStamp", STAMP_MIN_INTERVAL_MS);
 
@@ -217,7 +235,7 @@ export const createStamp = mutation({
     if (existing && !existing.isDraft) throw new ConvexError("You already stamped this title.");
 
     if (existing) {
-      await ctx.db.patch(existing._id, { mediaType: args.mediaType, movieTitle: args.movieTitle, posterPath: args.posterPath, reviewText, isPublic: args.isPublic, isDraft: false, createdAt: Date.now() });
+      await ctx.db.patch(existing._id, { mediaType: args.mediaType, movieTitle, posterPath: args.posterPath.trim(), reviewText, isPublic: args.isPublic, isDraft: false, createdAt: Date.now() });
       await ctx.db.insert("mcp_action_receipts", {
         userId: user._id as Id<"users">,
         actionId: args.actionId,
@@ -233,8 +251,8 @@ export const createStamp = mutation({
       userId: user._id as Id<"users">,
       movieId: args.movieId,
       mediaType: args.mediaType,
-      movieTitle: args.movieTitle,
-      posterPath: args.posterPath,
+      movieTitle,
+      posterPath: args.posterPath.trim(),
       reviewText,
       isPublic: args.isPublic,
       isDraft: false,
@@ -258,14 +276,17 @@ export const registerMcpClient = mutation({
     redirectUris: v.array(v.string()),
   },
   handler: async (ctx, args) => {
+    const clientName = args.clientName?.trim();
+    if (clientName && clientName.length > MAX_TITLE_LENGTH) throw new ConvexError("Client name is too long.");
     if (args.redirectUris.length < 1 || args.redirectUris.length > 10) {
       throw new ConvexError("A client must register between one and ten redirect URIs.");
     }
     for (const redirectUri of args.redirectUris) validateRedirectUri(redirectUri);
+    if (new Set(args.redirectUris).size !== args.redirectUris.length) throw new ConvexError("Redirect URIs must be unique.");
     const clientId = `cb_client_${randomToken("")}`;
     await ctx.db.insert("mcp_oauth_clients", {
       clientId,
-      clientName: args.clientName?.trim().slice(0, 120) || undefined,
+      clientName: clientName || undefined,
       redirectUris: args.redirectUris,
       createdAt: Date.now(),
     });
@@ -291,7 +312,7 @@ export const createMcpAuthorizationCode = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new ConvexError("Sign in to authorize CineBlock.");
-    if (args.codeChallengeMethod !== "S256" || args.codeChallenge.length < 43 || args.codeChallenge.length > 128) {
+    if (args.clientId.length === 0 || args.clientId.length > 256 || args.redirectUri.length > 2048 || args.codeChallengeMethod !== "S256" || !/^[A-Za-z0-9_-]{43,128}$/.test(args.codeChallenge)) {
       throw new ConvexError("OAuth authorization requires an S256 PKCE challenge.");
     }
     validateRedirectUri(args.redirectUri);
@@ -342,6 +363,9 @@ export const exchangeMcpAuthorizationCode = mutation({
     resource: v.string(),
   },
   handler: async (ctx, args) => {
+    if (args.code.length === 0 || args.code.length > 512 || args.clientId.length === 0 || args.clientId.length > 256 || args.redirectUri.length > 2048 || !/^[A-Za-z0-9._~-]{43,128}$/.test(args.codeVerifier)) {
+      throw new ConvexError("Invalid authorization request.");
+    }
     validateRedirectUri(args.redirectUri);
     validateResource(args.resource);
     const codeHash = await hashMcpToken(args.code);
@@ -360,6 +384,9 @@ export const exchangeMcpAuthorizationCode = mutation({
 export const refreshMcpTokens = mutation({
   args: { refreshToken: v.string(), clientId: v.string(), resource: v.string() },
   handler: async (ctx, args) => {
+    if (!/^mcp_refresh_[0-9a-f]{64}$/.test(args.refreshToken) || args.clientId.length === 0 || args.clientId.length > 256) {
+      throw new ConvexError("Invalid or expired refresh token.");
+    }
     validateResource(args.resource);
     const refreshTokenHash = await hashMcpToken(args.refreshToken);
     const token = await ctx.db.query("mcp_oauth_tokens")

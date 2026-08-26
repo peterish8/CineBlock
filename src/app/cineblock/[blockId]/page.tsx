@@ -970,9 +970,13 @@ export default function CineBlockViewPage() {
       {isOwner && showMobileSearch && (
         <div className="fixed inset-0 z-[900] lg:hidden flex flex-col justify-end">
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Close search"
             className="absolute inset-0"
             style={isGlass ? { background: "rgba(2,8,23,0.75)", backdropFilter: "blur(8px)" } : { background: "rgba(0,0,0,0.70)" }}
             onClick={() => setShowMobileSearch(false)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowMobileSearch(false); } }}
           />
           <div
             className={`relative w-full flex flex-col animate-slide-up overflow-hidden ${isGlass ? "rounded-t-2xl" : "bg-bg border-t-3 border-brutal-border"}`}

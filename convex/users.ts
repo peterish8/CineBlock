@@ -315,6 +315,8 @@ async function hashMcpToken(token: string) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+const MCP_ACCESS_TOKEN_REGEX = /^mcp_[0-9a-f]{64}$/;
+
 export const generateMcpToken = mutation({
   args: {},
   handler: async (ctx) => {
@@ -338,6 +340,7 @@ export const generateMcpToken = mutation({
 export const pingMcpToken = query({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
+    if (!MCP_ACCESS_TOKEN_REGEX.test(token)) return { ok: false, error: "Invalid MCP token" };
     const tokenHash = await hashMcpToken(token);
     const user = await ctx.db
       .query("users")

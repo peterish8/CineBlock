@@ -75,9 +75,7 @@ export default function AuthButton() {
     <span className="w-px self-stretch" style={{ background: isGlass ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.15)" }} />
   );
 
-  const itemClass = `flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono font-bold tracking-wider transition-colors duration-150 whitespace-nowrap ${
-    isGlass ? "text-white/70 hover:text-white" : "text-white/70 hover:text-white"
-  }`;
+  const itemClass = "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono font-bold tracking-wider transition-colors duration-150 whitespace-nowrap text-white/70 hover:text-white";
 
   return (
     <div ref={ref} className="relative flex items-center">

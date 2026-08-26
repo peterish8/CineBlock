@@ -71,8 +71,11 @@ export default function RecommendationsSection({ onMovieClick }: Recommendations
       <div className="max-w-[1600px] mx-auto">
         {/* Header */}
         <div
+          role="button"
+          tabIndex={0}
           className="flex items-center justify-between mb-4 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => setIsExpanded(!isExpanded)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsExpanded(!isExpanded); } }}
         >
           <div className="flex items-center gap-3">
             <Sparkles className={`w-5 h-5 ${isGlass ? "text-amber-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />

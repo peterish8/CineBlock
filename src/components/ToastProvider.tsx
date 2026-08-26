@@ -42,27 +42,6 @@ const glassConfig = {
   },
 };
 
-const netflixConfig = {
-  success: {
-    border: "rgba(70,211,105,0.35)",
-    glow: "rgba(70,211,105,0.16)",
-    icon: "#46D369",
-    bar: "#46D369",
-  },
-  error: {
-    border: "rgba(229,9,20,0.55)",
-    glow: "rgba(229,9,20,0.22)",
-    icon: "#E50914",
-    bar: "#E50914",
-  },
-  info: {
-    border: "rgba(255,255,255,0.18)",
-    glow: "rgba(255,255,255,0.08)",
-    icon: "#FFFFFF",
-    bar: "#E50914",
-  },
-};
-
 const brutalBg = {
   success: "bg-brutal-lime text-black",
   error: "bg-red-600 text-white",
@@ -74,7 +53,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const timeoutsRef = useRef<Map<number, number>>(new Map());
   const theme = useThemeMode();
   const isGlass = theme === "glass";
-  const isNetflix = theme === "netflix";
 
   useEffect(() => {
     const timeouts = timeoutsRef.current;
@@ -102,7 +80,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         <AnimatePresence mode="popLayout">
           {toasts.map((toast) => {
             const glass = glassConfig[toast.type];
-            const netflix = netflixConfig[toast.type];
 
             if (isGlass) {
               return (
@@ -136,44 +113,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                   <motion.div
                     className="absolute bottom-0 left-0 h-[2px] rounded-b-2xl"
                     style={{ background: glass.bar }}
-                    initial={{ width: "100%" }}
-                    animate={{ width: "0%" }}
-                    transition={{ duration: DURATION_MS / 1000, ease: "linear" }}
-                  />
-                </motion.div>
-              );
-            }
-
-            if (isNetflix) {
-              return (
-                <motion.div
-                  key={toast.id}
-                  role="status"
-                  aria-live="polite"
-                  className="pointer-events-auto relative overflow-hidden rounded-md border px-4 py-3"
-                  style={{
-                    background: "#181818",
-                    borderColor: netflix.border,
-                    boxShadow: `0 18px 40px rgba(0,0,0,0.58), 0 0 22px ${netflix.glow}`,
-                  }}
-                  initial={{ opacity: 0, y: -12, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                  transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                >
-                  <div className="flex items-start gap-3">
-                    {toast.type === "success" ? (
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" style={{ color: netflix.icon }} />
-                    ) : toast.type === "error" ? (
-                      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: netflix.icon }} />
-                    ) : (
-                      <Info className="mt-0.5 h-4 w-4 shrink-0" style={{ color: netflix.icon }} />
-                    )}
-                    <span className="text-[13px] font-semibold leading-relaxed text-white/92">{toast.message}</span>
-                  </div>
-                  <motion.div
-                    className="absolute bottom-0 left-0 h-[2px]"
-                    style={{ background: netflix.bar }}
                     initial={{ width: "100%" }}
                     animate={{ width: "0%" }}
                     transition={{ duration: DURATION_MS / 1000, ease: "linear" }}

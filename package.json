@@ -10,14 +10,14 @@
     "lint": "eslint . --max-warnings=0"
   },
   "dependencies": {
-    "@auth/core": "^0.37.0",
-    "@convex-dev/auth": "^0.0.91",
+    "@auth/core": "^0.41.3",
+    "@convex-dev/auth": "^0.0.95",
     "@modelcontextprotocol/server": "^2.0.0",
     "@vercel/analytics": "^2.0.1",
-    "convex": "^1.35.1",
+    "convex": "^1.45.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.400.0",
-    "next": "^16.1.6",
+    "next": "^16.3.3",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "rss-parser": "^3.13.0",
@@ -29,8 +29,8 @@
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^16.1.6",
-    "postcss": "^8.4.0",
+    "eslint-config-next": "^16.3.3",
+    "postcss": "^8.5.23",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.5.0"
   }

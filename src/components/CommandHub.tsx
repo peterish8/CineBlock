@@ -2,18 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Palette, Trophy, Tv2, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle, Radio } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Trophy, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle, Radio } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
 import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
-import StampSearchModal from "./StampSearchModal";
-import { applyThemeToDocument, useThemeMode } from "@/hooks/useThemeMode";
-import { getNextTheme } from "@/lib/themeConfig";
-
-import { ENABLE_STREAMING } from "@/lib/featureFlags";
+import { useThemeMode } from "@/hooks/useThemeMode";
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 
@@ -42,7 +38,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [keyword, setKeyword] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [stampSearchOpen, setStampSearchOpen] = useState(false);
   const currentTheme = useThemeMode();
   const [browseOpen, setBrowseOpen] = useState(false);
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false);
@@ -114,10 +109,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
     setKeyword(randomKeyword);
     emitFilters(query, randomGenre.id.toString(), year, language, randomSort, randomRating, runtime, randomKeyword);
   }, [emitFilters, query, year, language, runtime]);
-
-  const toggleTheme = () => {
-    applyThemeToDocument(getNextTheme(currentTheme));
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -251,7 +242,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           title="CineBlock"
           onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}
         >
-          <Image src="/logo.png" alt="CineBlock" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
+          <Image src="/brand/cineblock-icon-256.png" alt="CineBlock" width={40} height={40} className="w-10 h-10 object-contain" unoptimized />
         </Link>
 
         {/* Search bar — grows to fill middle */}
@@ -330,7 +321,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         {/* Right side controls — desktop only (mobile uses bottom nav) */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
 
-          {/* BROWSE dropdown — Streaming, Box Office, Franchise Vault, News */}
+          {/* BROWSE dropdown — Box Office, Franchise Vault, News */}
           <div ref={browseRef} className="relative hidden lg:block">
             <button
               ref={browseButtonRef}
@@ -422,7 +413,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   </div>
 
                   {[
-                    ...(ENABLE_STREAMING ? [{ href: "/streaming", icon: Tv2,        label: "Streaming",       sub: "Stream anywhere",    iconColor: "#60A5FA", glow: "rgba(96,165,250,0.25)" }] : []),
                     { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover",  iconColor: "#F472B6", glow: "rgba(244,114,182,0.25)" },
                     { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks", iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
                     { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits",   iconColor: "#A3E635", glow: "rgba(163,230,53,0.25)" },
@@ -499,8 +489,9 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   <div className="mx-3 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
 
                   {/* Stamp a Film */}
-                  <button
-                    onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                  <Link
+                    href="/stamps"
+                    onClick={() => setBrowseOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left w-full"
                     style={{ color: "rgba(255,255,255,0.85)" }}
                     onMouseEnter={e => {
@@ -521,7 +512,7 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                       <span className="text-[13px] font-semibold leading-tight text-white">Stamp a Film</span>
                       <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Mark as watched</span>
                     </div>
-                  </button>
+                  </Link>
 
                   {/* Release Radar */}
                   <Link
@@ -572,7 +563,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                 </div>
                 <div className="flex flex-col flex-1 overflow-y-auto">
                   {[
-                    ...(ENABLE_STREAMING ? [{ href: "/streaming", icon: Tv2, label: "STREAMING", color: "hover:text-brutal-yellow hover:bg-brutal-yellow/10" }] : []),
                     { href: "/swipe",           icon: Sparkles,   label: "CINESWIPE",       color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
                     { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
                     { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
@@ -586,10 +576,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                       <Icon className="w-4 h-4 shrink-0" strokeWidth={2.5} />{label}
                     </Link>
                   ))}
-                  <button onClick={() => { setBrowseOpen(false); setStampSearchOpen(true); }}
+                  <Link href="/stamps" onClick={() => setBrowseOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-yellow hover:bg-brutal-yellow/10 transition-colors text-left">
                     <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />STAMP A FILM
-                  </button>
+                  </Link>
                   <Link href="/radar" onClick={() => setBrowseOpen(false)}
                     className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-cyan hover:bg-brutal-cyan/10 transition-colors text-left relative group">
                     <Radio className="w-4 h-4 shrink-0 group-hover:animate-pulse" strokeWidth={2.5} />RELEASE RADAR
@@ -608,24 +598,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
           >
             <Sparkles className="w-4 h-4" strokeWidth={2.5} />
             FIND MOVIE
-          </button>
-
-          {/* THEME toggle — desktop only; mobile toggle lives in Profile page */}
-          <button
-            onClick={toggleTheme}
-            className={`hidden lg:flex brutal-btn p-1.5 sm:px-3 sm:py-1.5 text-xs font-bold font-mono uppercase tracking-widest items-center gap-1.5 transition-all ${
-              currentTheme === "netflix"
-                ? "bg-[#E50914] text-white border-[#E50914] hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
-                : currentTheme === "glass"
-                ? "bg-blue-500/20 text-blue-300 border-blue-500/40 hover:bg-blue-500/30 hover:border-blue-400"
-                : "bg-surface border-brutal-border hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
-            }`}
-            title={`Theme: ${currentTheme} — click to cycle`}
-          >
-            <Palette className="w-4 h-4" strokeWidth={2.5} />
-            <span className="hidden sm:inline-block">
-              {currentTheme === "default" ? "THEME" : currentTheme === "netflix" ? "NETFLIX" : "GLASS"}
-            </span>
           </button>
 
           <div className="hidden lg:block">
@@ -861,8 +833,12 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         <>
           {/* Backdrop */}
           <div
+            role="button"
+            tabIndex={0}
+            aria-label="Close"
             className="fixed inset-0 z-[70] bg-black/60"
             onClick={() => setKeywordPopupOpen(false)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setKeywordPopupOpen(false); } }}
           />
           {/* Bottom sheet */}
           <div className="fixed bottom-0 left-0 right-0 z-[71] bg-bg border-t-3 border-brutal-border rounded-t-2xl max-h-[75svh] flex flex-col animate-slide-up">
@@ -899,12 +875,6 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
       )}
 
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
-      {stampSearchOpen && (
-        <StampSearchModal
-          isOpen={stampSearchOpen}
-          onClose={() => setStampSearchOpen(false)}
-        />
-      )}
     </div>
   );
 }

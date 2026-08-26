@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
 function origin(request: NextRequest) {
-  return (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).trim().replace(/\/+$/, "");
 }
 
 export function GET(request: NextRequest) {
+  if (!isMcpTransportAllowed(request)) return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
   const base = origin(request);
   return NextResponse.json({
     issuer: base,
@@ -18,5 +20,5 @@ export function GET(request: NextRequest) {
     token_endpoint_auth_methods_supported: ["none"],
     code_challenge_methods_supported: ["S256"],
     scopes_supported: ["cineblock"],
-  }, { headers: { "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=300" } });
+  }, { headers: { ...mcpCorsHeaders(request), "Cache-Control": "public, max-age=300" } });
 }

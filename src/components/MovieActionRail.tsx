@@ -34,13 +34,8 @@ export default function MovieActionRail({
   const liked = isLiked(movie.id);
   const inWatchlist = isInWatchlist(movie.id);
   const watched = isWatched(movie.id);
-  const isNetflix = theme === "netflix";
   const isGlass = theme === "glass";
-  const railClassName = isNetflix && className === "absolute top-0 left-0 z-10 flex flex-col border-brutal-border"
-    ? "absolute bottom-3 left-3 z-10 flex items-center gap-2"
-    : className;
-
-  const netflixBase = "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-white/30 bg-[rgba(42,42,42,0.92)] text-white/88 transition-colors hover:border-white";
+  const railClassName = className;
 
   const glassBase = "min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors duration-150 border-b-3 border-r-3 border-brutal-border";
   const glassInactiveStyle = {
@@ -64,8 +59,9 @@ export default function MovieActionRail({
     : glassInactiveStyle;
   const glassWatchedStyle = watched
     ? {
-        background: "linear-gradient(135deg, rgba(16,185,129,0.28), rgba(5,150,105,0.14))",
-        boxShadow: "0 10px 24px rgba(5,150,105,0.18), inset 0 1px 0 rgba(255,255,255,0.12)",
+        background: "linear-gradient(145deg, #6EE7B7 0%, #34D399 48%, #10B981 100%)",
+        borderColor: "rgba(167,243,208,0.82)",
+        boxShadow: "0 10px 24px rgba(16,185,129,0.34), inset 0 1px 0 rgba(255,255,255,0.52)",
         backdropFilter: "blur(16px)",
       }
     : glassInactiveStyle;
@@ -181,7 +177,7 @@ export default function MovieActionRail({
                 }
               }
             }}
-            className={`${glassBase} px-2 py-2 active:brightness-75 ${watched ? "text-emerald-300" : "text-white/50 hover:text-emerald-400"}`}
+            className={`${glassBase} px-2 py-2 active:brightness-75 ${watched ? "text-emerald-950" : "text-white/50 hover:text-emerald-400"}`}
             style={glassWatchedStyle}
             aria-label={watched ? "Mark as unwatched" : "Mark as watched"}
             aria-pressed={watched}
@@ -264,9 +260,7 @@ export default function MovieActionRail({
               void toggleLiked(movie);
             }
           }}
-          className={isNetflix
-            ? `${netflixBase} ${liked ? "border-white bg-white text-black" : ""}`
-            : `min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${liked ? "bg-[var(--theme-primary)] text-black" : "bg-black/80 text-brutal-dim hover:text-[var(--theme-primary)]"}`}
+          className={`min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${liked ? "bg-[var(--theme-primary)] text-black" : "bg-black/80 text-brutal-dim hover:text-[var(--theme-primary)]"}`}
           aria-label={liked ? "Unlike" : "Like"}
           aria-pressed={liked}
           title="Like"
@@ -290,9 +284,7 @@ export default function MovieActionRail({
               void toggleWatchlist(movie);
             }
           }}
-          className={isNetflix
-            ? `${netflixBase} ${inWatchlist ? "border-white text-white" : ""}`
-            : `min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${inWatchlist ? "bg-brutal-lime text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-lime"}`}
+          className={`min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${inWatchlist ? "bg-brutal-lime text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-lime"}`}
           aria-label={inWatchlist ? "Remove from watchlist" : "Add to watchlist"}
           aria-pressed={inWatchlist}
           title="Watchlist"
@@ -332,9 +324,7 @@ export default function MovieActionRail({
               }
             }
           }}
-          className={isNetflix
-            ? `${netflixBase} ${watched ? "border-[#46D369] text-[#46D369]" : ""}`
-            : `min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${watched ? "bg-brutal-cyan text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-cyan"}`}
+          className={`min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border px-2 py-2 flex items-center justify-center cursor-pointer transition-colors duration-100 ${watched ? "bg-brutal-cyan text-black" : "bg-black/80 text-brutal-dim hover:text-brutal-cyan"}`}
           aria-label={watched ? "Mark as unwatched" : "Mark as watched"}
           aria-pressed={watched}
           title="Watched"
@@ -366,9 +356,7 @@ export default function MovieActionRail({
               });
             }
           }}
-          className={isNetflix
-            ? netflixBase
-            : "min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border bg-black/80 px-2 py-2 flex items-center justify-center cursor-pointer text-brutal-dim transition-colors duration-100 hover:bg-brutal-violet hover:text-brutal-white"}
+          className="min-h-[36px] min-w-[36px] border-b-3 border-r-3 border-brutal-border bg-black/80 px-2 py-2 flex items-center justify-center cursor-pointer text-brutal-dim transition-colors duration-100 hover:bg-brutal-violet hover:text-brutal-white"
           aria-label="Add to CineBlock"
           title="Add to CineBlock"
         >

@@ -3,11 +3,5 @@
  * All default to `false` until explicitly ready for production.
  */
 
-/** Netflix / Prime / Disney+ / Hotstar / Apple TV+ streaming skins — nav + /streaming route. */
-export const ENABLE_STREAMING = false;
-
-/** Netflix dark UI theme in the theme switcher. */
-export const ENABLE_NETFLIX_THEME = false;
-
-/** CineBlock Terminal CLI — profile token UI + /api/cli endpoint. */
+/** CineBlock Terminal CLI — future package endpoint/UI gate; keep disabled until release. */
 export const ENABLE_CLI = false;
