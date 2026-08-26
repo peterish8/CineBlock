@@ -157,6 +157,24 @@ npm run dev
 
 Open `http://localhost:3000`. Glass is enabled by default and is the only user-facing theme.
 
+### Vercel and MCP deployment
+
+The production MCP endpoint is:
+
+```text
+https://www.cineblock.in/api/mcp
+```
+
+For a production deployment, configure these Vercel variables without committing their values:
+
+- `NEXT_PUBLIC_APP_URL` and `SITE_URL`: `https://www.cineblock.in`
+- `MCP_ALLOWED_ORIGIN`: an explicit comma-separated allowlist for ChatGPT and the CineBlock origins; never use `*`
+- `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL`: the browser-safe URLs for the production Convex deployment
+- `CONVEX_DEPLOYMENT`: the production deployment selector
+- `CONVEX_DEPLOY_KEY`: the production-only Convex deploy credential used by the Vercel build
+
+The Vercel build runs `npx convex deploy` before `next build` for Production. Environment changes apply only to new deployments, so redeploy after changing them. Dynamic client registration is available at `/api/oauth/register`; reconnect an MCP client after OAuth metadata or tool schema changes.
+
 ### CLI Usage
 
 ```bash
