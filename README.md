@@ -162,8 +162,10 @@ Open `http://localhost:3000`. Glass is enabled by default and is the only user-f
 The production MCP endpoint is:
 
 ```text
-https://www.cineblock.in/api/mcp
+https://cineblock.vercel.app/api/mcp
 ```
+
+OAuth continues to identify `https://www.cineblock.in/api/mcp` as the canonical protected resource. The direct Vercel URL is the connector transport so machine-to-machine POST requests bypass the public-site bot/CDN layer.
 
 For a production deployment, configure these Vercel variables without committing their values:
 

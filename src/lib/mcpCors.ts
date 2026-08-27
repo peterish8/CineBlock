@@ -15,8 +15,10 @@ function normalizeOrigin(value: string) {
   }
 }
 
+export const DIRECT_MCP_ORIGIN = "https://cineblock.vercel.app";
+
 const configuredOrigins = () =>
-  [process.env.MCP_ALLOWED_ORIGIN, process.env.NEXT_PUBLIC_APP_URL]
+  [process.env.MCP_ALLOWED_ORIGIN, process.env.NEXT_PUBLIC_APP_URL, DIRECT_MCP_ORIGIN]
     .flatMap((value) => value?.split(",") ?? [])
     .map(normalizeOrigin)
     .filter((value): value is string => value !== null);

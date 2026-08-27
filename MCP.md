@@ -4,6 +4,8 @@ CineBlock exposes a protected, stateless MCP endpoint for ChatGPT and other MCP 
 
 `https://<your-deployment>/api/mcp`
 
+For the production ChatGPT/Claude connector, use the direct machine transport URL `https://cineblock.vercel.app/api/mcp`. CineBlock still advertises `https://www.cineblock.in/api/mcp` as the canonical OAuth resource, while registration and token exchange use the direct Vercel origin so automated clients do not cross the public-site bot/CDN layer.
+
 The server follows the 2026-07-28 MCP shape through `createMcpHandler`, with stateless legacy fallback for clients that still speak the 2025-era protocol. Durable data remains in Convex; no MCP session is stored in memory.
 
 ## Connect ChatGPT
@@ -28,7 +30,7 @@ OAuth endpoints:
 - Authorization-server metadata: `/.well-known/oauth-authorization-server`
 - Dynamic client registration: `https://cineblock.vercel.app/api/oauth/register/v3` in production, bypassing the public-site CDN for machine-to-machine registration (`/api/oauth/register` and `/v2` remain available for existing clients)
 - Authorization: `/oauth/authorize`
-- Token exchange/refresh: `/api/oauth/token`
+- Token exchange/refresh: `https://cineblock.vercel.app/api/oauth/token` in production
 
 OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the authorization and token requests. The server accepts public clients only (`token_endpoint_auth_method=none`) and requires `code_challenge_method=S256`.
 
