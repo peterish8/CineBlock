@@ -3,17 +3,20 @@ import { publicMcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
+const DIRECT_DCR_ORIGIN = "https://cineblock.vercel.app";
+
 function origin(request: NextRequest) {
   return (process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin).trim().replace(/\/+$/, "");
 }
 
 export function GET(request: NextRequest) {
   const base = origin(request);
+  const registrationBase = base === "https://www.cineblock.in" ? DIRECT_DCR_ORIGIN : base;
   return NextResponse.json({
     issuer: base,
     authorization_endpoint: `${base}/oauth/authorize`,
     token_endpoint: `${base}/api/oauth/token`,
-    registration_endpoint: `${base}/api/oauth/register/v2`,
+    registration_endpoint: `${registrationBase}/api/oauth/register/v3`,
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     token_endpoint_auth_methods_supported: ["none"],

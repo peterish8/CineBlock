@@ -26,7 +26,7 @@ OAuth endpoints:
 
 - Protected-resource metadata: `/.well-known/oauth-protected-resource`
 - Authorization-server metadata: `/.well-known/oauth-authorization-server`
-- Dynamic client registration: `/api/oauth/register/v2` (`/api/oauth/register` remains available for existing clients)
+- Dynamic client registration: `https://cineblock.vercel.app/api/oauth/register/v3` in production, bypassing the public-site CDN for machine-to-machine registration (`/api/oauth/register` and `/v2` remain available for existing clients)
 - Authorization: `/oauth/authorize`
 - Token exchange/refresh: `/api/oauth/token`
 

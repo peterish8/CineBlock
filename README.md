@@ -173,7 +173,7 @@ For a production deployment, configure these Vercel variables without committing
 - `CONVEX_DEPLOYMENT`: the production deployment selector
 - `CONVEX_DEPLOY_KEY`: the production-only Convex deploy credential used by the Vercel build
 
-The Vercel build runs `npx convex deploy` before `next build` for Production. Environment changes apply only to new deployments, so redeploy after changing them. Dynamic client registration is advertised at `/api/oauth/register/v2`, with `/api/oauth/register` retained for existing clients; reconnect an MCP client after OAuth metadata or tool schema changes.
+The Vercel build runs `npx convex deploy` before `next build` for Production. Environment changes apply only to new deployments, so redeploy after changing them. Production advertises dynamic client registration at `https://cineblock.vercel.app/api/oauth/register/v3` so machine clients do not cross the public-site CDN; the original registration routes remain available for existing clients. Reconnect an MCP client after OAuth metadata or tool schema changes.
 
 ### CLI Usage
 
