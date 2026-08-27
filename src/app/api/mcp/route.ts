@@ -5,6 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
+import { CONFIRMATION_CARD_URI, registerMcpAppResources, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
 
 export const runtime = "nodejs";
 
@@ -28,6 +29,43 @@ type TitlePreview = {
   posterPath: string | null;
   posterUrl: string | null;
 };
+
+const titleCardOutputSchema = z.object({
+  id: z.number().int().positive(),
+  mediaType: z.enum(["movie", "tv"]),
+  title: z.string(),
+  year: z.string().nullable(),
+  overview: z.string(),
+  posterUrl: z.string().url().nullable(),
+});
+const titleSearchOutputSchema = z.object({
+  kind: z.literal("title-search"),
+  query: z.string(),
+  titles: z.array(titleCardOutputSchema).max(8),
+});
+const playlistPreviewOutputSchema = z.object({
+  kind: z.literal("playlist-preview"),
+  title: z.string(),
+  description: z.string().optional(),
+  isPublic: z.boolean(),
+  sources: z.array(z.enum(["liked", "watchlist", "watched"])),
+  movies: z.array(z.object({ movieId: z.number().int().positive(), movieTitle: z.string(), posterPath: z.string() })).max(35),
+  confirmationToken: z.string(),
+});
+const stampPreviewOutputSchema = z.object({
+  kind: z.literal("stamp-preview"),
+  movie: titleCardOutputSchema,
+  reviewText: z.string(),
+  isPublic: z.boolean(),
+  confirmationToken: z.string(),
+});
+const savedOutputSchema = z.object({
+  kind: z.enum(["playlist-saved", "stamp-saved"]),
+  title: z.string().optional(),
+  movieTitle: z.string().optional(),
+  message: z.string(),
+  link: z.string().url(),
+});
 
 function extractToken(request: Request): string | null {
   const value = request.headers.get("authorization");
@@ -94,6 +132,17 @@ async function getTitle(id: number, mediaType: MediaType): Promise<TitlePreview>
   return result;
 }
 
+function toTitleCard(title: TitlePreview) {
+  return {
+    id: title.id,
+    mediaType: title.mediaType,
+    title: title.title,
+    year: title.year,
+    overview: title.overview,
+    posterUrl: title.posterUrl,
+  };
+}
+
 async function posterContent(posterUrl: string | null): Promise<ContentBlock | null> {
   if (!posterUrl) return null;
   let parsed: URL;
@@ -149,8 +198,11 @@ function decodeConfirmation<T>(token: string, confirmationToken: string, kind: "
   return decoded.data;
 }
 
-function textResult(text: string, images: Array<ContentBlock | null> = []) {
-  return { content: [{ type: "text" as const, text }, ...images.filter((item): item is ContentBlock => item !== null)] };
+function textResult(text: string, images: Array<ContentBlock | null> = [], structuredContent?: Record<string, unknown>) {
+  return {
+    ...(structuredContent ? { structuredContent } : {}),
+    content: [{ type: "text" as const, text }, ...images.filter((item): item is ContentBlock => item !== null)],
+  };
 }
 
 function errorResult(error: unknown) {
@@ -216,23 +268,32 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const token = requestInfo ? extractToken(requestInfo) : null;
   const baseUrl = getBaseUrl(requestInfo);
   const server = new McpServer({ name: "cineblock-mcp", version: "1.0.0" });
+  registerMcpAppResources(server);
 
   server.registerTool(
     "find_titles",
     {
-      description: "Search movies and TV series and show poster-backed candidates. Always use this before preparing a stamp for a title the user named in natural language.",
+      title: "Find your movie",
+      description: "Search movies and TV series and return exact poster-backed candidates. ChatGPT-compatible hosts render these results as a CineBlock carousel. Always use this before preparing a stamp for a title the user named in natural language.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({ query: z.string().trim().min(1).max(120), mediaType: z.enum(["movie", "tv"]).optional() }),
+      outputSchema: titleSearchOutputSchema,
+      _meta: {
+        ui: { resourceUri: TITLE_CAROUSEL_URI },
+        "openai/outputTemplate": TITLE_CAROUSEL_URI,
+        "openai/toolInvocation/invoking": "Finding titles…",
+        "openai/toolInvocation/invoked": "Titles ready.",
+      },
     },
     async ({ query, mediaType }) => {
       try {
         const titles = await findTitles(query, mediaType);
-        const images = await Promise.all(titles.slice(0, 4).map((title) => posterContent(title.posterUrl)));
         return textResult(
           titles.length
             ? `Choose the exact title before any write:\n${titles.map((title, index) => `${index + 1}. ${escapeMarkdown(title.title)} (${escapeMarkdown(title.year ?? "year unknown")}) · ${title.mediaType} · TMDB ${title.id}\n   ${title.posterUrl ?? "No poster available"}\n   ${escapeMarkdown(title.overview.slice(0, 180))}`).join("\n")}`
             : "No matching movie or series was found.",
-          images,
+          [],
+          { kind: "title-search", query, titles: titles.map(toTitleCard) },
         );
       } catch (error) {
         return errorResult(error);
@@ -265,7 +326,8 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "preview_playlist",
     {
-      description: "Build a dry-run preview for a CineBlock playlist from liked, watchlist, and/or watched items. This is required before create_playlist and returns a signed confirmation token.",
+      title: "Preview a CineBlock",
+      description: "Build a dry-run preview for a CineBlock playlist from liked, watchlist, and/or watched items. ChatGPT-compatible hosts render the exact preview as an in-chat approval card. This is required before create_playlist and returns a signed confirmation token.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         title: z.string().trim().min(1).max(60),
@@ -274,6 +336,13 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         sources: z.array(z.enum(["liked", "watchlist", "watched"])).min(1).optional(),
         movieIds: z.array(z.number().int().positive()).max(35).optional(),
       }),
+      outputSchema: playlistPreviewOutputSchema,
+      _meta: {
+        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/toolInvocation/invoking": "Preparing your CineBlock…",
+        "openai/toolInvocation/invoked": "Preview ready for approval.",
+      },
     },
     async ({ title, description, isPublic, sources, movieIds }) => {
       try {
@@ -292,10 +361,10 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         if (selected.length > 35) return errorResult(new Error("The preview contains more than CineBlock's 35-title limit. Narrow the source or movie IDs."));
         const previewData = { title: title.trim(), description: description?.trim() || undefined, isPublic, movies: selected };
         const confirmationToken = encodeConfirmation(token!, "playlist", previewData);
-        const images = await Promise.all(selected.slice(0, 8).map((item) => posterContent(toPosterUrl(item.posterPath))));
         return textResult(
           `PLAYLIST PREVIEW — ${escapeMarkdown(previewData.title)}\nVisibility: ${isPublic ? "public" : "private"}\nTitles: ${selected.length}\nSources: ${selectedSources.join(", ")}\n\n${selected.map((item, index) => `${index + 1}. ${escapeMarkdown(item.movieTitle)} · TMDB ${item.movieId}\n   ${toPosterUrl(item.posterPath) ?? "No poster available"}`).join("\n")}\n\nNothing has been saved. Call create_playlist with confirmationToken only after the user approves this exact preview.\nconfirmationToken: ${confirmationToken}`,
-          images,
+          [],
+          { kind: "playlist-preview", ...previewData, confirmationToken },
         );
       } catch (error) {
         return errorResult(error);
@@ -306,16 +375,28 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "create_playlist",
     {
-      description: "Commit an approved preview_playlist into CineBlock. Never call this without the exact confirmationToken returned by preview_playlist.",
+      title: "Save CineBlock",
+      description: "Commit an approved preview_playlist into CineBlock. Never call this without the exact confirmationToken returned by preview_playlist. The UI only asks ChatGPT to perform this call after the user approves.",
       annotations: { readOnlyHint: false, destructiveHint: false },
       inputSchema: z.object({ confirmationToken: z.string().min(20) }),
+      outputSchema: savedOutputSchema,
+      _meta: {
+        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/toolInvocation/invoking": "Saving your CineBlock…",
+        "openai/toolInvocation/invoked": "CineBlock saved.",
+      },
     },
     async ({ confirmationToken }) => {
       try {
         const data = decodeConfirmation<{ actionId: string; title: string; description?: string; isPublic: boolean; movies: Array<{ movieId: number; movieTitle: string; posterPath: string }> }>(token!, confirmationToken, "playlist");
         const result = await convex.mutation(api.mcp.createPlaylist, { token: token!, ...data });
         const link = `${baseUrl}/cineblock/${result.blockId}`;
-        return textResult(`Playlist saved: ${data.title}\n${result.movieCount} titles\nVisibility: ${result.isPublic ? "public" : "private"}\nShare link: ${link}${result.isPublic ? "" : " (private — only you can open it while signed in)"}`);
+        return textResult(
+          `Playlist saved: ${data.title}\n${result.movieCount} titles\nVisibility: ${result.isPublic ? "public" : "private"}\nShare link: ${link}${result.isPublic ? "" : " (private — only you can open it while signed in)"}`,
+          [],
+          { kind: "playlist-saved", title: data.title, message: `${result.movieCount} titles · ${result.isPublic ? "public" : "private"}`, link },
+        );
       } catch (error) {
         return errorResult(error);
       }
@@ -346,7 +427,8 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "preview_stamp",
     {
-      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. Before calling this, ask the four questions from get_stamp_questions and optionally one movie-specific question. Never invent a reaction, never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters. The poster, title, year, media type, visibility, and exact Markdown are shown before save_stamp can write anything.",
+      title: "Preview a stamp",
+      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. ChatGPT-compatible hosts render the exact poster, title, visibility, and text as an in-chat approval card. Before calling this, ask the four questions from get_stamp_questions and optionally one movie-specific question. Never invent a reaction, never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),
@@ -354,16 +436,23 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         reviewText: z.string().trim().min(1).max(1000).describe("The user's first-person personal feeling in Markdown, maximum 1,000 characters. No HTML, invented reactions, or critic-style summary."),
         isPublic: z.boolean(),
       }),
+      outputSchema: stampPreviewOutputSchema,
+      _meta: {
+        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/toolInvocation/invoking": "Preparing your stamp…",
+        "openai/toolInvocation/invoked": "Stamp preview ready.",
+      },
     },
     async ({ tmdbId, mediaType, reviewText, isPublic }) => {
       try {
         const title = await getTitle(tmdbId, mediaType);
         const data = { movieId: title.id, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic, mediaType, posterUrl: title.posterUrl, year: title.year };
         const confirmationToken = encodeConfirmation(token!, "stamp", data);
-        const image = await posterContent(title.posterUrl);
         return textResult(
-          `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/1000\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
-          [image],
+          `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/1000\n- **Poster:** ${title.posterUrl ?? "No poster available"}\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
+          [],
+          { kind: "stamp-preview", movie: toTitleCard(title), reviewText: reviewText.trim(), isPublic, confirmationToken },
         );
       } catch (error) {
         return errorResult(error);
@@ -374,16 +463,28 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "save_stamp",
     {
-      description: "Commit an approved Markdown personal feeling as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp; do not rewrite, sanitize, or replace the approved text between preview and save.",
+      title: "Save stamp",
+      description: "Commit an approved Markdown personal feeling as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp; do not rewrite, sanitize, or replace the approved text between preview and save. The UI only asks ChatGPT to perform this call after the user approves.",
       annotations: { readOnlyHint: false, destructiveHint: false },
       inputSchema: z.object({ confirmationToken: z.string().min(20) }),
+      outputSchema: savedOutputSchema,
+      _meta: {
+        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/toolInvocation/invoking": "Saving your stamp…",
+        "openai/toolInvocation/invoked": "Stamp saved.",
+      },
     },
     async ({ confirmationToken }) => {
       try {
         const data = decodeConfirmation<{ actionId: string; movieId: number; mediaType?: "movie" | "tv"; movieTitle: string; posterPath: string; reviewText: string; isPublic: boolean }>(token!, confirmationToken, "stamp");
         const result = await convex.mutation(api.mcp.createStamp, { token: token!, ...data });
         const link = `${baseUrl}/profile`;
-        return textResult(`Stamp saved for ${data.movieTitle}.\nVisibility: ${result.isPublic ? "public" : "private"}\nProfile link: ${link}`);
+        return textResult(
+          `Stamp saved for ${data.movieTitle}.\nVisibility: ${result.isPublic ? "public" : "private"}\nProfile link: ${link}`,
+          [],
+          { kind: "stamp-saved", movieTitle: data.movieTitle, message: result.isPublic ? "Public stamp" : "Private stamp", link },
+        );
       } catch (error) {
         return errorResult(error);
       }

@@ -42,6 +42,18 @@ OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the
 - `preview_stamp` resolves one exact TMDB movie or series, shows its poster/title/year/type, and previews the user-approved personal Markdown under the 1,000-character limit.
 - `save_stamp` commits only that exact approved stamp preview.
 
+### In-chat MCP App UI
+
+CineBlock also advertises portable MCP App resources for hosts that support them:
+
+- `find_titles` renders a poster carousel with exact movie/series identity and a **Use this title** handoff.
+- `preview_playlist` and `preview_stamp` render approval cards showing the exact titles, visibility, poster(s), and approved text.
+- `create_playlist` and `save_stamp` render a saved-state card after the server accepts the matching short-lived confirmation token.
+
+The UI is presentation-only. It never receives a direct write capability; its approval button sends a confirmation message back to the host, and the model must still call the matching commit tool with the exact server-issued handle. Hosts without MCP App support continue to receive the text and structured results.
+
+The resources use the standard `text/html;profile=mcp-app` MIME type and a narrow CSP allowing TMDB poster images only. Their versioned `ui://cineblock/.../v1.html` URIs are cache keys; publish a new URI when the widget contract changes and reconnect clients after tool metadata changes.
+
 ### Personal stamp conversation contract
 
 When a user asks ChatGPT to stamp a movie or series, use this order:
