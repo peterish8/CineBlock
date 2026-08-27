@@ -502,7 +502,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
 
 function oauthChallenge(request: Request) {
   const origin = getBaseUrl(request);
-  return `Bearer realm="cineblock", resource_metadata="${origin}/.well-known/oauth-protected-resource", scope="cineblock"`;
+  return `Bearer realm="cineblock", resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp", scope="cineblock"`;
 }
 
 async function handle(request: NextRequest): Promise<Response> {
