@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import { convexAuthNextjsMiddleware } from "@convex-dev/auth/nextjs/server";
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
@@ -33,11 +33,20 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// Proxy wraps auth token into requests + applies security headers
-// (client-side guards handle redirects to avoid auth race conditions)
-export default convexAuthNextjsMiddleware(() => {
+// Dynamic client registration is a public OAuth endpoint. ChatGPT may call it
+// with Origin: null; Convex Auth's CORS helper parses Origin as a URL and would
+// throw before the route can handle that valid opaque-origin request. Keep the
+// endpoint outside auth middleware while retaining the same security headers.
+const authMiddleware = convexAuthNextjsMiddleware(() => {
   return withSecurityHeaders(NextResponse.next());
 });
+
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  if (request.nextUrl.pathname === "/api/oauth/register") {
+    return withSecurityHeaders(NextResponse.next());
+  }
+  return authMiddleware(request, event);
+}
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],

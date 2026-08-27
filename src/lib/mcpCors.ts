@@ -21,7 +21,17 @@ const configuredOrigins = () =>
     .map(normalizeOrigin)
     .filter((value): value is string => value !== null);
 
-export function isMcpTransportAllowed(request: Request) {
+export type McpCorsOptions = {
+  /**
+   * OAuth dynamic client registration may be called from an opaque origin
+   * (for example, an isolated ChatGPT connector context). Registration only
+   * returns public client metadata, so this is intentionally opt-in and must
+   * never be enabled for the MCP or token endpoints.
+   */
+  allowNullOrigin?: boolean;
+};
+
+export function isMcpTransportAllowed(request: Request, options: McpCorsOptions = {}) {
   const configured = configuredOrigins();
   const requestUrl = new URL(request.url);
   const origin = request.headers.get("origin");
@@ -29,6 +39,7 @@ export function isMcpTransportAllowed(request: Request) {
   if (process.env.NODE_ENV === "production" && configured.length === 0) return false;
 
   if (origin) {
+    if (origin.trim().toLowerCase() === "null") return options.allowNullOrigin === true;
     const normalizedOrigin = normalizeOrigin(origin);
     if (!normalizedOrigin) return false;
     return normalizedOrigin === requestUrl.origin || configured.includes(normalizedOrigin);
@@ -40,10 +51,13 @@ export function isMcpTransportAllowed(request: Request) {
   return process.env.NODE_ENV !== "production";
 }
 
-export function mcpCorsHeaders(request: Request) {
+export function mcpCorsHeaders(request: Request, options: McpCorsOptions = {}) {
   const origin = request.headers.get("origin");
+  const isNullOrigin = origin?.trim().toLowerCase() === "null";
   const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
-  const allowedOrigin = normalizedOrigin && isMcpTransportAllowed(request) ? normalizedOrigin : undefined;
+  const allowedOrigin = isNullOrigin
+    ? options.allowNullOrigin && isMcpTransportAllowed(request, options) ? "null" : undefined
+    : normalizedOrigin && isMcpTransportAllowed(request, options) ? normalizedOrigin : undefined;
 
   return {
     ...(allowedOrigin ? { "Access-Control-Allow-Origin": allowedOrigin } : {}),
