@@ -2,6 +2,12 @@ import type { McpServer } from "@modelcontextprotocol/server";
 
 export const TITLE_CAROUSEL_URI = "ui://cineblock/title-carousel/v1.html";
 export const CONFIRMATION_CARD_URI = "ui://cineblock/confirmation-card/v1.html";
+export const CINEBLOCK_MCP_ICON_URL = "https://www.cineblock.in/brand/cineblock-icon-256.png";
+export const CINEBLOCK_MCP_ICON = {
+  src: CINEBLOCK_MCP_ICON_URL,
+  mimeType: "image/png",
+  sizes: ["256x256"],
+};
 
 const RESOURCE_MIME_TYPE = "text/html;profile=mcp-app";
 const RESOURCE_META = {
@@ -149,7 +155,7 @@ const bridgeScript = `
     }, { passive: true });
     rpc("ui/initialize", {
       protocolVersion: "2025-11-21",
-      appInfo: { name: "cineblock-mcp-app", title: "CineBlock", version: "1.0.0", websiteUrl: "https://www.cineblock.in" },
+      appInfo: { name: "cineblock-mcp-app", title: "CineBlock", version: "1.0.0", websiteUrl: "https://www.cineblock.in", icons: [{ src: "${CINEBLOCK_MCP_ICON_URL}", mimeType: "image/png", sizes: ["256x256"] }] },
       appCapabilities: {}
     }).then(function () {
       notify("ui/notifications/initialized", {});

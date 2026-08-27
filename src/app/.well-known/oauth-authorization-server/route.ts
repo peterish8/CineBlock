@@ -20,5 +20,8 @@ export function GET(request: NextRequest) {
     token_endpoint_auth_methods_supported: ["none"],
     code_challenge_methods_supported: ["S256"],
     scopes_supported: ["cineblock"],
+    logo_uri: `${base}/brand/cineblock-icon-256.png`,
+    client_id_metadata_document_supported: false,
+    authorization_response_iss_parameter_supported: true,
   }, { headers: { ...mcpCorsHeaders(request), "Cache-Control": "public, max-age=300" } });
 }

@@ -67,6 +67,9 @@ const nextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [{ source: "/favicon.ico", destination: "/brand/cineblock-favicon.png" }];
+  },
 };
 
 export default nextConfig;

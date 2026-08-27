@@ -5,7 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
-import { CONFIRMATION_CARD_URI, registerMcpAppResources, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
+import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
 
 export const runtime = "nodejs";
 
@@ -267,7 +267,13 @@ function stampInterview(title: TitlePreview) {
 const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const token = requestInfo ? extractToken(requestInfo) : null;
   const baseUrl = getBaseUrl(requestInfo);
-  const server = new McpServer({ name: "cineblock-mcp", version: "1.0.0" });
+  const server = new McpServer({
+    name: "cineblock-mcp",
+    title: "CineBlock",
+    version: "1.0.0",
+    websiteUrl: "https://www.cineblock.in",
+    icons: [CINEBLOCK_MCP_ICON],
+  });
   registerMcpAppResources(server);
 
   server.registerTool(
