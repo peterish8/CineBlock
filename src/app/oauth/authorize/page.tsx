@@ -20,6 +20,7 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 
+const AUTHORIZATION_SERVER_ISSUER = "https://www.cineblock.in";
 type PermissionTone = "blue" | "orange" | "green";
 
 function BrandMark({ eyebrow = "CineBlock" }: { eyebrow?: string }) {
@@ -143,6 +144,7 @@ function AuthorizeContent() {
       const callback = new URL(redirectUri);
       callback.searchParams.set("code", result.code);
       if (state) callback.searchParams.set("state", state);
+      callback.searchParams.set("iss", AUTHORIZATION_SERVER_ISSUER);
       window.location.assign(callback.toString());
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Authorization failed. Please try again.");
@@ -156,6 +158,7 @@ function AuthorizeContent() {
     callback.searchParams.set("error", "access_denied");
     callback.searchParams.set("error_description", "The CineBlock connection was declined.");
     if (state) callback.searchParams.set("state", state);
+    callback.searchParams.set("iss", AUTHORIZATION_SERVER_ISSUER);
     window.location.assign(callback.toString());
   };
 
