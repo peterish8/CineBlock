@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 const MAX_BODY_BYTES = 64 * 1024;
-const registrationCorsOptions = { allowNullOrigin: true } as const;
+const registrationCorsOptions = { allowNullOrigin: true, allowOpenAiRegistrationOrigin: true } as const;
 const clientMetadataSchema = z.object({
   client_name: z.string().trim().max(120).optional(),
   redirect_uris: z.array(z.string().min(1).max(2048)).min(1).max(10),

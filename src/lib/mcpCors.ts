@@ -21,6 +21,12 @@ const configuredOrigins = () =>
     .map(normalizeOrigin)
     .filter((value): value is string => value !== null);
 
+const openAiRegistrationOrigins = new Set([
+  "https://chatgpt.com",
+  "https://chat.openai.com",
+  "https://platform.openai.com",
+]);
+
 export type McpCorsOptions = {
   /**
    * OAuth dynamic client registration may be called from an opaque origin
@@ -29,6 +35,11 @@ export type McpCorsOptions = {
    * never be enabled for the MCP or token endpoints.
    */
   allowNullOrigin?: boolean;
+  /**
+   * Allow the official OpenAI connector registration origin. This must remain
+   * limited to dynamic registration, which returns no user data or tokens.
+   */
+  allowOpenAiRegistrationOrigin?: boolean;
 };
 
 export function isMcpTransportAllowed(request: Request, options: McpCorsOptions = {}) {
@@ -42,6 +53,7 @@ export function isMcpTransportAllowed(request: Request, options: McpCorsOptions 
     if (origin.trim().toLowerCase() === "null") return options.allowNullOrigin === true;
     const normalizedOrigin = normalizeOrigin(origin);
     if (!normalizedOrigin) return false;
+    if (options.allowOpenAiRegistrationOrigin && openAiRegistrationOrigins.has(normalizedOrigin)) return true;
     return normalizedOrigin === requestUrl.origin || configured.includes(normalizedOrigin);
   }
 
