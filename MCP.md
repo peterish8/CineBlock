@@ -26,7 +26,7 @@ OAuth endpoints:
 
 - Protected-resource metadata: `/.well-known/oauth-protected-resource`
 - Authorization-server metadata: `/.well-known/oauth-authorization-server`
-- Dynamic client registration: `/api/oauth/register`
+- Dynamic client registration: `/api/oauth/register/v2` (`/api/oauth/register` remains available for existing clients)
 - Authorization: `/oauth/authorize`
 - Token exchange/refresh: `/api/oauth/token`
 

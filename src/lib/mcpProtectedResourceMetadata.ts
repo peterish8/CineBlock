@@ -19,6 +19,6 @@ export function protectedResourceMetadata(request: NextRequest) {
 
 export function protectedResourceResponse(request: NextRequest) {
   return NextResponse.json(protectedResourceMetadata(request), {
-    headers: { ...publicMcpCorsHeaders(), "Cache-Control": "public, max-age=300" },
+    headers: { ...publicMcpCorsHeaders(), "Cache-Control": "no-store, max-age=0" },
   });
 }
