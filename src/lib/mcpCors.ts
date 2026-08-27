@@ -25,6 +25,16 @@ const openAiRegistrationOrigins = new Set([
   "https://chatgpt.com",
   "https://chat.openai.com",
   "https://platform.openai.com",
+  // Some ChatGPT connector surfaces still originate from the www host.
+  "https://www.chatgpt.com",
+]);
+
+const claudeRegistrationOrigins = new Set([
+  "https://claude.ai",
+  "https://www.claude.ai",
+  // Claude's newer web surface may originate from the product domain.
+  "https://claude.com",
+  "https://www.claude.com",
 ]);
 
 export type McpCorsOptions = {
@@ -53,7 +63,10 @@ export function isMcpTransportAllowed(request: Request, options: McpCorsOptions 
     if (origin.trim().toLowerCase() === "null") return options.allowNullOrigin === true;
     const normalizedOrigin = normalizeOrigin(origin);
     if (!normalizedOrigin) return false;
-    if (options.allowOpenAiRegistrationOrigin && openAiRegistrationOrigins.has(normalizedOrigin)) return true;
+    if (
+      options.allowOpenAiRegistrationOrigin &&
+      (openAiRegistrationOrigins.has(normalizedOrigin) || claudeRegistrationOrigins.has(normalizedOrigin))
+    ) return true;
     return normalizedOrigin === requestUrl.origin || configured.includes(normalizedOrigin);
   }
 
