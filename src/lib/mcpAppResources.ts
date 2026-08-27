@@ -67,6 +67,7 @@ const widgetStyles = `
   .movie-title { margin-top: 9px; overflow: hidden; color: #f8fafc; font-size: 13px; font-weight: 650; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
   .movie-meta { margin-top: 4px; color: rgba(186, 230, 253, .6); font-size: 10px; text-transform: uppercase; letter-spacing: .09em; }
   .choose { width: 100%; margin-top: 9px; padding: 8px 9px; border-radius: 10px; color: var(--ink); background: linear-gradient(100deg, #a5f3fc, #93c5fd); border-color: rgba(165, 243, 252, .55); font-size: 11px; font-weight: 750; }
+  button:disabled { cursor: wait; opacity: .58; }
   .choose:hover, .primary-button:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, .72); box-shadow: 0 8px 20px rgba(96, 165, 250, .2); }
   .empty { padding: 22px 10px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); text-align: center; font-size: 12px; }
   .confirmation { border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.035)); box-shadow: 0 16px 42px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.11); padding: 17px; }
@@ -98,7 +99,7 @@ const bridgeScript = `
   (function () {
     var pending = new Map();
     var nextId = 1;
-    var initialized = false;
+    var latestToolResult = null;
     function rpc(method, params) {
       var id = nextId++;
       window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
@@ -115,12 +116,17 @@ const bridgeScript = `
       window.parent.postMessage({ jsonrpc: "2.0", method: method, params: params || {} }, "*");
     }
     function sendToConversation(text) {
-      rpc("ui/message", { role: "user", content: [{ type: "text", text: text }] }).catch(function () {
+      return rpc("ui/message", { role: "user", content: [{ type: "text", text: text }] }).catch(function (error) {
         var status = document.querySelector("[data-bridge-status]");
         if (status) status.textContent = "Use the approval button in the conversation to continue.";
+        throw error;
       });
     }
-    window.cineblockBridge = { sendToConversation: sendToConversation };
+    function registerRenderer(renderer) {
+      window.cineblockRender = renderer;
+      renderer(latestToolResult);
+    }
+    window.cineblockBridge = { sendToConversation: sendToConversation, registerRenderer: registerRenderer };
     window.addEventListener("message", function (event) {
       if (event.source !== window.parent) return;
       var message = event.data;
@@ -132,7 +138,10 @@ const bridgeScript = `
         return;
       }
       if (message.method === "ui/notifications/tool-result" && window.cineblockRender) {
-        window.cineblockRender(message.params && message.params.structuredContent);
+        latestToolResult = message.params && message.params.structuredContent;
+        window.cineblockRender(latestToolResult);
+      } else if (message.method === "ui/notifications/tool-result") {
+        latestToolResult = message.params && message.params.structuredContent;
       }
       if (message.method === "ui/notifications/tool-input" && window.cineblockToolInput) {
         window.cineblockToolInput(message.params);
@@ -143,7 +152,6 @@ const bridgeScript = `
       appInfo: { name: "cineblock-mcp-app", title: "CineBlock", version: "1.0.0", websiteUrl: "https://www.cineblock.in" },
       appCapabilities: {}
     }).then(function () {
-      initialized = true;
       notify("ui/notifications/initialized", {});
     }).catch(function () {
       var status = document.querySelector("[data-bridge-status]");
@@ -177,15 +185,24 @@ const titleCarouselHtml = `<!doctype html>
         var name = document.createElement("h2"); name.className = "movie-title"; name.title = String(title.title || "Untitled"); name.textContent = String(title.title || "Untitled");
         var meta = document.createElement("p"); meta.className = "movie-meta"; meta.textContent = String(title.mediaType || "title") + " · " + String(title.year || "year unknown");
         var choose = document.createElement("button"); choose.type = "button"; choose.className = "choose"; choose.textContent = "Use this title";
-        choose.addEventListener("click", function () { window.cineblockBridge.sendToConversation("Use this exact CineBlock title: " + String(title.title || "Untitled") + " (TMDB " + String(title.id) + ", " + String(title.mediaType) + ")."); });
+        choose.addEventListener("click", function () {
+          choose.disabled = true;
+          choose.textContent = "Sending…";
+          window.cineblockBridge.sendToConversation("Use this exact CineBlock title: " + String(title.title || "Untitled") + " (TMDB " + String(title.id) + ", " + String(title.mediaType) + ").").then(function () {
+            status.textContent = "Title sent to the conversation. Choose what you want to do next.";
+            choose.textContent = "Sent to chat";
+          }).catch(function () {
+            choose.disabled = false;
+            choose.textContent = "Use this title";
+          });
+        });
         card.appendChild(poster); card.appendChild(name); card.appendChild(meta); card.appendChild(choose); rail.appendChild(card);
       });
       status.textContent = "Select a title to ask CineBlock for details, a stamp, or a playlist.";
     }
     document.querySelector("[data-prev]").addEventListener("click", function () { rail.scrollBy({ left: -rail.clientWidth * .72, behavior: "smooth" }); });
     document.querySelector("[data-next]").addEventListener("click", function () { rail.scrollBy({ left: rail.clientWidth * .72, behavior: "smooth" }); });
-    window.cineblockRender = render;
-    render(null);
+    window.cineblockBridge.registerRenderer(render);
   }());
 </script></body></html>`;
 
@@ -228,13 +245,21 @@ const confirmationCardHtml = `<!doctype html>
         addDetail(card, "Titles", movies.map(function (movie) { return text(movie.movieTitle, "Untitled"); }).join(" · "), false);
       }
       var note = document.createElement("p"); note.className = "subtle"; note.style.marginTop = "14px"; note.textContent = "Review the exact title, visibility, and text above. Approve here to ask ChatGPT to save this preview."; card.appendChild(note);
-      var approve = button("Approve in conversation", "primary-button", function () { window.cineblockBridge.sendToConversation(isStamp ? "I approve this exact CineBlock stamp preview. Call save_stamp with the confirmationToken from the latest preview." : "I approve this exact CineBlock playlist preview. Call create_playlist with the confirmationToken from the latest preview."); }); card.appendChild(approve);
+      var approve = button("Approve in conversation", "primary-button", function () {
+        approve.disabled = true;
+        approve.textContent = "Sending approval…";
+        window.cineblockBridge.sendToConversation(isStamp ? "I approve this exact CineBlock stamp preview. Call save_stamp with the confirmationToken from the latest preview." : "I approve this exact CineBlock playlist preview. Call create_playlist with the confirmationToken from the latest preview.").then(function () {
+          approve.textContent = "Approval sent";
+        }).catch(function () {
+          approve.disabled = false;
+          approve.textContent = "Approve in conversation";
+        });
+      }); card.appendChild(approve);
       root.replaceChildren(card);
     }
     function appendPoster(parent, value, label) { var imageUrl = safeImage(value); if (!imageUrl) return; var holder = document.createElement("div"); holder.className = "mini-poster"; var image = document.createElement("img"); image.src = imageUrl; image.alt = "Poster for " + text(label, "title"); image.loading = "lazy"; image.referrerPolicy = "no-referrer"; holder.appendChild(image); parent.appendChild(holder); }
     function addDetail(parent, label, value, review) { var detail = document.createElement("div"); detail.className = "detail"; var heading = document.createElement("p"); heading.className = "detail-label"; heading.textContent = label; var content = document.createElement(review ? "pre" : "p"); content.className = review ? "detail-value review" : "detail-value"; content.textContent = text(value, "—"); detail.append(heading, content); parent.appendChild(detail); }
-    window.cineblockRender = render;
-    render(null);
+    window.cineblockBridge.registerRenderer(render);
   }());
 </script></body></html>`;
 

@@ -5,11 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, Check, Link2, ShieldCheck } from "lucide-react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { api } from "../../../../convex/_generated/api";
 
 function AuthorizeContent() {
   const params = useSearchParams();
+  const pathname = usePathname();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const clientId = params.get("client_id") ?? "";
   const redirectUri = params.get("redirect_uri") ?? "";
@@ -22,7 +23,8 @@ function AuthorizeContent() {
   const [error, setError] = useState("");
   const [authorizing, setAuthorizing] = useState(false);
 
-  const returnTo = typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`;
+  const query = params.toString();
+  const returnTo = `${pathname}${query ? `?${query}` : ""}`;
   const signInUrl = `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
 
   if (isLoading || (isAuthenticated && client === undefined)) {
@@ -35,7 +37,7 @@ function AuthorizeContent() {
         <div className="auth-grid pointer-events-none absolute inset-0" aria-hidden="true" />
         <div className="auth-orbit auth-orbit-blue pointer-events-none absolute -left-40 top-10 h-96 w-96" aria-hidden="true" />
         <div className="relative w-full max-w-lg">
-          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400 transition hover:text-white"><ArrowLeft className="h-3.5 w-3.5" /> Back to CineBlock</Link>
+          <Link href="/" className="mb-6 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020817]"><ArrowLeft className="h-3.5 w-3.5" /> Back to CineBlock</Link>
           <div className="auth-card rounded-[30px] border border-white/[0.14] bg-[#07132d]/75 p-2 shadow-glass-xl backdrop-blur-2xl">
             <div className="rounded-[23px] border border-white/[0.08] bg-white/[0.045] p-7 sm:p-9">
               <div className="mb-8 flex items-center justify-between">
@@ -48,7 +50,7 @@ function AuthorizeContent() {
               <div className="mt-7 space-y-3 rounded-2xl border border-white/10 bg-black/10 p-4">
                 {["Read your movie collections", "Prepare playlists and personal stamps", "Ask for your approval before saving"] .map((item) => <div key={item} className="flex items-center gap-2.5 text-xs text-slate-300"><Check className="h-3.5 w-3.5 text-cyan-200/80" />{item}</div>)}
               </div>
-              <Link href={signInUrl} className="mt-7 flex w-full items-center justify-center rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 py-3.5 text-sm font-semibold text-[#06112c] shadow-glow-blue-sm transition hover:-translate-y-0.5">Sign in to continue</Link>
+              <Link href={signInUrl} className="mt-7 flex w-full items-center justify-center rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 py-3.5 text-sm font-semibold text-[#06112c] shadow-glow-blue-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07132d]">Sign in to continue</Link>
               <p className="mt-5 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500"><ShieldCheck className="h-3.5 w-3.5 text-emerald-300/70" /> PKCE protected</p>
             </div>
           </div>
@@ -61,6 +63,7 @@ function AuthorizeContent() {
   const validRequest = validRedirect && resource.length <= 2048 && !!resource && /^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge) && codeChallengeMethod === "S256" && (!state || state.length <= 2048);
 
   const authorize = async () => {
+    if (!validRequest || authorizing) return;
     setError("");
     setAuthorizing(true);
     try {
@@ -95,7 +98,7 @@ function AuthorizeContent() {
             <p><span className="text-white">Security:</span> PKCE S256, one-time code, short-lived access token, rotating refresh token</p>
           </div>
           {(!validRequest || error) && <p role="alert" className="mt-5 rounded-2xl border border-red-300/25 bg-red-400/[0.08] px-4 py-3 text-xs leading-5 text-red-100">{error || "Invalid OAuth request, redirect URI, or PKCE challenge."}</p>}
-          <button onClick={() => void authorize()} disabled={!validRequest || authorizing} className="mt-7 flex w-full items-center justify-center rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 py-3.5 text-sm font-semibold text-[#06112c] shadow-glow-blue-sm transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50">
+          <button onClick={() => void authorize()} disabled={!validRequest || authorizing} aria-busy={authorizing} className="mt-7 flex w-full items-center justify-center rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 py-3.5 text-sm font-semibold text-[#06112c] shadow-glow-blue-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07132d] disabled:cursor-not-allowed disabled:opacity-50">
             {authorizing ? "Authorizing…" : "Allow CineBlock access"}
           </button>
           <p className="mt-5 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.18em] text-slate-500"><ShieldCheck className="h-3.5 w-3.5 text-emerald-300/70" /> You stay in control</p>

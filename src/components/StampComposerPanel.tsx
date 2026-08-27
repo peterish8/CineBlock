@@ -19,6 +19,12 @@ type MovieSearchResult = {
   release_date?: string;
 };
 
+function isMovieSearchResult(value: unknown): value is MovieSearchResult {
+  if (!value || typeof value !== "object") return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.id === "number" && typeof result.title === "string" && (result.poster_path === null || typeof result.poster_path === "string");
+}
+
 type StampComposerPanelProps = {
   stamps: StampRecord[];
   onClose: () => void;
@@ -49,8 +55,11 @@ export default function StampComposerPanel({ stamps, onClose }: StampComposerPan
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MovieSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [selectionError, setSelectionError] = useState("");
   const [selectingId, setSelectingId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchRequestRef = useRef<AbortController | null>(null);
 
   const stampedIds = useMemo(() => new Set(stamps.map((stamp) => stamp.movieId)), [stamps]);
   const unstampedWatched = watched.filter((movie) => !stampedIds.has(movie.id));
@@ -66,39 +75,56 @@ export default function StampComposerPanel({ stamps, onClose }: StampComposerPan
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      searchRequestRef.current?.abort();
     };
   }, [onClose]);
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
+    setSearchError("");
+    setSelectionError("");
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    searchRequestRef.current?.abort();
+    searchRequestRef.current = null;
     if (!value.trim()) {
       setResults([]);
+      setLoading(false);
       return;
     }
+    setResults([]);
     debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      searchRequestRef.current = controller;
       setLoading(true);
       try {
-        const response = await fetch(`/api/movies?action=search&query=${encodeURIComponent(value.trim())}`);
-        if (!response.ok) throw new Error("Search failed");
-        const data = await response.json();
-        setResults((data.results ?? []).slice(0, 10));
-      } catch {
+        const response = await fetch(`/api/movies?action=search&query=${encodeURIComponent(value.trim())}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Search failed. Please try again.");
+        const data = (await response.json()) as { results?: unknown };
+        setResults(Array.isArray(data.results) ? data.results.filter(isMovieSearchResult).slice(0, 10) : []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         setResults([]);
+        setSearchError(error instanceof Error ? error.message : "Search failed. Please try again.");
       } finally {
-        setLoading(false);
+        if (searchRequestRef.current === controller) {
+          searchRequestRef.current = null;
+          setLoading(false);
+        }
       }
     }, 280);
   };
 
   const chooseMovie = async (movie: MovieSearchResult | TMDBMovie) => {
     if (!isAuthenticated || selectingId !== null || stampedIds.has(movie.id)) return;
+    setSelectionError("");
     setSelectingId(movie.id);
     try {
       const normalized: TMDBMovie = "overview" in movie ? movie : toMovie(movie);
       if (!isWatched(normalized.id)) await toggleWatched(normalized);
       openStampModal({ id: normalized.id, title: normalized.title, posterPath: normalized.poster_path ?? "" });
       onClose();
+    } catch (error) {
+      setSelectionError(error instanceof Error ? error.message : "Could not open the stamp editor. Please try again.");
     } finally {
       setSelectingId(null);
     }
@@ -162,10 +188,12 @@ export default function StampComposerPanel({ stamps, onClose }: StampComposerPan
             <label className="relative mt-4 block">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <input value={query} onChange={(event) => handleQueryChange(event.target.value)} placeholder="Search any movie or series..." autoFocus className="w-full rounded-2xl border border-white/10 bg-white/[0.06] py-3.5 pl-11 pr-12 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-300/45" />
-              {loading && <span className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-blue-300/40 border-t-transparent" />}
+              {loading && <span role="status" aria-label="Searching" className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-blue-300/40 border-t-transparent" />}
             </label>
 
-            <div className="mt-3 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10">
+            {(searchError || selectionError) && <p role="alert" className="mt-3 rounded-2xl border border-red-300/20 bg-red-400/[0.07] px-4 py-3 text-xs leading-5 text-red-100">{searchError || selectionError}</p>}
+
+            <div aria-busy={loading} className="mt-3 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10">
               {!query.trim() ? (
                 <p className="px-4 py-6 text-center text-xs text-slate-500">Search by title to find a film outside your watched shelf.</p>
               ) : results.length === 0 && !loading ? (

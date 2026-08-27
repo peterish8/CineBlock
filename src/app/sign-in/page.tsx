@@ -2,8 +2,8 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, Check, Film, FlaskConical, Link2, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -18,15 +18,13 @@ function extractAuthErrorMessage(err: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
-export default function SignInPage() {
+function SignInContent() {
   const { signIn } = useAuthActions();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const router = useRouter();
-  const [returnTo] = useState(() => {
-    if (typeof window === "undefined") return "/";
-    const value = new URLSearchParams(window.location.search).get("returnTo");
-    return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
-  });
+  const params = useSearchParams();
+  const requestedReturnTo = params.get("returnTo");
+  const returnTo = requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//") ? requestedReturnTo : "/";
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState(false);
@@ -36,7 +34,7 @@ export default function SignInPage() {
     if (isAuthenticated) {
       router.replace(returnTo);
     }
-  }, [isAuthenticated, router, returnTo]);
+  }, [isAuthenticated, returnTo, router]);
 
   const handleDevSignIn = async () => {
     setError("");
@@ -75,7 +73,7 @@ export default function SignInPage() {
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-4">
-          <Link href="/" className="group inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm text-slate-300 backdrop-blur-xl transition hover:border-white/25 hover:bg-white/[0.08]">
+          <Link href="/" className="group inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.045] px-3 py-2 text-sm text-slate-300 backdrop-blur-xl transition hover:border-white/25 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#020817]">
             <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-[#07132d] shadow-[0_0_22px_rgba(96,165,250,0.22)]">
               <Image src="/brand/cineblock-icon-256.png" alt="CineBlock" width={24} height={24} className="object-contain" unoptimized />
             </span>
@@ -156,6 +154,7 @@ export default function SignInPage() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading || isLoading}
+                  aria-busy={loading || isLoading}
                   className="group flex w-full items-center justify-between rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 px-4 py-3.5 text-sm font-semibold text-[#06112c] shadow-[0_10px_30px_rgba(96,165,250,0.18)] transition duration-300 hover:-translate-y-0.5 hover:border-white/70 hover:shadow-[0_14px_38px_rgba(96,165,250,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span className="flex items-center gap-3">
@@ -197,4 +196,8 @@ export default function SignInPage() {
       </div>
     </main>
   );
+}
+
+export default function SignInPage() {
+  return <Suspense fallback={<main className="auth-shell flex min-h-screen items-center justify-center px-4 text-sm text-slate-300">Loading CineBlock…</main>}><SignInContent /></Suspense>;
 }

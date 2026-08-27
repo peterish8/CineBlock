@@ -65,9 +65,13 @@ export default function StampReaderModal({ stamp, busy = false, onClose, onConti
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       style={{ background: "rgba(1,5,18,0.82)", backdropFilter: "blur(14px)" }}
-      onClick={onClose}
+      onClick={(event) => {
+        const target = event.target;
+        const clickedBackdrop = target === event.currentTarget || (target instanceof HTMLElement && target.dataset.stampBackdrop === "true");
+        if (!busy && clickedBackdrop) onClose();
+      }}
     >
-      <div className="fixed inset-0 overflow-hidden" aria-hidden="true">
+      <div data-stamp-backdrop="true" className="fixed inset-0 overflow-hidden" aria-hidden="true">
         {stamp.posterPath && <Image src={posterUrl(stamp.posterPath, "original")} alt="" fill className="scale-110 object-cover opacity-20 blur-3xl" sizes="100vw" />}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_12%,rgba(59,130,246,0.24),transparent_42%),linear-gradient(180deg,rgba(2,8,23,0.55),#020817_84%)]" />
       </div>
@@ -77,6 +81,7 @@ export default function StampReaderModal({ stamp, busy = false, onClose, onConti
           initial={{ opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: "spring", stiffness: 260, damping: 24 }}
+          aria-busy={busy}
           className="relative flex h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] sm:h-[calc(100dvh-4rem)] sm:rounded-[32px]"
           style={{
             background: "linear-gradient(145deg, rgba(13,29,68,0.95), rgba(5,13,34,0.98))",
@@ -127,7 +132,7 @@ export default function StampReaderModal({ stamp, busy = false, onClose, onConti
                 ) : (
                   <button type="button" onClick={() => onToggleVisibility(stamp)} disabled={busy} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2.5 text-[11px] font-display font-semibold uppercase tracking-[0.14em] text-slate-300 transition-colors hover:bg-white/10 disabled:cursor-wait disabled:opacity-50">
                     {stamp.isPublic ? <Globe2 className="h-3.5 w-3.5 text-emerald-300" /> : <LockKeyhole className="h-3.5 w-3.5 text-slate-400" />}
-                    {stamp.isPublic ? "Public" : "Private"}
+                    {busy ? "Saving…" : stamp.isPublic ? "Public" : "Private"}
                   </button>
                 )}
                 <button type="button" onClick={() => setConfirmDelete(true)} disabled={busy || confirmDelete} aria-label="Delete stamp" title="Delete stamp" className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-500 transition-colors hover:border-red-300/40 hover:bg-red-400/10 hover:text-red-200 disabled:cursor-wait disabled:opacity-50">

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, FilePenLine, LockKeyhole, Radio } from "lucide-react";
 import { Id } from "../../convex/_generated/dataModel";
 import { posterUrl } from "@/lib/constants";
@@ -30,6 +30,7 @@ function formatDate(timestamp: number) {
 export default function GlassStampCard({ stamp, onOpen }: GlassStampCardProps) {
   const isDraft = stamp.isDraft === true;
   const badge = isDraft ? "DRAFT" : stamp.isPublic ? "PUBLIC" : "PRIVATE";
+  const reduceMotion = useReducedMotion();
 
   return (
     <motion.button
@@ -37,8 +38,8 @@ export default function GlassStampCard({ stamp, onOpen }: GlassStampCardProps) {
       layoutId={`stamp-card-${stamp._id}`}
       onClick={() => onOpen(stamp)}
       className="group relative min-h-[300px] overflow-hidden rounded-[24px] text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 sm:min-h-[320px] sm:rounded-[28px]"
-      whileHover={{ y: -5, rotate: isDraft ? -0.25 : 0.25 }}
-      whileTap={{ scale: 0.985 }}
+      whileHover={reduceMotion ? undefined : { y: -5, rotate: isDraft ? -0.25 : 0.25 }}
+      whileTap={reduceMotion ? undefined : { scale: 0.985 }}
       transition={{ type: "spring", stiffness: 380, damping: 28 }}
       style={{
         background: isDraft ? "rgba(17,25,45,0.82)" : "rgba(8,20,49,0.86)",
