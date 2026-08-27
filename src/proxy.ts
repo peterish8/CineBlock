@@ -33,16 +33,17 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// Dynamic client registration is a public OAuth endpoint. ChatGPT may call it
-// with Origin: null; Convex Auth's CORS helper parses Origin as a URL and would
-// throw before the route can handle that valid opaque-origin request. Keep the
-// endpoint outside auth middleware while retaining the same security headers.
+// MCP protocol endpoints own their authentication and CORS decisions. ChatGPT
+// may call OAuth registration with Origin: null; Convex Auth's CORS helper
+// parses Origin as a URL and would throw before these routes can handle the
+// request. Keep protocol traffic outside cookie auth middleware while retaining
+// the same security headers. The MCP route still requires its bearer token.
 const authMiddleware = convexAuthNextjsMiddleware(() => {
   return withSecurityHeaders(NextResponse.next());
 });
 
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (request.nextUrl.pathname === "/api/oauth/register") {
+  if (["/api/mcp", "/api/oauth/register", "/api/oauth/token"].includes(request.nextUrl.pathname)) {
     return withSecurityHeaders(NextResponse.next());
   }
   return authMiddleware(request, event);
