@@ -93,3 +93,18 @@ export function mcpCorsHeaders(request: Request, options: McpCorsOptions = {}) {
     "Vary": "Origin",
   };
 }
+
+/**
+ * OAuth discovery and dynamic client registration are public protocol
+ * endpoints. They return metadata or a new public client identifier, never
+ * user data, access tokens, or refresh tokens, so browser-based MCP clients
+ * must be able to reach them from their current product host.
+ */
+export function publicMcpCorsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Cache-Control": "no-store",
+  };
+}

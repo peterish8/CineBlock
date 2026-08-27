@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
+import { publicMcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
@@ -18,10 +18,7 @@ export function protectedResourceMetadata(request: NextRequest) {
 }
 
 export function protectedResourceResponse(request: NextRequest) {
-  if (!isMcpTransportAllowed(request)) {
-    return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
-  }
   return NextResponse.json(protectedResourceMetadata(request), {
-    headers: { ...mcpCorsHeaders(request), "Cache-Control": "public, max-age=300" },
+    headers: { ...publicMcpCorsHeaders(), "Cache-Control": "public, max-age=300" },
   });
 }

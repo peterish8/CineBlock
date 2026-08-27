@@ -4,7 +4,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
-import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
+import { isMcpTransportAllowed, mcpCorsHeaders, publicMcpCorsHeaders } from "@/lib/mcpCors";
 import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
 
 export const runtime = "nodejs";
@@ -18,6 +18,15 @@ const MAX_MCP_BODY_BYTES = 1024 * 1024;
 const MAX_TMDB_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_POSTER_BYTES = 4 * 1024 * 1024;
 const TMDB_TIMEOUT_MS = 10_000;
+const PUBLIC_MCP_TOOL_NAMES = [
+  "find_titles",
+  "get_library",
+  "preview_playlist",
+  "create_playlist",
+  "get_stamp_questions",
+  "preview_stamp",
+  "save_stamp",
+] as const;
 
 type MediaType = "movie" | "tv";
 type TitlePreview = {
@@ -506,6 +515,16 @@ function oauthChallenge(request: Request) {
 }
 
 async function handle(request: NextRequest): Promise<Response> {
+  // Keep the browser-facing capability probe compatible with NotesKit. This
+  // descriptor contains no user data and does not execute tools; all MCP JSON-
+  // RPC calls below still require an OAuth bearer token.
+  if (request.method === "GET") {
+    return NextResponse.json({
+      name: "cineblock",
+      protocol: "2026-07-28",
+      tools: PUBLIC_MCP_TOOL_NAMES,
+    }, { headers: publicMcpCorsHeaders() });
+  }
   if (!isMcpTransportAllowed(request)) {
     return NextResponse.json({ error: "MCP origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
+import { publicMcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
@@ -8,7 +8,6 @@ function origin(request: NextRequest) {
 }
 
 export function GET(request: NextRequest) {
-  if (!isMcpTransportAllowed(request)) return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request) });
   const base = origin(request);
   return NextResponse.json({
     issuer: base,
@@ -23,5 +22,5 @@ export function GET(request: NextRequest) {
     logo_uri: `${base}/brand/cineblock-icon-256.png`,
     client_id_metadata_document_supported: false,
     authorization_response_iss_parameter_supported: true,
-  }, { headers: { ...mcpCorsHeaders(request), "Cache-Control": "public, max-age=300" } });
+  }, { headers: { ...publicMcpCorsHeaders(), "Cache-Control": "public, max-age=300" } });
 }

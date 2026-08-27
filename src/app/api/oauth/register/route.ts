@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../../convex/_generated/api";
 import * as z from "zod/v4";
-import { isMcpTransportAllowed, mcpCorsHeaders } from "@/lib/mcpCors";
+import { publicMcpCorsHeaders } from "@/lib/mcpCors";
 
 export const runtime = "nodejs";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 const MAX_BODY_BYTES = 64 * 1024;
-const registrationCorsOptions = { allowNullOrigin: true, allowOpenAiRegistrationOrigin: true } as const;
 const clientMetadataSchema = z.object({
   client_name: z.string().trim().max(120).optional(),
   redirect_uris: z.array(z.string().min(1).max(2048)).min(1).max(10),
@@ -37,14 +36,12 @@ const clientMetadataSchema = z.object({
   }
 });
 
-export async function OPTIONS(request: NextRequest) {
-  if (!isMcpTransportAllowed(request, registrationCorsOptions)) return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: mcpCorsHeaders(request, registrationCorsOptions) });
-  return new Response(null, { status: 204, headers: mcpCorsHeaders(request, registrationCorsOptions) });
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: publicMcpCorsHeaders() });
 }
 
 export async function POST(request: NextRequest) {
-  const responseHeaders = mcpCorsHeaders(request, registrationCorsOptions);
-  if (!isMcpTransportAllowed(request, registrationCorsOptions)) return NextResponse.json({ error: "Origin or host is not allowed." }, { status: 403, headers: responseHeaders });
+  const responseHeaders = publicMcpCorsHeaders();
   const contentType = request.headers.get("content-type")?.split(";", 1)[0].trim().toLowerCase();
   if (contentType !== "application/json") return NextResponse.json({ error: "invalid_client_metadata" }, { status: 415, headers: responseHeaders });
   const contentLengthHeader = request.headers.get("content-length");
