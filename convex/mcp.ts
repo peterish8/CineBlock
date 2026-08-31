@@ -91,6 +91,19 @@ function validateMoviePayload(movie: { movieId: number; movieTitle: string; post
   return { movieId: movie.movieId, movieTitle, posterPath };
 }
 
+async function getStampForIdentity(
+  ctx: QueryCtx | MutationCtx,
+  userId: Id<"users">,
+  movieId: number,
+  mediaType: "movie" | "tv",
+) {
+  const candidates = await ctx.db
+    .query("stamps")
+    .withIndex("by_userId_movieId", (q) => q.eq("userId", userId).eq("movieId", movieId))
+    .take(3);
+  return candidates.find((stamp) => (stamp.mediaType ?? "movie") === mediaType) ?? null;
+}
+
 function randomToken(prefix = "mcp_") {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -126,6 +139,76 @@ export const getLibrary = query({
       watchlist: watchlist.sort((a, b) => b.addedAt - a.addedAt),
       watched: watched.sort((a, b) => b.watchedAt - a.watchedAt),
     };
+  },
+});
+
+export const getUnstampedWatched = query({
+  args: {
+    token: v.string(),
+    limit: v.number(),
+  },
+  returns: v.object({
+    user: v.object({ name: v.string(), username: v.union(v.string(), v.null()) }),
+    scanned: v.number(),
+    items: v.array(v.object({
+      movieId: v.number(),
+      movieTitle: v.string(),
+      posterPath: v.string(),
+      watchedAt: v.number(),
+    })),
+  }),
+  handler: async (ctx, { token, limit }) => {
+    const user = await getUserByToken(ctx, token);
+    if (!user) throw new ConvexError("Invalid MCP token");
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 25) {
+      throw new ConvexError("Limit must be a whole number between 1 and 25.");
+    }
+
+    const scanLimit = Math.min(limit * 10, 250);
+    const watched = await ctx.db
+      .query("watched")
+      .withIndex("by_userId_watchedAt", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(scanLimit);
+    const status = await Promise.all(watched.map(async (item) => ({
+      item,
+      stamp: await ctx.db
+        .query("stamps")
+        .withIndex("by_userId_movieId", (q) => q.eq("userId", user._id).eq("movieId", item.movieId))
+        .first(),
+    })));
+    const available = status
+      .filter(({ stamp }) => !stamp)
+      .slice(0, limit)
+      .map(({ item }) => ({
+        movieId: item.movieId,
+        movieTitle: item.movieTitle,
+        posterPath: item.posterPath,
+        watchedAt: item.watchedAt,
+      }));
+
+    return {
+      user: { name: user.name ?? user.username ?? "CineBlock user", username: user.username ?? null },
+      scanned: watched.length,
+      items: available,
+    };
+  },
+});
+
+export const getStampStatus = query({
+  args: {
+    token: v.string(),
+    movieId: v.number(),
+    mediaType: v.union(v.literal("movie"), v.literal("tv")),
+  },
+  returns: v.union(v.literal("none"), v.literal("draft"), v.literal("published")),
+  handler: async (ctx, { token, movieId, mediaType }) => {
+    const user = await getUserByToken(ctx, token);
+    if (!user) throw new ConvexError("Invalid MCP token");
+    if (!Number.isSafeInteger(movieId) || movieId <= 0) throw new ConvexError("Invalid movie ID.");
+
+    const stamp = await getStampForIdentity(ctx, user._id as Id<"users">, movieId, mediaType);
+    return stamp ? (stamp.isDraft ? "draft" : "published") : "none";
   },
 });
 
@@ -231,7 +314,8 @@ export const createStamp = mutation({
 
     await enforceMcpRateLimit(ctx, user._id as Id<"users">, "mcpCreateStamp", STAMP_MIN_INTERVAL_MS);
 
-    const existing = await ctx.db.query("stamps").withIndex("by_userId_movieId", (q) => q.eq("userId", user._id).eq("movieId", args.movieId)).first();
+    const mediaType = args.mediaType ?? "movie";
+    const existing = await getStampForIdentity(ctx, user._id as Id<"users">, args.movieId, mediaType);
     if (existing && !existing.isDraft) throw new ConvexError("You already stamped this title.");
 
     if (existing) {

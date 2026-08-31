@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 
 export const TITLE_CAROUSEL_URI = "ui://cineblock/title-carousel/v1.html";
 export const CONFIRMATION_CARD_URI = "ui://cineblock/confirmation-card/v1.html";
+export const STAMP_INTERVIEW_URI = "ui://cineblock/stamp-interview/v1.html";
 export const CINEBLOCK_MCP_ICON_URL = "https://www.cineblock.in/brand/cineblock-icon-256.png";
 export const CINEBLOCK_MCP_ICON = {
   src: CINEBLOCK_MCP_ICON_URL,
@@ -212,6 +213,63 @@ const titleCarouselHtml = `<!doctype html>
   }());
 </script></body></html>`;
 
+const stampInterviewHtml = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CineBlock stamp interview</title><style>${widgetStyles}
+  .interview { border: 1px solid var(--line); border-radius: 20px; overflow: hidden; background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025)); box-shadow: 0 16px 42px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.1); }
+  .interview-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 13px; align-items: center; padding: 16px; border-bottom: 1px solid var(--line); }
+  .interview-poster { width: 64px; height: 88px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; background: rgba(255,255,255,.05); }
+  .interview-poster img { width: 100%; height: 100%; object-fit: cover; }
+  .interview-title { margin-top: 4px; font-size: 22px; line-height: 1; letter-spacing: -.045em; }
+  .interview-body { padding: 4px 16px 16px; }
+  .question { padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .question:last-of-type { border-bottom: 0; }
+  .question-number { display: inline-grid; width: 19px; height: 19px; margin-right: 7px; place-items: center; border: 1px solid rgba(165,243,252,.3); border-radius: 50%; color: var(--cyan); font-size: 9px; font-weight: 800; vertical-align: 1px; }
+  .question h2 { display: inline; font-size: 14px; line-height: 1.35; letter-spacing: -.018em; }
+  .options { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .option { min-height: 34px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; color: rgba(226,232,240,.82); background: rgba(255,255,255,.035); cursor: pointer; font-size: 11px; transition: border-color .16s ease, background .16s ease, color .16s ease; }
+  .option:hover { border-color: rgba(165,243,252,.45); background: rgba(165,243,252,.08); }
+  .option[aria-pressed="true"] { border-color: rgba(165,243,252,.68); color: #ecfeff; background: rgba(14,116,144,.26); box-shadow: inset 0 0 0 1px rgba(165,243,252,.13); }
+  .answer { width: 100%; min-height: 54px; margin-top: 9px; padding: 10px 11px; resize: vertical; border: 1px solid rgba(255,255,255,.12); border-radius: 11px; outline: 0; color: #f8fafc; background: rgba(2,8,23,.44); font: 12px/1.45 inherit; }
+  .answer::placeholder { color: rgba(148,163,184,.66); }
+  .answer:focus { border-color: rgba(165,243,252,.6); box-shadow: 0 0 0 3px rgba(165,243,252,.1); }
+  .privacy { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding: 12px; border: 1px solid rgba(255,255,255,.09); border-radius: 13px; background: rgba(255,255,255,.025); }
+  .privacy-title { color: #f8fafc; font-size: 12px; font-weight: 700; }
+  .privacy-actions { display: flex; gap: 6px; }
+  .privacy-button { min-height: 32px; padding: 6px 9px; border: 1px solid rgba(255,255,255,.13); border-radius: 999px; color: var(--muted); background: transparent; cursor: pointer; font-size: 10px; font-weight: 750; }
+  .privacy-button[aria-pressed="true"] { border-color: rgba(253,186,116,.52); color: #ffedd5; background: rgba(249,115,22,.14); }
+  .interview-foot { padding-top: 2px; }
+  @media (max-width: 420px) { .interview-head { grid-template-columns: 50px minmax(0, 1fr); padding: 13px; } .interview-poster { width: 50px; height: 70px; } .interview-title { font-size: 19px; } .interview-body { padding: 3px 13px 13px; } }
+</style></head>
+<body><main class="widget"><div data-root></div><p class="subtle" data-bridge-status aria-live="polite"></p></main><script>${bridgeScript}
+  (function () {
+    var root = document.querySelector("[data-root]");
+    var status = document.querySelector("[data-bridge-status]");
+    function safeImage(value) { var raw = String(value || ""); if (raw.charAt(0) === "/") return "https://image.tmdb.org/t/p/w500" + raw; try { var url = new URL(raw); return url.protocol === "https:" && url.hostname === "image.tmdb.org" && url.pathname.indexOf("/t/p/") === 0 ? url.href : ""; } catch (_) { return ""; } }
+    function string(value, fallback) { return String(value === undefined || value === null ? (fallback || "") : value); }
+    function render(data) {
+      if (!data || data.kind !== "stamp-interview" || !data.movie || !Array.isArray(data.questions)) { var empty = document.createElement("div"); empty.className = "empty"; empty.textContent = "Waiting for your CineBlock stamp prompts…"; root.replaceChildren(empty); return; }
+      var movie = data.movie; var choices = {}; var ownWords = {}; var visibility = false;
+      var card = document.createElement("section"); card.className = "interview";
+      var head = document.createElement("header"); head.className = "interview-head";
+      var poster = document.createElement("div"); poster.className = "interview-poster"; var imageUrl = safeImage(movie.posterUrl); if (imageUrl) { var image = document.createElement("img"); image.src = imageUrl; image.alt = "Poster for " + string(movie.title, "title"); image.loading = "lazy"; image.referrerPolicy = "no-referrer"; poster.appendChild(image); } else { poster.textContent = ""; }
+      var headCopy = document.createElement("div"); var eyebrow = document.createElement("p"); eyebrow.className = "eyebrow"; eyebrow.textContent = data.existingDraft ? "CineBlock / continue a draft" : "CineBlock / personal stamp"; var title = document.createElement("h1"); title.className = "interview-title"; title.textContent = string(movie.title, "Your title"); var sub = document.createElement("p"); sub.className = "subtle"; sub.style.marginTop = "7px"; sub.textContent = "Three small prompts. Answer any one — write your own if the options miss it."; headCopy.append(eyebrow, title, sub); head.append(poster, headCopy); card.appendChild(head);
+      var body = document.createElement("div"); body.className = "interview-body";
+      data.questions.slice(0, 3).forEach(function (question, index) {
+        var section = document.createElement("section"); section.className = "question";
+        var heading = document.createElement("h2"); var number = document.createElement("span"); number.className = "question-number"; number.textContent = String(index + 1); heading.append(number, document.createTextNode(string(question.prompt))); section.appendChild(heading);
+        var helper = document.createElement("p"); helper.className = "subtle"; helper.style.marginTop = "5px"; helper.textContent = string(question.helper); section.appendChild(helper);
+        var options = document.createElement("div"); options.className = "options";
+        (Array.isArray(question.options) ? question.options.slice(0, 6) : []).forEach(function (label) { var option = document.createElement("button"); option.type = "button"; option.className = "option"; option.textContent = string(label); option.setAttribute("aria-pressed", "false"); option.addEventListener("click", function () { choices[question.id] = choices[question.id] === label ? "" : label; Array.prototype.forEach.call(options.children, function (button) { button.setAttribute("aria-pressed", button.textContent === choices[question.id] ? "true" : "false"); }); }); options.appendChild(option); }); section.appendChild(options);
+        var input = document.createElement("textarea"); input.className = "answer"; input.maxLength = 320; input.rows = 2; input.placeholder = string(question.placeholder, "Write it your way…"); input.setAttribute("aria-label", "Your own words for " + string(question.prompt)); input.addEventListener("input", function () { ownWords[question.id] = input.value.trim(); }); section.appendChild(input); body.appendChild(section);
+      });
+      var privacy = document.createElement("div"); privacy.className = "privacy"; var privacyCopy = document.createElement("div"); var privacyTitle = document.createElement("p"); privacyTitle.className = "privacy-title"; privacyTitle.textContent = "Keep this feeling"; var privacySub = document.createElement("p"); privacySub.className = "subtle"; privacySub.textContent = "Private by default. You can change it in the preview."; privacyCopy.append(privacyTitle, privacySub); var actions = document.createElement("div"); actions.className = "privacy-actions";
+      ["Private", "Public"].forEach(function (label) { var button = document.createElement("button"); button.type = "button"; button.className = "privacy-button"; button.textContent = label; button.setAttribute("aria-pressed", label === "Private" ? "true" : "false"); button.addEventListener("click", function () { visibility = label === "Public"; Array.prototype.forEach.call(actions.children, function (item) { item.setAttribute("aria-pressed", item.textContent === label ? "true" : "false"); }); }); actions.appendChild(button); }); privacy.append(privacyCopy, actions); body.appendChild(privacy);
+      var foot = document.createElement("div"); foot.className = "interview-foot"; var submit = document.createElement("button"); submit.type = "button"; submit.className = "primary-button"; submit.textContent = "Turn these into my stamp"; submit.addEventListener("click", function () { var answers = data.questions.slice(0, 3).map(function (question) { return { prompt: string(question.prompt), answer: ownWords[question.id] || choices[question.id] || "" }; }).filter(function (item) { return item.answer; }); if (!answers.length) { status.textContent = "Choose an option or add your own words for at least one prompt."; return; } submit.disabled = true; submit.textContent = "Sending your words…"; var message = "CineBlock stamp answers for the exact title " + string(movie.title) + " (TMDB " + string(movie.id) + ", " + string(movie.mediaType) + "). Visibility: " + (visibility ? "public" : "private") + ".\n" + answers.map(function (item) { return "- " + item.prompt + " — " + item.answer; }).join("\n") + "\n\nUse only these answers. Do not ask more questions. Draft a concise first-person, spoiler-light stamp with no invented feelings, then call preview_stamp for this exact TMDB ID and visibility."; window.cineblockBridge.sendToConversation(message).then(function () { status.textContent = "Your answers are in the conversation. CineBlock will prepare a preview before anything is saved."; submit.textContent = "Answers sent"; }).catch(function () { submit.disabled = false; submit.textContent = "Turn these into my stamp"; }); }); foot.appendChild(submit); body.appendChild(foot); card.appendChild(body); root.replaceChildren(card);
+    }
+    window.cineblockBridge.registerRenderer(render);
+  }());
+</script></body></html>`;
+
 const confirmationCardHtml = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CineBlock confirmation</title><style>${widgetStyles}</style></head>
 <body><main class="widget"><div data-root></div><p class="subtle" data-bridge-status aria-live="polite"></p></main><script>${bridgeScript}
@@ -275,5 +333,8 @@ export function registerMcpAppResources(server: McpServer) {
   }));
   server.registerResource("cineblock-confirmation-card", CONFIRMATION_CARD_URI, { title: "CineBlock confirmation card", mimeType: RESOURCE_MIME_TYPE, _meta: RESOURCE_META }, async (uri) => ({
     contents: [{ uri: uri.href, mimeType: RESOURCE_MIME_TYPE, text: confirmationCardHtml, _meta: RESOURCE_META }],
+  }));
+  server.registerResource("cineblock-stamp-interview", STAMP_INTERVIEW_URI, { title: "CineBlock personal stamp interview", mimeType: RESOURCE_MIME_TYPE, _meta: RESOURCE_META }, async (uri) => ({
+    contents: [{ uri: uri.href, mimeType: RESOURCE_MIME_TYPE, text: stampInterviewHtml, _meta: RESOURCE_META }],
   }));
 }

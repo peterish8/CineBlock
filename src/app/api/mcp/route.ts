@@ -5,7 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { isMcpTransportAllowed, mcpCorsHeaders, publicMcpCorsHeaders } from "@/lib/mcpCors";
-import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
+import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, STAMP_INTERVIEW_URI, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
 
 export const runtime = "nodejs";
 
@@ -21,6 +21,7 @@ const TMDB_TIMEOUT_MS = 10_000;
 const PUBLIC_MCP_TOOL_NAMES = [
   "find_titles",
   "get_library",
+  "get_unstamped_watched",
   "preview_playlist",
   "create_playlist",
   "get_stamp_questions",
@@ -51,6 +52,28 @@ const titleSearchOutputSchema = z.object({
   kind: z.literal("title-search"),
   query: z.string(),
   titles: z.array(titleCardOutputSchema).max(8),
+});
+const unstampedWatchedOutputSchema = z.object({
+  kind: z.literal("unstamped-watched"),
+  scanned: z.number().int().nonnegative(),
+  items: z.array(z.object({
+    movieId: z.number().int().positive(),
+    movieTitle: z.string(),
+    posterUrl: z.string().url().nullable(),
+    watchedAt: z.number().int().positive(),
+  })).max(25),
+});
+const stampInterviewOutputSchema = z.object({
+  kind: z.literal("stamp-interview"),
+  movie: titleCardOutputSchema,
+  existingDraft: z.boolean(),
+  questions: z.array(z.object({
+    id: z.enum(["feeling", "memory", "meaning"]),
+    prompt: z.string(),
+    helper: z.string(),
+    options: z.array(z.string()).min(3).max(6),
+    placeholder: z.string(),
+  })).length(3),
 });
 const playlistPreviewOutputSchema = z.object({
   kind: z.literal("playlist-preview"),
@@ -238,38 +261,45 @@ function escapeMarkdown(value: string) {
   return value.replace(/\s+/g, " ").replace(/[\\`*_{}[\]()#+.!|>]/g, "\\$&");
 }
 
-function stampInterview(title: TitlePreview) {
+const STAMP_QUESTIONS = [
+  {
+    id: "feeling" as const,
+    prompt: "What did it leave you feeling?",
+    helper: "Choose one, or say it in your own words.",
+    options: ["Moved", "Delighted", "Unsettled", "Thoughtful", "Disappointed"],
+    placeholder: "Your feeling, in your words…",
+  },
+  {
+    id: "memory" as const,
+    prompt: "What stayed with you most?",
+    helper: "A single detail is enough.",
+    options: ["A scene or image", "A character", "A relationship", "An idea", "The mood or music"],
+    placeholder: "The scene, person, idea, or detail…",
+  },
+  {
+    id: "meaning" as const,
+    prompt: "Why did that matter to you?",
+    helper: "Skip this if the first two answers already say enough.",
+    options: ["It felt personal", "It changed my view", "It confirmed something", "I am still unsure"],
+    placeholder: "What it changed, confirmed, or left unresolved…",
+  },
+] as const;
+
+function stampInterview(title: TitlePreview, existingDraft: boolean) {
   const safeTitle = escapeMarkdown(title.title);
-  const hook = escapeMarkdown(title.overview.trim().replace(/\s+/g, " ").slice(0, 280));
   return [
     `# Stamp interview: ${safeTitle}`,
     "",
-    "Before writing, ask the user these questions conversationally. Do not invent answers or turn this into a critic review.",
+    existingDraft ? "A private draft already exists for this title. These answers may replace that draft only after preview and approval." : "Nothing has been saved.",
     "",
-    "## Ask these four questions",
-    "1. **What did this film make you feel, and what caused that feeling?**",
-    "2. **What stayed with you after the ending — an idea, image, relationship, or question?**",
-    "3. **Which scene or moment did you like most, and why did it land for you?**",
-    "4. **Did it change, confirm, or challenge anything for you?**",
+    "Answer any one to three prompts. Options are suggestions, not required wording:",
     "",
-    "## Optional movie-specific question",
-    hook ? `The story hook is: _${hook}_\nAsk one creative follow-up only if it adds something: **What part of that idea, character, or world felt most personally yours — and why?**` : "Ask one creative follow-up only if useful: **What detail from this film felt unexpectedly personal to you — and why?**",
+    ...STAMP_QUESTIONS.flatMap((question, index) => [
+      `${index + 1}. **${question.prompt}**`,
+      `   ${question.options.join(" · ")} · Own words`,
+    ]),
     "",
-    "## Markdown stamp format",
-    "Use first person and stay under 1,000 characters. Keep it personal, specific, and spoiler-light:",
-    "",
-    "```md",
-    "## What stayed with me",
-    "[the feeling, image, idea, or question]",
-    "",
-    "## The moment",
-    "[the scene or detail that landed, and why]",
-    "",
-    "## After the credits",
-    "[what it changed, confirmed, or left unresolved]",
-    "```",
-    "",
-    "Do not use HTML. Do not claim the user felt something they did not say. Call `preview_stamp` only after the user approves the exact title and the finished Markdown.",
+    "Ask no additional questions unless the user explicitly requests a deeper interview. Accept partial answers, mixed languages, and informal wording. Draft only from what the user supplied, then call `preview_stamp`; never invent a reaction.",
   ].join("\n");
 }
 
@@ -332,6 +362,38 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
           watchlist: library.watchlist,
           watched: library.watched,
         }, null, 2));
+      } catch (error) {
+        return errorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_unstamped_watched",
+    {
+      title: "Find unwritten watched titles",
+      description: "Show recently watched CineBlock titles that do not yet have a stamp, up to 25 at a time. Use this when a user asks what they can stamp next. These are library candidates only: call find_titles to confirm the exact TMDB movie or series identity before starting a stamp interview. This never writes.",
+      annotations: { readOnlyHint: true, destructiveHint: false },
+      inputSchema: z.object({ limit: z.number().int().min(1).max(25).default(10) }),
+      outputSchema: unstampedWatchedOutputSchema,
+    },
+    async ({ limit }) => {
+      try {
+        const result = await convex.query(api.mcp.getUnstampedWatched, { token: token!, limit });
+        const items = result.items.map((item) => ({
+          movieId: item.movieId,
+          movieTitle: item.movieTitle,
+          posterUrl: toPosterUrl(item.posterPath),
+          watchedAt: item.watchedAt,
+        }));
+        const intro = items.length
+          ? `Found ${items.length} unstamped title${items.length === 1 ? "" : "s"} among your ${result.scanned} most recently watched. Choose one, then call find_titles before the stamp interview.`
+          : `No unstamped titles were found among your ${result.scanned} most recently watched. Mark another title as watched or revisit a private draft from CineBlock.`;
+        return textResult(
+          `${intro}${items.length ? `\n\n${items.map((item, index) => `${index + 1}. ${escapeMarkdown(item.movieTitle)} · library ID ${item.movieId}\n   ${item.posterUrl ?? "No poster available"}`).join("\n")}` : ""}`,
+          [],
+          { kind: "unstamped-watched", scanned: result.scanned, items },
+        );
       } catch (error) {
         return errorResult(error);
       }
@@ -421,18 +483,36 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
   server.registerTool(
     "get_stamp_questions",
     {
-      description: "After find_titles identifies the exact movie or series, return a short Markdown interview for a personal CineBlock stamp. The assistant should ask the four standard questions, optionally ask one title-specific creative follow-up, and never invent the user's feelings. This is read-only and saves nothing.",
+      title: "Start a personal stamp",
+      description: "After find_titles confirms one exact title, render CineBlock's compact three-prompt personal stamp interview. In MCP App hosts, let the user tap an option or add their own words inside the card; do not copy the prompts into the chat composer. Accept one to three answers, including mixed languages. Do not ask extra questions unless the user explicitly asks for a deeper interview. Use only the answers supplied to draft a concise first-person, spoiler-light stamp, then call preview_stamp. This is read-only and saves nothing.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),
         mediaType: z.enum(["movie", "tv"]),
       }),
+      outputSchema: stampInterviewOutputSchema,
+      _meta: {
+        ui: { resourceUri: STAMP_INTERVIEW_URI },
+        "openai/outputTemplate": STAMP_INTERVIEW_URI,
+        "openai/toolInvocation/invoking": "Preparing your stamp prompts…",
+        "openai/toolInvocation/invoked": "Your stamp prompts are ready.",
+      },
     },
     async ({ tmdbId, mediaType }) => {
       try {
-        const title = await getTitle(tmdbId, mediaType);
+        const [title, status] = await Promise.all([
+          getTitle(tmdbId, mediaType),
+          convex.query(api.mcp.getStampStatus, { token: token!, movieId: tmdbId, mediaType }),
+        ]);
+        if (status === "published") {
+          return errorResult(new Error("You already stamped this title. Open the existing stamp in CineBlock if you want to revisit it."));
+        }
         const image = await posterContent(title.posterUrl);
-        return textResult(stampInterview(title), [image]);
+        return textResult(
+          stampInterview(title, status === "draft"),
+          [image],
+          { kind: "stamp-interview", movie: toTitleCard(title), existingDraft: status === "draft", questions: STAMP_QUESTIONS },
+        );
       } catch (error) {
         return errorResult(error);
       }
@@ -443,7 +523,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     "preview_stamp",
     {
       title: "Preview a stamp",
-      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. ChatGPT-compatible hosts render the exact poster, title, visibility, and text as an in-chat approval card. Before calling this, ask the four questions from get_stamp_questions and optionally one movie-specific question. Never invent a reaction, never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters.",
+      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. ChatGPT-compatible hosts render the exact poster, title, visibility, and text as an in-chat approval card. Before calling this, collect one to three answers through get_stamp_questions. Do not interrogate the user further or invent a reaction. Draft only from their answers; never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),

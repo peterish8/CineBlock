@@ -38,9 +38,10 @@ OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the
 
 - `find_titles` searches TMDB and returns poster-backed movie/series candidates.
 - `get_library` reads liked/favourite, watchlist, and watched titles.
+- `get_unstamped_watched` returns up to 25 watched titles without a saved stamp, so users can choose a fresh title to write about.
 - `preview_playlist` prepares a public/private CineBlock preview and a signed ten-minute confirmation handle.
 - `create_playlist` commits only that exact approved preview and returns the CineBlock share URL.
-- `get_stamp_questions` returns a Markdown interview: four standard personal questions plus one optional movie-specific creative follow-up.
+- `get_stamp_questions` returns a compact three-prompt personal interview for one exact title.
 - `preview_stamp` resolves one exact TMDB movie or series, shows its poster/title/year/type, and previews the user-approved personal Markdown under the 1,000-character limit.
 - `save_stamp` commits only that exact approved stamp preview.
 
@@ -49,6 +50,7 @@ OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the
 CineBlock also advertises portable MCP App resources for hosts that support them:
 
 - `find_titles` renders a poster carousel with exact movie/series identity and a **Use this title** handoff.
+- `get_stamp_questions` renders a compact stamp card: three optional prompts, tap-to-select answers, a free-text answer for every prompt, and private/public selection. It sends the user's chosen words back to the conversation; it cannot write a stamp itself.
 - `preview_playlist` and `preview_stamp` render approval cards showing the exact titles, visibility, poster(s), and approved text.
 - `create_playlist` and `save_stamp` render a saved-state card after the server accepts the matching short-lived confirmation token.
 
@@ -61,13 +63,9 @@ The resources use the standard `text/html;profile=mcp-app` MIME type and a narro
 When a user asks ChatGPT to stamp a movie or series, use this order:
 
 1. Call `find_titles` and confirm the exact poster-backed title, year, and media type.
-2. Call `get_stamp_questions` for that exact TMDB ID and ask the user the four standard questions conversationally:
-   - What did it make you feel, and what caused that feeling?
-   - What stayed after the ending — an idea, image, relationship, or question?
-   - Which scene or moment did you like most, and why did it land?
-   - Did it change, confirm, or challenge anything for you?
-3. Ask the optional movie-specific creative question only when it adds something. Do not interrogate the user or invent an answer for an unanswered question.
-4. Draft the stamp in first-person Markdown, keeping it personal and spoiler-light. It is a feeling/memory, not a critic review or plot summary. A useful shape is:
+2. Call `get_stamp_questions` for that exact TMDB ID. In a host that supports MCP Apps, let the user answer inside the CineBlock card rather than reproducing the prompts in chat. The card contains exactly three prompts: what it left them feeling, what stayed with them, and why it mattered.
+3. The user may answer any one to three prompts, tap a suggested option, or add their own words. Do not ask additional questions unless the user explicitly requests a deeper interview. If the title already has a published stamp, the tool stops before the interview. A private draft may be continued through the normal preview flow.
+4. Draft the stamp in first-person Markdown using only supplied answers, keeping it personal and spoiler-light. It is a feeling/memory, not a critic review or plot summary. A useful shape is:
 
    ```md
    ## What stayed with me
@@ -80,7 +78,7 @@ When a user asks ChatGPT to stamp a movie or series, use this order:
    [what changed, was confirmed, or stayed unresolved]
    ```
 
-5. Call `preview_stamp` with the exact Markdown and wait for approval of the title, poster, visibility, and text. Keep the entire `reviewText` payload at or below 1,000 characters. Do not use HTML or fabricate personal reactions.
+5. Call `preview_stamp` with the exact Markdown and wait for approval of the title, poster, visibility, and text. Keep the entire `reviewText` payload at or below 1,000 characters. Do not use HTML or fabricate personal reactions. Default to private unless the user selected or requested public.
 6. Call `save_stamp` only with the exact confirmation token returned by `preview_stamp`; do not rewrite the Markdown between preview and save.
 
 Writes intentionally require a preview followed by the exact confirmation token. Confirmation handles are signed with the authenticated bearer token, expire after ten minutes, and contain a unique action ID. Convex stores a durable receipt for that ID, so retries return the original result instead of creating a duplicate playlist or stamp. MCP tool annotations also identify reads versus writes so compatible clients can request confirmation; the bearer token itself must still be treated as a powerful credential.

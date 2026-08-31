@@ -64,7 +64,8 @@ const schema = defineSchema({
     watchedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_movieId", ["userId", "movieId"]),
+    .index("by_userId_movieId", ["userId", "movieId"])
+    .index("by_userId_watchedAt", ["userId", "watchedAt"]),
 
   liked: defineTable({
     userId: v.id("users"),
