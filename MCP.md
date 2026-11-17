@@ -50,17 +50,19 @@ OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the
 CineBlock also advertises portable MCP App resources for hosts that support them:
 
 - `find_titles` renders a poster carousel with exact movie/series identity and a **Use this title** handoff.
-- `get_stamp_questions` renders a compact stamp card: three optional prompts, tap-to-select answers, a free-text answer for every prompt, and private/public selection. It sends the user's chosen words back to the conversation; it cannot write a stamp itself.
+- `get_stamp_questions` renders a compact stamp card: three optional prompts, tap-to-select answers, a free-text answer for every prompt, an optional **Anything else?** box, private/public selection, and a live 1,000-character counter (warns at 900, blocks preview above 1,000). Each text box also accepts up to 1,000 characters; the combined stamp is what must fit. **Preview my stamp** calls `preview_stamp` (read-only) from the card with the user's own words and shows the approval card inline; **Ask the AI to polish it first** sends the answers back to the conversation so the model can draft and preview.
 - `preview_playlist` and `preview_stamp` render approval cards showing the exact titles, visibility, poster(s), and approved text.
-- `create_playlist` and `save_stamp` render a saved-state card after the server accepts the matching short-lived confirmation token.
+- **Approve & save** on an approval card calls `create_playlist` or `save_stamp` directly (an MCP Apps `tools/call`, or `window.openai.callTool` in ChatGPT) with only the exact `confirmationToken` that preview returned. On success the card shows the saved state and tells the model, through `ui/update-model-context`, not to save again.
 
-The UI is presentation-only. It never receives a direct write capability; its approval button sends a confirmation message back to the host, and the model must still call the matching commit tool with the exact server-issued handle. Hosts without MCP App support continue to receive the text and structured results.
+Preview and commit stay separate tool calls. The card never invents a handle: the server still verifies the signed, ten-minute, user-bound token and the Convex receipt makes a retry return the original result. Hosts may show their own consent prompt for a write started from the card. Hosts without MCP App support continue to receive the text and structured results.
 
-The resources use the standard `text/html;profile=mcp-app` MIME type and a narrow CSP allowing TMDB poster images only. Their versioned `ui://cineblock/.../v1.html` URIs are cache keys; publish a new URI when the widget contract changes and reconnect clients after tool metadata changes.
+The resources use the standard `text/html;profile=mcp-app` MIME type, implement MCP Apps protocol `2026-01-26` (`ui/initialize`, `ui/notifications/size-changed`, `ui/open-link`, `ui/message`, `tools/call`), and use a narrow CSP allowing TMDB poster images only. Their versioned `ui://cineblock/.../v2.html` URIs are cache keys; publish a new URI when the widget contract changes and reconnect clients after tool metadata changes.
 
 ### Personal stamp conversation contract
 
-When a user asks ChatGPT to stamp a movie or series, use this order:
+If the user has already talked about a title in the conversation (a reaction plus at least one detail or reason), skip the interview: resolve the title with `find_titles`, organise only their own words into a clean first-person Markdown stamp (at most 1,000 characters), call `preview_stamp`, and call `save_stamp` with that preview's token only after they approve. The server sends this rule in its MCP `instructions`, and `preview_stamp` returns `characterCount`, `characterLimit`, and `nextStep` hints. Use the interview below when the user has said little or nothing.
+
+When a user asks ChatGPT to stamp a movie or series without saying much yet, use this order:
 
 1. Call `find_titles` and confirm the exact poster-backed title, year, and media type.
 2. Call `get_stamp_questions` for that exact TMDB ID. In a host that supports MCP Apps, let the user answer inside the CineBlock card rather than reproducing the prompts in chat. The card contains exactly three prompts: what it left them feeling, what stayed with them, and why it mattered.
@@ -87,4 +89,4 @@ Writes intentionally require a preview followed by the exact confirmation token.
 
 Set `NEXT_PUBLIC_APP_URL` to the public CineBlock origin for canonical share links and host validation. Set `MCP_ALLOWED_ORIGIN` to the exact browser client origin (or a comma-separated allowlist) when using a browser-based MCP client. In production, the route fails closed when neither a configured origin nor a configured canonical host is available. Poster proxying is restricted to `image.tmdb.org`.
 
-The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; install it with `npm i -g vercel` before using `vercel env pull`, `vercel deploy`, or `vercel logs` directly.
+The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; run `pnpm dlx vercel env pull`, `pnpm dlx vercel deploy`, or `pnpm dlx vercel logs` directly.

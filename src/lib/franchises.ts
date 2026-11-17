@@ -1,3 +1,11 @@
+/**
+ * Franchise ribbons on Radar / Release Timeline posters. Which films get one, and the
+ * franchise they belong to, come from the Convex `franchises` catalog (see
+ * `useFranchiseBadges`); this file only decides how a ribbon looks.
+ */
+import type { FranchiseBadgeTone } from "@/lib/franchiseSeed";
+
+/** A franchise ribbon ready to render: its label and Tailwind colour classes. */
 export interface FranchiseMetadata {
   id: number;
   name: string;
@@ -5,25 +13,52 @@ export interface FranchiseMetadata {
   borderColor: string;
 }
 
-export const FRANCHISE_MAP: Record<number, FranchiseMetadata> = {
-  // MCU
-  800158: { id: 800158, name: "MCU", color: "bg-red-600", borderColor: "border-red-800" }, // Captain America: Brave New World
-  1023922: { id: 1023922, name: "MCU", color: "bg-red-600", borderColor: "border-red-800" }, // Thunderbolts*
-  429473: { id: 429473, name: "MCU", color: "bg-red-600", borderColor: "border-red-800" }, // The Fantastic Four: First Steps
-  
-  // DCU
-  591731: { id: 591731, name: "DCU", color: "bg-blue-600", borderColor: "border-blue-800" }, // Superman
-  
-  // AVATAR
-  83533: { id: 83533, name: "AVATAR", color: "bg-cyan-500", borderColor: "border-cyan-700" }, // Avatar: Fire and Ash
-  
-  // SPY UNIVERSE (India)
-  1139429: { id: 1139429, name: "SPYVERSE", color: "bg-orange-600", borderColor: "border-orange-800" }, // War 2
-  1276274: { id: 1276274, name: "BOLLY", color: "bg-brutal-yellow", borderColor: "border-yellow-700" }, // Sikandar
-  
-  // MISSION IMPOSSIBLE
-  575265: { id: 575265, name: "M:I", color: "bg-slate-700", borderColor: "border-slate-900" }, // Dead Reckoning Part 2
-  
-  // SPIDER-VERSE
-  569094: { id: 569094, name: "SPIDEY", color: "bg-pink-600", borderColor: "border-pink-800" }, // Beyond the Spider-Verse
+interface ToneClasses {
+  color: string;
+  borderColor: string;
+}
+
+// Literal class strings so Tailwind keeps them in the build
+const TONE_CLASSES: Record<FranchiseBadgeTone, ToneClasses> = {
+  red: { color: "bg-red-600", borderColor: "border-red-800" },
+  blue: { color: "bg-blue-600", borderColor: "border-blue-800" },
+  cyan: { color: "bg-cyan-500", borderColor: "border-cyan-700" },
+  orange: { color: "bg-orange-600", borderColor: "border-orange-800" },
+  yellow: { color: "bg-yellow-500", borderColor: "border-yellow-700" },
+  slate: { color: "bg-slate-700", borderColor: "border-slate-900" },
+  pink: { color: "bg-pink-600", borderColor: "border-pink-800" },
+  green: { color: "bg-green-600", borderColor: "border-green-800" },
+  amber: { color: "bg-amber-600", borderColor: "border-amber-800" },
+  teal: { color: "bg-teal-600", borderColor: "border-teal-800" },
 };
+const TONES: FranchiseBadgeTone[] = ["red", "blue", "cyan", "orange", "yellow", "slate", "pink", "green", "amber", "teal"];
+
+/** Tones stored in Convex are plain strings; only accept ones we have classes for. */
+function isTone(value: string | undefined): value is FranchiseBadgeTone {
+  return value !== undefined && (TONES as string[]).includes(value);
+}
+
+/** "The Conjuring Collection" → "CONJURING"; long names are clipped to fit the ribbon. */
+function shortLabel(name: string): string {
+  const label = name
+    .replace(/\s*\(.*?\)\s*/g, " ")
+    .replace(/\s+(Collection|Saga|Trilogy|Universe)\s*$/i, "")
+    .replace(/^The\s+/i, "")
+    .trim()
+    .toUpperCase();
+  return label.length > 14 ? `${label.slice(0, 13).trimEnd()}…` : label;
+}
+
+/** Ribbon for a franchise: its stored label/tone if set, otherwise derived from its name. */
+export function franchiseBadge(f: BadgeSource): FranchiseMetadata {
+  const tone = isTone(f.tone) ? f.tone : TONES[f.key % TONES.length];
+  return { id: f.key, name: f.label || shortLabel(f.name), ...TONE_CLASSES[tone] };
+}
+
+/** What the catalog knows about a franchise's ribbon. */
+export interface BadgeSource {
+  key: number;
+  name: string;
+  label?: string;
+  tone?: string;
+}

@@ -14,6 +14,7 @@ import type * as cineblocks from "../cineblocks.js";
 import type * as cineswipe from "../cineswipe.js";
 import type * as crons from "../crons.js";
 import type * as dataExport from "../dataExport.js";
+import type * as franchises from "../franchises.js";
 import type * as http from "../http.js";
 import type * as lists from "../lists.js";
 import type * as maintenance from "../maintenance.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   cineswipe: typeof cineswipe;
   crons: typeof crons;
   dataExport: typeof dataExport;
+  franchises: typeof franchises;
   http: typeof http;
   lists: typeof lists;
   maintenance: typeof maintenance;

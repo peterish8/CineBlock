@@ -3,13 +3,14 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X, Star, Users, Bookmark, Play, ExternalLink, Link as LinkIcon, Film, Heart, CheckCircle, ArrowLeft, MoreVertical, Plus, ChevronDown } from "lucide-react";
+import { X, Star, Users, Play, ExternalLink, Film, ArrowLeft, Plus, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TMDBMovie, TMDBMovieDetail, TMDBVideo, TMDBWatchProvider, TMDBWatchProviderResponse, TMDBPerson } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 import { backdropUrl, posterUrl, logoUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useRegion } from "@/hooks/useRegion";
+import MovieActionBar from "@/components/MovieActionBar";
 import { useBlockModal } from "@/components/BlockModalProvider";
 import { useConvexAuth } from "convex/react";
 import { useThemeMode } from "@/hooks/useThemeMode";
@@ -40,7 +41,6 @@ export default function MovieModal({
   const [details, setDetails] = useState<TMDBMovieDetail | null>(null);
   const [watchProviders, setWatchProviders] = useState<TMDBWatchProviderResponse["results"] | null>(null);
   const [playingTrailer, setPlayingTrailer] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [similar, setSimilar] = useState<TMDBMovie[]>([]);
   const [activeCategory, setActiveCategory] = useState<"flatrate" | "rent" | "buy" | null>(null);
   const [regionDropOpen, setRegionDropOpen] = useState(false);
@@ -156,15 +156,16 @@ export default function MovieModal({
     return true;
   }, [requireAuthForActions, isAuthenticated, onRequireAuth]);
 
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!movie) return;
+  const copyLink = async (): Promise<boolean> => {
+    if (!movie) return false;
     const type = movie.media_type === "tv" ? "tv" : "movie";
     const slug = toMovieSlug(movie.title || "", movie.id);
-    const url = `${window.location.origin}/${type}/${slug}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/${type}/${slug}`);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const fetchDetails = useCallback(async (id: number, type: "movie" | "tv") => {
@@ -282,20 +283,6 @@ export default function MovieModal({
   ) || details?.videos?.results?.find((v: TMDBVideo) => v.site === "YouTube");
 
   const currentProviders = watchProviders?.[region] || null;
-  const glassWatchedActionClass = watched
-    ? "p-2 rounded-full transition-all text-emerald-300 shadow-[0_10px_28px_rgba(5,150,105,0.18)]"
-    : "p-2 rounded-full transition-all text-white hover:bg-white/10";
-  const glassWatchedActionStyle = watched
-    ? {
-        background: "linear-gradient(135deg, rgba(16,185,129,0.28), rgba(5,150,105,0.14))",
-        border: "1px solid rgba(52,211,153,0.45)",
-        backdropFilter: "blur(16px)",
-      }
-    : {
-        background: "transparent",
-        border: "1px solid transparent",
-      };
-
   const REGIONS = [
     { code: "IN", label: "India" },
     { code: "US", label: "USA" },
@@ -363,46 +350,27 @@ export default function MovieModal({
             {(history.length > 1 || onBack) && (
               <button 
                 onClick={(e) => { e.stopPropagation(); if (history.length > 1) { setHistory(prev => prev.slice(0, -1)); } else { onBack?.(); } }} 
-                className={isGlass ? "p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition-all backdrop-blur-md border border-white/5 shadow-sm" : "brutal-btn p-2 bg-black/50 text-white hover:bg-brutal-white hover:text-black transition-all"}
+                aria-label="Back"
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-[#020817]/60 text-white shadow-[0_8px_24px_rgba(2,8,23,0.45)] backdrop-blur-md transition-[background-color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA] active:scale-[0.92] [@media(hover:hover)]:hover:bg-[#020817]/85"
               >
-                <ArrowLeft className="w-4 h-4" strokeWidth={3} />
+                <ArrowLeft className="h-5 w-5" strokeWidth={2.5} aria-hidden />
               </button>
             )}
           </div>
 
-          <div className={`group/ctrl ${playingTrailer ? "pointer-events-none" : "pointer-events-auto"}`}>
-            <div className={`flex items-start gap-2 transition-opacity duration-300 ${playingTrailer ? "opacity-0" : ""}`}>
-              {showActions && (
-                <div className="flex flex-row-reverse gap-0.5 animate-slide-up-faint">
-                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleLiked(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${liked ? "text-rose-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all ${liked ? "text-brutal-pink" : "text-white"}`} title="Like">
-                    <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} strokeWidth={2.5} />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleWatchlist(movie); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${inWl ? "text-blue-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all ${inWl ? "text-brutal-lime" : "text-white"}`} title="Watchlist">
-                    <Bookmark className={`w-4 h-4 ${inWl ? "fill-current" : ""}`} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); if (!allowAction()) return; toggleWatched(movie); }}
-                    className={isGlass ? glassWatchedActionClass : `brutal-btn border-none p-2 transition-all ${watched ? "text-brutal-cyan" : "text-white"}`}
-                    style={isGlass ? glassWatchedActionStyle : undefined}
-                    title="Watched"
-                  >
-                    <CheckCircle className={`w-4 h-4 ${watched ? "fill-current" : ""}`} strokeWidth={2.5} />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleShare(e); }} className={isGlass ? `p-2 rounded-full transition-all hover:bg-white/10 ${copied ? "text-orange-400" : "text-white"}` : `brutal-btn border-none p-2 transition-all text-white hover:text-brutal-yellow ${copied ? "text-brutal-yellow" : ""}`} title="Share">
-                    <LinkIcon className="w-4 h-4" strokeWidth={2.5} />
-                  </button>
-                </div>
-              )}
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowActions(!showActions); }} 
-                className={isGlass ? `p-2 rounded-full transition-all backdrop-blur-md border border-white/5 shadow-sm ${showActions ? "bg-white/20 text-white" : "bg-white/10 text-white hover:bg-white/20"}` : `brutal-btn p-2 transition-all ${showActions ? "bg-brutal-white text-black" : "bg-black/50 text-white hover:bg-black/70"}`}
-              >
-                <MoreVertical className="w-4 h-4" strokeWidth={3} />
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); onClose(); }} className={isGlass ? "p-2 rounded-full transition-all backdrop-blur-md bg-white/10 text-white hover:bg-rose-500/80 hover:text-white border border-white/5 shadow-sm" : "brutal-btn p-2 bg-black/50 text-white hover:bg-red-500 hover:text-white transition-all"}>
-                <X className="w-4.5 h-4.5" strokeWidth={3} />
-              </button>
-            </div>
+          <div className={`transition-opacity duration-300 ${playingTrailer ? "pointer-events-none opacity-0" : "pointer-events-auto"}`}>
+            <MovieActionBar
+              open={showActions}
+              onOpenChange={setShowActions}
+              liked={liked}
+              inWatchlist={inWl}
+              watched={watched}
+              onToggleLike={() => { if (allowAction()) toggleLiked(movie); }}
+              onToggleWatchlist={() => { if (allowAction()) toggleWatchlist(movie); }}
+              onToggleWatched={() => { if (allowAction()) toggleWatched(movie); }}
+              onCopyLink={copyLink}
+              onClose={onClose}
+            />
           </div>
         </div>
 
@@ -458,13 +426,21 @@ export default function MovieModal({
                     <Play className="w-4 h-4 sm:w-7 sm:h-7 fill-current" />
                   </button>
                 )}
-                <div className={`flex items-center gap-1.5 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
-                  <Star className={`w-3.5 h-3.5 fill-current ${isGlass ? "text-orange-400" : "text-brutal-yellow"}`} />
-                  <span className={isGlass ? "text-xs font-semibold text-white tracking-wide" : "text-sm font-mono font-black text-brutal-yellow"}>{rating}</span>
-                </div>
+                {/* Unrated (usually unreleased) films have no score to show — skip "0.0" */}
+                {movie.vote_average > 0 && (
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
+                    <Star className={`w-3.5 h-3.5 fill-current ${isGlass ? "text-orange-400" : "text-brutal-yellow"}`} />
+                    <span className={`tabular-nums ${isGlass ? "text-xs font-semibold text-white tracking-wide" : "text-sm font-mono font-black text-brutal-yellow"}`}>{rating}</span>
+                  </div>
+                )}
                 <div className={`flex items-center gap-2 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
                   <span className={isGlass ? "text-xs font-medium text-white/90" : "text-xs font-mono font-bold text-brutal-white"}>{year}</span>
-                  {runtime && <span className={isGlass ? "text-xs font-medium text-white/60" : "text-xs font-mono font-bold text-brutal-muted"}>{Math.floor(runtime / 60)}H {runtime % 60}M</span>}
+                  {/* `runtime && …` rendered a literal 0 when TMDB has no runtime yet */}
+                  {runtime ? (
+                    <span className={`tabular-nums ${isGlass ? "text-xs font-medium text-white/60" : "text-xs font-mono font-bold text-brutal-muted"}`}>
+                      {runtime >= 60 ? `${Math.floor(runtime / 60)}h ${runtime % 60}m` : `${runtime}m`}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </>

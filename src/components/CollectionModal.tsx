@@ -1,292 +1,452 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { X, CheckCircle, Star, Box, Info, Heart, Bookmark } from "lucide-react";
-import { TMDBCollectionDetail, TMDBMovie } from "@/lib/types";
-import { backdropUrl } from "@/lib/constants";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Check, ChevronDown, Clapperboard, Film, Hourglass, Popcorn, Star, WifiOff, X, type LucideIcon } from "lucide-react";
+import type { TMDBCollectionDetail, TMDBMovie } from "@/lib/types";
+import { backdropUrl, posterUrl } from "@/lib/constants";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { fetchCollectionDetail } from "@/lib/collectionCache";
+import { franchiseTitle } from "@/components/CollectionCard";
+import StatusMessage, { STATUS_PRIMARY_BUTTON } from "@/components/StatusMessage";
+
+// Motion tokens: modal + scrim share one clock (see charles-ux-animation timing table)
+const EASE_OUT = [0.32, 0.72, 0, 1] as const;
+const EASE_IN = [0.55, 0, 1, 0.45] as const;
+const ENTER_S = 0.26;
+const EXIT_S = 0.18;
+
+type VaultProblem = "missing" | "busy" | "offline";
+
+interface ProblemCopy {
+  icon: LucideIcon;
+  title: string;
+  body: string;
+}
+
+// Warm, specific, and always says what happens next
+const PROBLEM_COPY: Record<VaultProblem, ProblemCopy> = {
+  missing: {
+    icon: Clapperboard,
+    title: "This reel went missing",
+    body: "TMDB isn’t listing this franchise right now. The vault checks again on its own, so it should be back soon.",
+  },
+  busy: {
+    icon: Hourglass,
+    title: "Quick intermission",
+    body: "TMDB is a little busy at the moment. Give it a few seconds and try again.",
+  },
+  offline: {
+    icon: WifiOff,
+    title: "The film snapped",
+    body: "The connection dropped mid-reel. Let’s thread it back in.",
+  },
+};
+
+function classifyProblem(err: unknown): VaultProblem {
+  const message = err instanceof Error ? err.message : "";
+  if (/not found/i.test(message)) {
+    return "missing";
+  }
+  if (/too many/i.test(message)) {
+    return "busy";
+  }
+  return "offline";
+}
 
 interface CollectionModalProps {
   collectionId: number | null;
+  /** Kept mounted but out of view while a film opened from it is on top. */
+  hidden?: boolean;
   onClose: () => void;
   onMovieClick: (movie: TMDBMovie) => void;
 }
 
-export default function CollectionModal({ collectionId, onClose, onMovieClick }: CollectionModalProps) {
-  const [collection, setCollection] = useState<TMDBCollectionDetail | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { isWatched, isLiked, isInWatchlist, toggleWatched, toggleLiked, toggleWatchlist } = useMovieLists();
+export default function CollectionModal({ collectionId, hidden = false, onClose, onMovieClick }: CollectionModalProps) {
+  const reduceMotion = useReducedMotion();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const isOpen = collectionId !== null;
 
+  // Remember what opened the vault, move focus to Close, and hand focus back on close.
+  // (Done here rather than with autoFocus, which would fire before we record the opener.)
   useEffect(() => {
-    if (!collectionId) {
-      setCollection(null);
+    if (isOpen) {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      panelRef.current?.querySelector<HTMLElement>("[data-vault-close]")?.focus();
       return;
     }
+    openerRef.current?.focus?.();
+    openerRef.current = null;
+  }, [isOpen]);
 
-    const loadCollection = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await fetchCollectionDetail(collectionId);
-        if (data.parts && data.id !== 9999999 && data.id !== 9999998) {
-          data.parts.sort((a: TMDBMovie, b: TMDBMovie) => {
-            const dateA = a.release_date || "9999";
-            const dateB = b.release_date || "9999";
-            return dateA.localeCompare(dateB);
-          });
-        }
-        setCollection(data);
-      } catch (err) {
-        console.error("Failed to fetch collection:", err);
-        const message = err instanceof Error ? err.message : "Network connection lost while accessing the vault.";
-        setError(message.toUpperCase().includes("TOO MANY") ? "TMDB is busy — wait a moment and try again." : message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadCollection();
-  }, [collectionId]);
-
+  // Lock page scroll while open. On close, release it unless some *other* dialog is
+  // still up. This one stays mounted for its exit animation, so it must not count.
   useEffect(() => {
-    if (collectionId) {
-      document.body.style.overflow = "hidden";
-    } else {
-      setTimeout(() => {
-        if (!document.querySelector('[role="dialog"]')) document.body.style.overflow = "";
-      }, 10);
+    if (!isOpen) {
+      return;
     }
+    document.body.style.overflow = "hidden";
     return () => {
-      setTimeout(() => {
-        if (!document.querySelector('[role="dialog"]')) document.body.style.overflow = "";
+      window.setTimeout(() => {
+        if (!document.querySelector('[role="dialog"]:not([data-franchise-vault])')) {
+          document.body.style.overflow = "";
+        }
       }, 10);
     };
-  }, [collectionId]);
+  }, [isOpen]);
 
-  if (!collectionId) return null;
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab" || !panelRef.current) {
+      return;
+    }
+    // Keep Tab inside the vault
+    const focusables = panelRef.current.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusables.length) {
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
 
-  const watchedCount = collection?.parts?.filter(m => isWatched(m.id)).length || 0;
-  const totalCount = collection?.parts?.length || 0;
-  const percentage = totalCount > 0 ? Math.round((watchedCount / totalCount) * 100) : 0;
-  const hasMovies = totalCount > 0;
+  const enter = { duration: reduceMotion ? 0 : ENTER_S, ease: EASE_OUT };
+  const exit = { duration: reduceMotion ? 0 : EXIT_S, ease: EASE_IN };
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-0 sm:p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="Close"
-        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in"
-        onClick={onClose}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
-      />
-      
-      <div className="relative w-full max-w-4xl max-h-screen sm:max-h-[90vh] bg-bg border-3 border-brutal-border shadow-brutal-lg animate-slide-up flex flex-col overflow-hidden">
-        {/* Header Section */}
-        <div className="relative h-48 sm:h-64 flex-shrink-0 bg-black border-b-3 border-brutal-border overflow-hidden">
-          {collection?.backdrop_path ? (
-            <Image
-              src={backdropUrl(collection.backdrop_path, "large")}
-              alt={collection.name}
-              fill
-              className="object-cover opacity-60"
-              priority
-            />
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          key="franchise-vault"
+          data-franchise-vault=""
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="vault-title"
+          onKeyDown={onKeyDown}
+          className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-6"
+          style={hidden ? { display: "none" } : undefined}
+        >
+          <motion.div
+            aria-hidden
+            className="absolute inset-0 bg-[#020817]/70 backdrop-blur-sm"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: enter }}
+            exit={{ opacity: 0, transition: exit }}
+          />
+          <motion.div
+            ref={panelRef}
+            className="relative flex max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#050F2E] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:rounded-2xl"
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 16, scale: reduceMotion ? 1 : 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1, transition: enter }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : 8, scale: reduceMotion ? 1 : 0.98, transition: exit }}
+          >
+            <VaultContent key={collectionId} collectionId={collectionId} onClose={onClose} onMovieClick={onMovieClick} />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+interface VaultContentProps {
+  collectionId: number;
+  onClose: () => void;
+  onMovieClick: (movie: TMDBMovie) => void;
+}
+
+function VaultContent({ collectionId, onClose, onMovieClick }: VaultContentProps) {
+  const { isWatched, toggleWatched } = useMovieLists();
+  // The synced snapshot, live from Convex (undefined = loading, null = not synced yet)
+  const snapshot = useQuery(api.franchises.getSnapshot, { collectionId });
+  const [live, setLive] = useState<TMDBCollectionDetail | null>(null);
+  const [problem, setProblem] = useState<VaultProblem | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  // Only for franchises the sync hasn't reached yet: build it live through the API
+  useEffect(() => {
+    if (snapshot !== null) {
+      return;
+    }
+    let cancelled = false;
+    fetchCollectionDetail(collectionId)
+      .then((data) => {
+        if (!cancelled) {
+          setLive(data);
+        }
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setProblem(classifyProblem(err));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [snapshot, collectionId, attempt]);
+
+  const retry = () => {
+    setProblem(null);
+    setAttempt((n) => n + 1);
+  };
+
+  const collection: TMDBCollectionDetail | null = snapshot ?? live;
+  const parts = collection?.parts ?? [];
+  const total = parts.length;
+  const watched = parts.reduce((n, p) => n + (isWatched(p.id) ? 1 : 0), 0);
+  const ratio = total ? watched / total : 0;
+  const complete = total > 0 && watched === total;
+  const loading = !collection && !problem;
+
+  return (
+    <>
+      {/* Header: the franchise's own backdrop, fading into the panel */}
+      <div className="relative h-44 shrink-0 sm:h-60">
+        {collection?.backdrop_path && (
+          <Image
+            src={backdropUrl(collection.backdrop_path, "large")}
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1024px) 1024px, 100vw"
+            // The header is a wide strip; anchor the crop above centre where faces and titles sit
+            className="object-cover object-[center_30%]"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050F2E] via-[#050F2E]/70 to-[#050F2E]/10" />
+
+        <button
+          type="button"
+          onClick={onClose}
+          data-vault-close=""
+          aria-label="Close vault"
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#020817]/60 text-slate-200 backdrop-blur-md transition-colors duration-150 hover:bg-[#020817]/85 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA] active:scale-[0.96]"
+        >
+          <X className="h-5 w-5" aria-hidden />
+        </button>
+
+        <div className="absolute inset-x-5 bottom-4 sm:inset-x-8 sm:bottom-6">
+          {collection ? (
+            <h2 id="vault-title" className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              {franchiseTitle(collection.name)}
+            </h2>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-surface-2 font-mono text-brutal-dim">NO BACKDROP available</div>
+            <h2 id="vault-title" className="sr-only">Loading franchise</h2>
           )}
-          
-          <div className="absolute inset-0 bg-gradient-to-t from-bg to-transparent" />
-          
-          <div className="absolute bottom-6 left-6 right-6 flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <Box className="w-6 h-6 text-brutal-violet" />
-              <h2 className="text-2xl sm:text-4xl font-display font-black text-brutal-white uppercase tracking-tight leading-none">
-                {collection?.name || "Loading Franchise..."}
-              </h2>
+          {loading && <div className="h-8 w-56 animate-pulse rounded-md bg-white/[0.08] motion-reduce:animate-none" aria-hidden />}
+
+          {total > 0 && (
+            <div className="mt-3 flex items-center gap-3">
+              <div
+                className="h-1 min-w-0 max-w-[220px] flex-1 overflow-hidden rounded-full bg-white/10"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={total}
+                aria-valuenow={watched}
+                aria-label="Watched in this franchise"
+              >
+                <div
+                  className={`h-full origin-left rounded-full transition-transform duration-300 ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none ${complete ? "bg-[#F97316]" : "bg-[#60A5FA]"}`}
+                  style={{ transform: `scaleX(${ratio})` }}
+                />
+              </div>
+              <span className={`shrink-0 whitespace-nowrap text-sm tabular-nums ${complete ? "text-[#FDBA74]" : "text-slate-300"}`}>
+                {complete ? `All ${total} watched` : `${watched} of ${total} watched`}
+              </span>
             </div>
-            
-            {totalCount > 0 && (
-              <div className="flex flex-wrap items-center gap-4 mt-2">
-                <div className="flex flex-col gap-1.5 min-w-[200px]">
-                  <div className="flex justify-between text-[10px] font-mono font-black text-brutal-white">
-                    <span>PROGRESS</span>
-                    <span>{watchedCount}/{totalCount} MOVIES</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-surface border border-brutal-border">
-                      <div className="h-full bg-brutal-violet shadow-[0_0_10px_rgba(139,92,246,0.5)]" style={{ width: `${percentage}%` }} />
-                    </div>
-                    <span className="text-[10px] font-mono font-black text-brutal-violet w-8 text-right shrink-0">{percentage}%</span>
-                  </div>
-                </div>
-                {percentage === 100 && (
-                  <div className="brutal-chip bg-brutal-lime text-black px-3 py-1 text-[10px] font-black animate-bounce shadow-brutal-sm">
-                    VAULT COMPLETED
-                  </div>
-                )}
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="glass-modal-scrollbar flex-1 overflow-y-auto overscroll-contain px-5 pb-8 pt-2 sm:px-8">
+        {problem ? (
+          <StatusMessage
+            icon={PROBLEM_COPY[problem].icon}
+            tone="alert"
+            className="py-14"
+            title={PROBLEM_COPY[problem].title}
+            body={PROBLEM_COPY[problem].body}
+            actions={
+              <button type="button" onClick={retry} className={STATUS_PRIMARY_BUTTON}>
+                Try again
+              </button>
+            }
+          />
+        ) : loading ? (
+          <div className="grid grid-cols-3 gap-x-4 gap-y-6 pt-4 sm:grid-cols-4 lg:grid-cols-5" aria-hidden>
+            {Array.from({ length: 10 }, (_, i) => (
+              <div key={i}>
+                <div className="aspect-[2/3] animate-pulse rounded-lg bg-white/[0.05] motion-reduce:animate-none" />
+                <div className="mt-2 h-3 w-3/4 rounded bg-white/[0.05]" />
+              </div>
+            ))}
+          </div>
+        ) : total === 0 ? (
+          <StatusMessage
+            icon={Popcorn}
+            className="py-14"
+            title="An empty reel, for now"
+            body="No films here yet. New releases join this vault on their own."
+          />
+        ) : (
+          <>
+            {collection?.overview ? <AboutSaga text={collection.overview} /> : null}
+            <ol className="mt-6 grid grid-cols-3 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-5">
+              {parts.map((movie, idx) => {
+                const newEra = movie.custom_era && (idx === 0 || movie.custom_era !== parts[idx - 1].custom_era);
+                return (
+                  <FilmTile
+                    key={movie.id}
+                    movie={movie}
+                    era={newEra ? movie.custom_era : undefined}
+                    watched={isWatched(movie.id)}
+                    onOpen={() => onMovieClick(movie)}
+                    onToggleWatched={() => toggleWatched(movie)}
+                  />
+                );
+              })}
+            </ol>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+interface FilmTileProps {
+  movie: TMDBMovie;
+  /** Era heading to show before this film (Spider-Man style franchises). */
+  era?: string;
+  watched: boolean;
+  onOpen: () => void;
+  onToggleWatched: () => void;
+}
+
+function FilmTile({ movie, era, watched, onOpen, onToggleWatched }: FilmTileProps) {
+  const [broken, setBroken] = useState(false);
+  const year = movie.release_date?.slice(0, 4) || "TBA";
+  const upcoming = Boolean(movie.release_date) && movie.release_date > new Date().toISOString().slice(0, 10);
+
+  return (
+    <>
+      {era && (
+        <li className="col-span-full pt-4 text-sm font-medium text-slate-300 first:pt-0" aria-hidden>
+          {era}
+        </li>
+      )}
+      <li className="group relative">
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block w-full rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#050F2E]"
+        >
+          <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]">
+            {movie.poster_path && !broken ? (
+              <Image
+                src={posterUrl(movie.poster_path, "medium")}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 180px, (min-width: 640px) 22vw, 30vw"
+                onError={() => setBroken(true)}
+                // Completion as light: unwatched films sit in the dark until you've seen them
+                className={`object-cover transition-[filter] duration-300 ease-out motion-reduce:transition-none ${
+                  watched ? "" : "brightness-[0.5] saturate-[0.55] [@media(hover:hover)]:group-hover:brightness-[0.8]"
+                }`}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <Film className="h-5 w-5 text-slate-600" strokeWidth={1.5} aria-hidden />
               </div>
             )}
           </div>
+          <p className={`mt-2 line-clamp-1 text-[13px] font-medium ${watched ? "text-slate-100" : "text-slate-300"}`}>
+            {movie.title}
+          </p>
+          <p className="mt-0.5 flex items-center justify-between gap-2 text-[12px] tabular-nums text-slate-500">
+            <span>{upcoming ? `Coming ${year}` : year}</span>
+            {movie.vote_average > 0 && (
+              <span className="flex items-center gap-1">
+                <Star className="h-3 w-3 fill-current" aria-hidden />
+                {movie.vote_average.toFixed(1)}
+              </span>
+            )}
+          </p>
+        </button>
 
+        {!upcoming && (
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 brutal-btn p-2.5 bg-black/50 text-white hover:bg-red-500 hover:text-white transition-all z-10"
+            type="button"
+            onClick={onToggleWatched}
+            aria-pressed={watched}
+            aria-label={watched ? `Unmark ${movie.title} as watched` : `Mark ${movie.title} as watched`}
+            title={watched ? "Watched" : "Mark as watched"}
+            className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none [&:focus-visible>span]:ring-2 [&:focus-visible>span]:ring-white"
           >
-            <X className="w-5 h-5" strokeWidth={3} />
+            <span
+              className={`flex h-7 w-7 items-center justify-center rounded-full transition-[background-color,border-color,color,transform] duration-150 ease-out active:scale-[0.9] ${
+                watched
+                  ? "border border-[#60A5FA] bg-[#60A5FA] text-[#020817]"
+                  : "border border-white/25 bg-[#020817]/60 text-white/70 backdrop-blur-sm hover:border-white/50 hover:text-white"
+              }`}
+            >
+              <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+            </span>
           </button>
-        </div>
+        )}
+      </li>
+    </>
+  );
+}
 
-        {/* Content Section */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8 bg-bg flex flex-col gap-8">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-               <div className="w-12 h-12 border-4 border-brutal-border border-t-brutal-violet animate-spin rounded-full" />
-               <p className="font-mono font-black text-xs text-brutal-dim uppercase tracking-widest">DECRYPTING VAULT...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-               <div className="w-16 h-16 flex items-center justify-center bg-red-600/20 text-red-600 border-3 border-red-600 shadow-brutal-sm rotate-3">
-                  <X className="w-8 h-8" strokeWidth={4} />
-               </div>
-               <h3 className="text-xl font-display font-black text-white uppercase mt-4">System Access Error</h3>
-               <p className="text-xs font-mono text-red-500 uppercase max-w-xs font-bold">{error}</p>
-               <button onClick={() => window.location.reload()} className="brutal-btn mt-4 px-6 py-2 bg-red-600 text-white font-mono font-black text-xs group-hover:scale-105 transition-all uppercase">REBOOT SYSTEM</button>
-            </div>
-          ) : !hasMovies ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-               <Box className="w-16 h-16 text-brutal-border opacity-20" />
-               <h3 className="text-xl font-display font-black text-brutal-white uppercase">Vault is Empty</h3>
-               <p className="text-xs font-mono text-brutal-dim uppercase max-w-xs">No movies were found for this franchise. It might be a placeholder or a very recent discovery.</p>
-            </div>
-          ) : (
-            <>
-              {collection?.overview && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-brutal-dim" />
-                    <h3 className="text-[10px] font-mono font-black text-brutal-dim uppercase tracking-widest">OVERVIEW</h3>
-                  </div>
-                  <p className="text-brutal-white text-sm leading-relaxed opacity-80 max-w-2xl">{collection.overview}</p>
-                </div>
-              )}
+interface AboutSagaProps {
+  text: string;
+}
 
-              <div className="flex flex-col gap-6">
-                <h3 className="text-[10px] font-mono font-black text-brutal-dim uppercase tracking-widest border-b border-brutal-border pb-3 flex items-center gap-2">
-                   CHRONOLOGICAL VAULT
-                </h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {collection?.parts.map((movie, idx, arr) => {
-                const isNewEra = movie.custom_era && (idx === 0 || movie.custom_era !== arr[idx - 1].custom_era);
-                const watched = isWatched(movie.id);
-                const year = movie.release_date?.split("-")[0] || "—";
-                return (
-                  <div key={`wrapper-${movie.id}`} className="contents">
-                    {isNewEra && (
-                      <div className="col-span-full mt-2 mb-2 flex items-center gap-3">
-                        <div className="h-[2px] w-8 bg-brutal-border" />
-                        <h4 className="text-[11px] font-mono font-black text-white bg-red-600 px-2 py-1 border-2 border-black inline-block uppercase tracking-widest shadow-brutal-sm">
-                          {movie.custom_era}
-                        </h4>
-                        <div className="h-[2px] flex-1 bg-brutal-border" />
-                      </div>
-                    )}
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => onMovieClick(movie)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMovieClick(movie); } }}
-                      className={`group relative flex flex-col border-3 transition-all cursor-pointer ${
-                        watched
-                          ? "border-brutal-lime bg-brutal-lime/5 hover:bg-brutal-lime/10"
-                          : "border-brutal-border bg-surface hover:border-brutal-violet"
-                      }`}
-                    >
-                    <div className="relative aspect-[16/9] bg-black border-b-2 border-inherit overflow-hidden">
-                       {movie.backdrop_path ? (
-                         <Image
-                           src={backdropUrl(movie.backdrop_path, "small")}
-                           alt={movie.title}
-                           fill
-                           className="object-cover opacity-70 group-hover:scale-105 transition-transform duration-500"
-                           sizes="400px"
-                         />
-                       ) : (
-                         <div className="w-full h-full flex items-center justify-center text-xs font-mono font-black opacity-30">NO PREVIEW</div>
-                       )}
-
-                       {/* Vertical status buttons — left edge */}
-                       <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-center gap-1 z-20 p-1 bg-black/60 backdrop-blur-sm">
-                         <button
-                           onClick={(e) => { e.stopPropagation(); toggleWatched(movie); }}
-                           title="Mark as Watched"
-                           className={`p-1.5 border-2 transition-all ${watched ? "bg-[#22d3ee] border-[#22d3ee] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[#22d3ee] hover:text-[#22d3ee]"}`}
-                         >
-                           <CheckCircle className="w-3.5 h-3.5" strokeWidth={2.5} />
-                         </button>
-                         <button
-                           onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }}
-                           title="Like"
-                           className={`p-1.5 border-2 transition-all ${isLiked(movie.id) ? "bg-[var(--theme-primary)] border-[var(--theme-primary)] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[var(--theme-primary)] hover:text-[var(--theme-primary)]"}`}
-                         >
-                           <Heart className="w-3.5 h-3.5" strokeWidth={2.5} />
-                         </button>
-                         <button
-                           onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }}
-                           title="Add to Wishlist"
-                           className={`p-1.5 border-2 transition-all ${isInWatchlist(movie.id) ? "bg-[#a3e635] border-[#a3e635] text-black" : "bg-black/70 border-brutal-border text-brutal-dim hover:border-[#a3e635] hover:text-[#a3e635]"}`}
-                         >
-                           <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
-                         </button>
-                       </div>
-
-                       <div className="absolute top-2 left-12 z-10">
-                         <div className="bg-black border border-inherit px-1.5 py-0.5 text-[9px] font-mono font-black text-white">
-                           {idx + 1}
-                         </div>
-                       </div>
-
-                       {watched && (
-                         <div className="absolute inset-0 bg-brutal-lime/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <CheckCircle className="w-10 h-10 text-brutal-lime fill-black drop-shadow-md" strokeWidth={2.5} />
-                         </div>
-                       )}
-                    </div>
-                    
-                    <div className="p-3 flex flex-col gap-2">
-                      <div className="flex justify-between items-start gap-2">
-                        <h4 className={`text-xs font-black uppercase tracking-tight line-clamp-1 flex-1 ${watched ? "text-brutal-lime" : "text-white"}`}>
-                          {movie.title}
-                        </h4>
-                        {watched && <CheckCircle className="w-3.5 h-3.5 text-brutal-lime flex-shrink-0" strokeWidth={3} />}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                         <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-brutal-yellow">
-                            <Star className="w-3 h-3 fill-current" />
-                            {movie.vote_average.toFixed(1)}
-                         </div>
-                         <div className="text-[10px] font-mono font-bold text-brutal-dim">
-                            {year}
-                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                );
-              })}
-                </div>
-              </div>
-            </>
-          )}
+/**
+ * The franchise overview, folded away so the posters lead. Opens with the grid-rows
+ * expander (height animates without measuring), 250ms ease-in-out; instant under
+ * reduced motion.
+ */
+function AboutSaga({ text }: AboutSagaProps) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="max-w-2xl">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls="vault-about"
+        className="-ml-2 flex h-10 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#60A5FA]"
+      >
+        About this saga
+        <ChevronDown
+          className={`h-4 w-4 transition-transform duration-200 ease-out motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+          aria-hidden
+        />
+      </button>
+      <div
+        id="vault-about"
+        className={`grid transition-[grid-template-rows] duration-[250ms] ease-[cubic-bezier(0.77,0,0.175,1)] motion-reduce:transition-none ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+      >
+        <div className="overflow-hidden" inert={!open}>
+          <p className="pb-2 pt-1 text-sm leading-relaxed text-slate-400">{text}</p>
         </div>
       </div>
     </div>

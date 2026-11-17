@@ -5,7 +5,7 @@ import { api } from "../../../../convex/_generated/api";
 import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { isMcpTransportAllowed, mcpCorsHeaders, publicMcpCorsHeaders } from "@/lib/mcpCors";
-import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, STAMP_INTERVIEW_URI, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
+import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, STAMP_INTERVIEW_URI, STAMP_TEXT_MAX, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
 
 export const runtime = "nodejs";
 
@@ -90,6 +90,9 @@ const stampPreviewOutputSchema = z.object({
   reviewText: z.string(),
   isPublic: z.boolean(),
   confirmationToken: z.string(),
+  characterCount: z.number().int().nonnegative(),
+  characterLimit: z.number().int().positive(),
+  nextStep: z.string(),
 });
 const savedOutputSchema = z.object({
   kind: z.enum(["playlist-saved", "stamp-saved"]),
@@ -299,9 +302,18 @@ function stampInterview(title: TitlePreview, existingDraft: boolean) {
       `   ${question.options.join(" · ")} · Own words`,
     ]),
     "",
+    `${STAMP_QUESTIONS.length + 1}. **Anything else?** Optional: anything the prompts missed, in the user's own words.`,
+    "",
     "Ask no additional questions unless the user explicitly requests a deeper interview. Accept partial answers, mixed languages, and informal wording. Draft only from what the user supplied, then call `preview_stamp`; never invent a reaction.",
   ].join("\n");
 }
+
+const SERVER_INSTRUCTIONS = [
+  "CineBlock keeps a user's movie and series library and their personal stamps (short first-person feelings about a title).",
+  "Stamps from conversation: when the user talks about how a movie or series made them feel and has said enough to write from (a reaction plus at least one detail or reason), do not start an interview. Resolve the exact title with find_titles (TMDB id + media type), organise only the user's own words and points into a clean first-person Markdown stamp (no invented feelings, plot summary, or critic voice; keep their language), keep reviewText at or under " + STAMP_TEXT_MAX + " characters, then call preview_stamp.",
+  "Use get_stamp_questions only when the user wants to stamp a title but has given little or nothing to write from.",
+  "Writes always take two separate calls: a preview (preview_stamp / preview_playlist) the user sees, then save_stamp / create_playlist with the exact confirmationToken from that preview, only after the user explicitly approves. Never skip the preview, never alter the text between preview and save, and never call the save tool if the approval card already reports it was saved.",
+].join(" ");
 
 const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const token = requestInfo ? extractToken(requestInfo) : null;
@@ -312,7 +324,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     version: "1.0.0",
     websiteUrl: "https://www.cineblock.in",
     icons: [CINEBLOCK_MCP_ICON],
-  });
+  }, { instructions: SERVER_INSTRUCTIONS });
   registerMcpAppResources(server);
 
   server.registerTool(
@@ -324,8 +336,9 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
       inputSchema: z.object({ query: z.string().trim().min(1).max(120), mediaType: z.enum(["movie", "tv"]).optional() }),
       outputSchema: titleSearchOutputSchema,
       _meta: {
-        ui: { resourceUri: TITLE_CAROUSEL_URI },
+        ui: { resourceUri: TITLE_CAROUSEL_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": TITLE_CAROUSEL_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Finding titles…",
         "openai/toolInvocation/invoked": "Titles ready.",
       },
@@ -415,8 +428,9 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
       }),
       outputSchema: playlistPreviewOutputSchema,
       _meta: {
-        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        ui: { resourceUri: CONFIRMATION_CARD_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Preparing your CineBlock…",
         "openai/toolInvocation/invoked": "Preview ready for approval.",
       },
@@ -453,13 +467,14 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     "create_playlist",
     {
       title: "Save CineBlock",
-      description: "Commit an approved preview_playlist into CineBlock. Never call this without the exact confirmationToken returned by preview_playlist. The UI only asks ChatGPT to perform this call after the user approves.",
-      annotations: { readOnlyHint: false, destructiveHint: false },
+      description: "Commit an approved preview_playlist into CineBlock. Never call this without the exact confirmationToken returned by preview_playlist. The CineBlock approval card may call this directly with the same confirmationToken after the user taps Approve; if the card reports it already saved, do not call it again.",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       inputSchema: z.object({ confirmationToken: z.string().min(20) }),
       outputSchema: savedOutputSchema,
       _meta: {
-        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        ui: { resourceUri: CONFIRMATION_CARD_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Saving your CineBlock…",
         "openai/toolInvocation/invoked": "CineBlock saved.",
       },
@@ -484,7 +499,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     "get_stamp_questions",
     {
       title: "Start a personal stamp",
-      description: "After find_titles confirms one exact title, render CineBlock's compact three-prompt personal stamp interview. In MCP App hosts, let the user tap an option or add their own words inside the card; do not copy the prompts into the chat composer. Accept one to three answers, including mixed languages. Do not ask extra questions unless the user explicitly asks for a deeper interview. Use only the answers supplied to draft a concise first-person, spoiler-light stamp, then call preview_stamp. This is read-only and saves nothing.",
+      description: "Use only when the user wants to stamp a title but has not yet said enough to write from; if they already described their reaction in the conversation, skip this and draft with preview_stamp instead. After find_titles confirms one exact title, render CineBlock's compact three-prompt personal stamp interview with an optional 'Anything else?' box. In MCP App hosts, let the user tap an option or add their own words inside the card; the card can preview their exact words with preview_stamp itself, or send the answers back to you for drafting. Do not copy the prompts into the chat composer. Accept one to three answers, including mixed languages. Do not ask extra questions unless the user explicitly asks for a deeper interview. Use only the answers supplied to draft a concise first-person, spoiler-light stamp, then call preview_stamp. This is read-only and saves nothing.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),
@@ -492,8 +507,9 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
       }),
       outputSchema: stampInterviewOutputSchema,
       _meta: {
-        ui: { resourceUri: STAMP_INTERVIEW_URI },
+        ui: { resourceUri: STAMP_INTERVIEW_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": STAMP_INTERVIEW_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Preparing your stamp prompts…",
         "openai/toolInvocation/invoked": "Your stamp prompts are ready.",
       },
@@ -523,18 +539,19 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     "preview_stamp",
     {
       title: "Preview a stamp",
-      description: "Resolve one exact movie or series from TMDB and preview a user-approved personal feeling written in Markdown. ChatGPT-compatible hosts render the exact poster, title, visibility, and text as an in-chat approval card. Before calling this, collect one to three answers through get_stamp_questions. Do not interrogate the user further or invent a reaction. Draft only from their answers; never write a formal critic review, do not use HTML, and keep reviewText at or under 1,000 characters.",
+      description: "Preview a personal stamp for one exact movie or series before anything is saved. Use this when the user has talked about a title in the conversation (or answered get_stamp_questions): organise only their own words and points into a clean first-person Markdown stamp in their voice and language, for example short sections like '**What stayed with me**' and '**Why it mattered**'. Never invent feelings, add plot summary, or write a critic review; no HTML. Resolve tmdbId and mediaType with find_titles first. Keep reviewText at or under 1,000 characters (trim or ask the user what to cut if needed). Read-only: it returns a short-lived confirmationToken and the host shows an approval card. Save only by calling save_stamp with that exact token after the user approves; if the user asks for edits, call preview_stamp again.",
       annotations: { readOnlyHint: true, destructiveHint: false },
       inputSchema: z.object({
         tmdbId: z.number().int().positive(),
         mediaType: z.enum(["movie", "tv"]),
-        reviewText: z.string().trim().min(1).max(1000).describe("The user's first-person personal feeling in Markdown, maximum 1,000 characters. No HTML, invented reactions, or critic-style summary."),
+        reviewText: z.string().trim().min(1).max(STAMP_TEXT_MAX).describe("The user's own reaction organised into first-person Markdown, at most 1,000 characters after trimming. Use only what the user said. No HTML, invented reactions, plot summary, or critic-style writing."),
         isPublic: z.boolean(),
       }),
       outputSchema: stampPreviewOutputSchema,
       _meta: {
-        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        ui: { resourceUri: CONFIRMATION_CARD_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Preparing your stamp…",
         "openai/toolInvocation/invoked": "Stamp preview ready.",
       },
@@ -545,9 +562,18 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         const data = { movieId: title.id, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic, mediaType, posterUrl: title.posterUrl, year: title.year };
         const confirmationToken = encodeConfirmation(token!, "stamp", data);
         return textResult(
-          `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/1000\n- **Poster:** ${title.posterUrl ?? "No poster available"}\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
+          `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/${STAMP_TEXT_MAX}\n- **Poster:** ${title.posterUrl ?? "No poster available"}\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
           [],
-          { kind: "stamp-preview", movie: toTitleCard(title), reviewText: reviewText.trim(), isPublic, confirmationToken },
+          {
+            kind: "stamp-preview",
+            movie: toTitleCard(title),
+            reviewText: reviewText.trim(),
+            isPublic,
+            confirmationToken,
+            characterCount: reviewText.trim().length,
+            characterLimit: STAMP_TEXT_MAX,
+            nextStep: "Ask the user to approve this exact preview (or tap Approve on the card). Only then call save_stamp with this confirmationToken. For edits, call preview_stamp again. The token expires in 10 minutes.",
+          },
         );
       } catch (error) {
         return errorResult(error);
@@ -559,13 +585,14 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     "save_stamp",
     {
       title: "Save stamp",
-      description: "Commit an approved Markdown personal feeling as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp; do not rewrite, sanitize, or replace the approved text between preview and save. The UI only asks ChatGPT to perform this call after the user approves.",
-      annotations: { readOnlyHint: false, destructiveHint: false },
+      description: "Commit an approved Markdown personal feeling as a CineBlock stamp. Never call this without the exact confirmationToken returned by preview_stamp; do not rewrite, sanitize, or replace the approved text between preview and save. The CineBlock approval card may call this directly with the same confirmationToken after the user taps Approve; if the card reports it already saved, do not call it again.",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
       inputSchema: z.object({ confirmationToken: z.string().min(20) }),
       outputSchema: savedOutputSchema,
       _meta: {
-        ui: { resourceUri: CONFIRMATION_CARD_URI },
+        ui: { resourceUri: CONFIRMATION_CARD_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": CONFIRMATION_CARD_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Saving your stamp…",
         "openai/toolInvocation/invoked": "Stamp saved.",
       },

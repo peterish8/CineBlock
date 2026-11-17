@@ -1,7 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "../../../../convex/_generated/api";
+import { buildFranchise, FranchiseNotFoundError, type FranchiseDefinition } from "@/lib/franchiseBuilder";
+import { FRANCHISE_SEED } from "@/lib/franchiseSeed";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const API_KEY = process.env.TMDB_API_KEY || "";
+
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convex = convexUrl ? new ConvexHttpClient(convexUrl) : null;
+
+/** Franchise Vault snapshot from Convex; null when missing or Convex is unreachable. */
+async function readFranchiseSnapshot(collectionId: number) {
+  if (!convex) {
+    return null;
+  }
+  try {
+    const snap = await convex.query(api.franchises.getSnapshot, { collectionId });
+    return snap && snap.parts.length > 0 ? snap : null;
+  } catch (err) {
+    console.error("Franchise snapshot read failed, falling back to TMDB:", err);
+    return null;
+  }
+}
+
+/**
+ * How to build a franchise live: its definition from the Convex catalog. Only if the
+ * catalog can't answer (fresh deployment before the first sync, or Convex down) does
+ * it fall back to the bootstrap seed, and finally to treating the key as a plain
+ * TMDB collection id.
+ */
+async function readFranchiseDefinition(key: number): Promise<FranchiseDefinition> {
+  if (convex) {
+    try {
+      const def = await convex.query(api.franchises.getDefinition, { key });
+      if (def) {
+        return def;
+      }
+    } catch (err) {
+      console.error("Franchise definition read failed, using seed:", err);
+    }
+  }
+  const seed = FRANCHISE_SEED.find((s) => s.key === key);
+  if (seed) {
+    return seed;
+  }
+  return { key, name: "", source: { type: "collection", tmdbCollectionId: key } };
+}
 
 const headers: HeadersInit = {
   Authorization: `Bearer ${API_KEY}`,
@@ -44,15 +89,6 @@ async function tmdbJson<T = Record<string, unknown>>(url: string): Promise<T | n
   if (!res?.ok) return null;
   return res.json().catch(() => null);
 }
-
-// A TMDB movie payload, kept loose — these endpoints return far more than we read here
-type TmdbPart = {
-  id?: number;
-  poster_path?: string | null;
-  backdrop_path?: string | null;
-  status_code?: number;
-  [key: string]: unknown;
-};
 
 // Firing 20 requests at TMDB at once drops a few connections, so keep the fan-out bounded
 async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
@@ -304,100 +340,33 @@ export async function GET(request: NextRequest) {
       }
 
       case "collection": {
-        const collectionId = searchParams.get("id");
+        const collectionId = validateId(searchParams.get("id"));
         if (!collectionId) return NextResponse.json({ error: "Collection ID required" }, { status: 400 });
+        const numericId = Number(collectionId);
 
-        // Custom Override: Marvel Cinematic Universe Chronological Timeline
-        if (collectionId === "9999999") {
-          const mcuMovieIds = [
-            1771,     // Captain America: The First Avenger
-            299537,   // Captain Marvel
-            1726,     // Iron Man
-            10138,    // Iron Man 2
-            1724,     // The Incredible Hulk
-            10195,    // Thor
-            24428,    // The Avengers
-            68721,    // Iron Man 3
-            76338,    // Thor: The Dark World
-            100402,   // Captain America: The Winter Soldier
-            118340,   // Guardians of the Galaxy
-            283995,   // Guardians of the Galaxy Vol. 2
-            99861,    // Avengers: Age of Ultron
-            102899,   // Ant-Man
-            271110,   // Captain America: Civil War
-            497698,   // Black Widow
-            284054,   // Black Panther
-            315635,   // Spider-Man: Homecoming
-            284052,   // Doctor Strange
-            284053,   // Thor: Ragnarok
-            299536,   // Avengers: Infinity War
-            363088,   // Ant-Man and the Wasp
-            299534,   // Avengers: Endgame
-            429617,   // Spider-Man: Far From Home
-            566525,   // Shang-Chi
-            524434,   // Eternals
-            634649,   // Spider-Man: No Way Home
-            453395,   // Doctor Strange in the Multiverse of Madness
-            616037,   // Thor: Love and Thunder
-            505642,   // Black Panther: Wakanda Forever
-            640146,   // Ant-Man and the Wasp: Quantumania
-            447365,   // Guardians of the Galaxy Vol. 3
-            609681,   // The Marvels
-            533535,   // Deadpool & Wolverine
-            822119    // Captain America: Brave New World
-          ];
-          
-          const fetched = await mapWithConcurrency(mcuMovieIds, TMDB_CONCURRENCY, (id) =>
-            tmdbJson<TmdbPart>(`${TMDB_BASE}/movie/${id}?language=en-US`)
-          );
-          const parts = fetched.filter((p): p is TmdbPart => p !== null);
-
-          return NextResponse.json({
-            id: 9999999,
-            name: "Marvel Cinematic Universe (Chronological)",
-            overview: "The epic chronological timeline of the Marvel Cinematic Universe, from the origins of Captain America to the latest multiversal threats.",
-            poster_path: "/RYMX2wcKCBAr24UyPD7xwmja8y.jpg", // Avengers Poster
-            backdrop_path: "/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg", // Endgame Backdrop
-            parts: parts.filter(p => !p.status_code) // Filter out any API fetch failures
-          });
+        // 1) Serve the snapshot the "franchise vault sync" cron keeps fresh in Convex
+        const snapshot = await readFranchiseSnapshot(numericId);
+        if (snapshot) {
+          const res = NextResponse.json(snapshot);
+          res.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+          return res;
         }
 
-        // Custom Override: Spider-Man Live Action Eras
-        if (collectionId === "9999998") {
-          const spideyEras = [
-            { id: 557, era: "Tobey Maguire Spider-Man (Standalone)" },
-            { id: 558, era: "Tobey Maguire Spider-Man (Standalone)" },
-            { id: 559, era: "Tobey Maguire Spider-Man (Standalone)" },
-            { id: 1930, era: "Andrew Garfield Spider-Man (Standalone)" },
-            { id: 102382, era: "Andrew Garfield Spider-Man (Standalone)" },
-            { id: 315635, era: "Tom Holland Spider-Man (Standalone MCU)" },
-            { id: 429617, era: "Tom Holland Spider-Man (Standalone MCU)" },
-            { id: 634649, era: "Tom Holland Spider-Man (Standalone MCU)" },
-            { id: 324857, era: "Miles Morales (Spider-Verse Animated)" },
-            { id: 569094, era: "Miles Morales (Spider-Verse Animated)" }
-          ];
-          
-          const fetched = await mapWithConcurrency(spideyEras, TMDB_CONCURRENCY, async (item): Promise<TmdbPart | null> => {
-            const data = await tmdbJson<TmdbPart>(`${TMDB_BASE}/movie/${item.id}?language=en-US`);
-            return data ? { ...data, custom_era: item.era } : null;
-          });
-          const parts = fetched.filter((p): p is TmdbPart => p !== null);
-
-          // Use No Way Home for posters/backdrop if available
-          const nwh = parts.find(p => p.id === 634649);
-          
-          return NextResponse.json({
-            id: 9999998,
-            name: "Spider-Man Collection",
-            overview: "The complete live-action standalone universe of Peter Parker across three generation-defining eras: Tobey Maguire, Andrew Garfield, and Tom Holland.",
-            poster_path: nwh?.poster_path || "/1g0dhYtq4irTY1R80vFA1REtwhO.jpg",
-            backdrop_path: nwh?.backdrop_path || "/1Rr5SrvHxUTgK5j9oVwLOK2HwK5.jpg",
-            parts: parts.filter(p => !p.status_code)
-          });
+        // 2) Not synced yet (new catalog entry / Convex unreachable): build it live from TMDB.
+        //    Same builder the cron uses, so MCU / Spider-Man follow the same auto rules.
+        try {
+          const def = await readFranchiseDefinition(numericId);
+          const { snapshot: live } = await buildFranchise(def, API_KEY);
+          const res = NextResponse.json({ id: live.collectionId, ...live });
+          res.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+          return res;
+        } catch (err) {
+          if (err instanceof FranchiseNotFoundError) {
+            return NextResponse.json({ error: "Franchise not found" }, { status: 404 });
+          }
+          console.error(`Franchise ${collectionId} live build failed:`, err);
+          return TMDB_UNREACHABLE();
         }
-
-        url = `${TMDB_BASE}/collection/${collectionId}?language=en-US`;
-        break;
       }
 
       case "search-collection": {
