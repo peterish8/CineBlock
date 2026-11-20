@@ -204,7 +204,9 @@ const schema = defineSchema({
     expiresAt: v.number(),
     usedAt: v.optional(v.number()),
     createdAt: v.number(),
-  }).index("by_codeHash", ["codeHash"]),
+  })
+    .index("by_codeHash", ["codeHash"])
+    .index("by_userId", ["userId"]),
 
   mcp_oauth_tokens: defineTable({
     accessTokenHash: v.string(),

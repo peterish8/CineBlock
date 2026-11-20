@@ -42,9 +42,18 @@ const authMiddleware = convexAuthNextjsMiddleware(() => {
   return withSecurityHeaders(NextResponse.next());
 });
 
+// Google sign-in start and callback are forwarded to Convex by next.config.mjs.
+// The callback carries Google's ?code=, which the Convex Auth middleware would
+// otherwise try to redeem as its own code, so these skip it.
+const FORWARDED_AUTH_PREFIXES = ["/api/auth/signin/", "/api/auth/callback/"];
+
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (["/api/mcp", "/api/oauth/register", "/api/oauth/token"].includes(request.nextUrl.pathname)) {
+  const { pathname } = request.nextUrl;
+  if (["/api/mcp", "/api/oauth/register", "/api/oauth/token"].includes(pathname)) {
     return withSecurityHeaders(NextResponse.next());
+  }
+  if (FORWARDED_AUTH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next();
   }
   return authMiddleware(request, event);
 }

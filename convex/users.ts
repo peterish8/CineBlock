@@ -161,6 +161,34 @@ export const deleteAccount = mutation({
     const stamps = await ctx.db.query("stamps").withIndex("by_userId", q => q.eq("userId", userId)).collect();
     for (const s of stamps) await ctx.db.delete(s._id);
 
+    // Delete the user's CineBlocks, and everyone's saves of them, plus blocks they saved
+    const ownedBlocks = await ctx.db.query("blocks").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const block of ownedBlocks) {
+      const saves = await ctx.db.query("saved_blocks").withIndex("by_blockId", q => q.eq("blockId", block._id)).collect();
+      for (const s of saves) await ctx.db.delete(s._id);
+      await ctx.db.delete(block._id);
+    }
+    const savedBlocks = await ctx.db.query("saved_blocks").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const s of savedBlocks) await ctx.db.delete(s._id);
+
+    // Delete radar, CineSwipe history and per-user throttles
+    const radar = await ctx.db.query("radar").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const r of radar) await ctx.db.delete(r._id);
+    const swipes = await ctx.db.query("swipe_history").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const s of swipes) await ctx.db.delete(s._id);
+    const swipeDays = await ctx.db.query("swipe_daily").withIndex("by_userId_date", q => q.eq("userId", userId)).collect();
+    for (const d of swipeDays) await ctx.db.delete(d._id);
+    const throttles = await ctx.db.query("mutation_throttles").withIndex("by_userId_action", q => q.eq("userId", userId)).collect();
+    for (const t of throttles) await ctx.db.delete(t._id);
+
+    // Revoke every ChatGPT/MCP connection: tokens, pending codes and write receipts
+    const mcpTokens = await ctx.db.query("mcp_oauth_tokens").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const t of mcpTokens) await ctx.db.delete(t._id);
+    const mcpCodes = await ctx.db.query("mcp_oauth_codes").withIndex("by_userId", q => q.eq("userId", userId)).collect();
+    for (const c of mcpCodes) await ctx.db.delete(c._id);
+    const receipts = await ctx.db.query("mcp_action_receipts").withIndex("by_userId_actionId", q => q.eq("userId", userId)).collect();
+    for (const r of receipts) await ctx.db.delete(r._id);
+
     // Delete the user record
     await ctx.db.delete(userId as Id<"users">);
   },
