@@ -89,4 +89,4 @@ Writes intentionally require a preview followed by the exact confirmation token.
 
 Set `NEXT_PUBLIC_APP_URL` to the public CineBlock origin for canonical share links and host validation. Set `MCP_ALLOWED_ORIGIN` to the exact browser client origin (or a comma-separated allowlist) when using a browser-based MCP client. In production, the route fails closed when neither a configured origin nor a configured canonical host is available. Poster proxying is restricted to `image.tmdb.org`.
 
-The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; run `pnpm dlx vercel env pull`, `pnpm dlx vercel deploy`, or `pnpm dlx vercel logs` directly.
+The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; run `npx vercel env pull`, `npx vercel deploy`, or `npx vercel logs` directly.

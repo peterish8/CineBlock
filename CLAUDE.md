@@ -1,6 +1,6 @@
 # CineBlock — Claude project memory
 
-Last reviewed: 2026-08-22
+Last reviewed: 2026-11-20
 
 @AGENTS.md
 
@@ -69,15 +69,20 @@ Recognized configuration includes:
 
 - `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL` — browser-safe Convex URLs.
 - `CONVEX_DEPLOYMENT` — the local Convex deployment selector.
-- `CONVEX_SITE_URL` — Convex Auth/server configuration where required.
+- `CONVEX_SITE_URL` — provided by Convex on every deployment; it is the Convex Auth JWT issuer. Do not set it by hand.
 - `SITE_URL` and `NEXT_PUBLIC_APP_URL` — canonical origin and share-link host.
-- `TMDB_API_KEY` — server-only TMDB credential.
+- `TMDB_API_KEY` — server-only TMDB credential (Next.js routes and the Convex Franchise Vault sync).
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` — Google OAuth client used by Convex Auth.
+- `JWT_PRIVATE_KEY` and `JWKS` — Convex Auth signing key pair, one pair per Convex deployment.
+- `INTERNAL_API_SECRET` — shared secret between Convex and the Next.js app; the two values must match.
 - `MCP_ALLOWED_ORIGIN` — exact browser-origin allowlist for MCP CORS.
 - `CONVEX_DEPLOY_KEY` — production/CI-only deploy credential; keep it scoped to the environment that deploys Convex.
 
+Convex lives in its own project with separate dev and prod deployments. `node scripts/sync-convex-env.mjs` copies backend secrets from `.env.local` onto the linked dev deployment (`--prod` for production) without printing them. Google sign-in returns to `https://<deployment>.convex.site/api/auth/callback/google`, so each deployment's callback must be an authorised redirect URI on the Google OAuth client; check this whenever a deployment changes. Trim copied secrets: a stray newline in a client ID breaks Google sign-in with "OAuth client was not found".
+
 Credential boundaries are strict: `cb_...` is the CineBlock Terminal CLI token for movie search and its daily quota, while `mcp_...` is the separate ChatGPT/MCP credential for library access, playlist actions, and stamps. The website must explain this distinction and never suggest swapping the two credentials.
 
-The Git-connected Vercel project uses Preview for non-production branches and Production for the production branch. Environment changes apply only to new deployments, so redeploy after changing them. The Vercel CLI is optional for Git deployments; if CLI operations are needed, install it with `npm i -g vercel` and use `vercel env pull`, `vercel deploy`, or `vercel logs` deliberately.
+The Git-connected Vercel project uses Preview for non-production branches and Production for the production branch. Environment changes apply only to new deployments, so redeploy after changing them. The Vercel CLI is optional for Git deployments; if CLI operations are needed, run `npx vercel env pull`, `npx vercel deploy`, or `npx vercel logs` deliberately.
 
 Before calling a deployment complete, verify the actual deployment URL and, for production, check:
 

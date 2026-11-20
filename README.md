@@ -106,6 +106,13 @@ Multi-step guided movie finder (mood → genre → language → time → keyword
 ### API Filter Optimizations
 Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, and language filters applied at the database/TMDB query level rather than client-side. Reduces payload size and lowers latency on slower networks.
 
+### Franchise Vault (`/collections`)
+The franchise catalog lives in Convex (`franchises` and `franchise_snapshots` tables) and keeps itself current from TMDB with no manual edits and no AI:
+- `convex/crons.ts` runs `franchises:syncDue` hourly. Each franchise is refreshed on its own schedule: daily near a release, every few days when a film is upcoming, otherwise weekly. Failures back off.
+- A health check rejects suspicious updates (for example a franchise suddenly losing half its films), skips writes when nothing changed, and re-finds a franchise by exact name when TMDB retires a collection ID.
+- `franchises:discoverNew` runs weekly and adds new collections found in trending, popular, upcoming and now-playing films.
+- The first run seeds the catalog from `src/lib/franchiseSeed.ts`. To fill a fresh deployment straight away, run `npx convex run franchises:syncDue`.
+
 ---
 
 ## Routes
@@ -122,6 +129,7 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 | `/profile` | User profile, stats, MCP access |
 | `/stamps` | Personal stamped films and drafts |
 | `/radar` | Upcoming releases radar |
+| `/collections` | Franchise Vault: every saga and how much of it you have watched |
 | `/recommendations` | Personalized picks |
 | `/search` | Global movie/TV search |
 | `/movie/[id]` | Movie detail |
@@ -152,10 +160,28 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 git clone <repo-url>
 cd movieX
 npm install
+npx convex dev        # links a Convex dev deployment and writes its URLs to .env.local
 npm run dev
 ```
 
 Open `http://localhost:3000`. Glass is enabled by default and is the only user-facing theme.
+
+### Convex setup
+
+The backend reads these Convex environment variables. Set them on each deployment with `npx convex env set NAME value` (add `--prod` for production); never commit their values:
+
+- `TMDB_API_KEY`: TMDB credential for server-side fetches and the Franchise Vault sync
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Google OAuth client for sign-in
+- `JWT_PRIVATE_KEY` and `JWKS`: the Convex Auth signing key pair
+- `SITE_URL`: the app origin users return to after sign-in (`http://localhost:3000` in dev)
+- `NEXT_PUBLIC_APP_URL`: the public share-link origin
+- `INTERNAL_API_SECRET`: shared secret between Convex and the Next.js app; it must match the app's value
+
+`CONVEX_SITE_URL` is provided by Convex automatically.
+
+After `.env.local` holds your secrets, `node scripts/sync-convex-env.mjs` copies the backend ones onto the linked dev deployment without printing them, and keeps `NEXT_PUBLIC_CONVEX_SITE_URL` on the same deployment as `NEXT_PUBLIC_CONVEX_URL`. Use `--prod` to target production.
+
+Google sign-in returns to `https://<deployment>.convex.site/api/auth/callback/google`, so every Convex deployment's callback URL must be listed under **Authorised redirect URIs** on the Google OAuth client.
 
 ### Vercel and MCP deployment
 
@@ -175,7 +201,7 @@ For a production deployment, configure these Vercel variables without committing
 - `CONVEX_DEPLOYMENT`: the production deployment selector
 - `CONVEX_DEPLOY_KEY`: the production-only Convex deploy credential used by the Vercel build
 
-The Vercel build runs `npx convex deploy` before `next build` for Production. Environment changes apply only to new deployments, so redeploy after changing them. Production advertises dynamic client registration at `https://cineblock.vercel.app/api/oauth/register/v3` so machine clients do not cross the public-site CDN; the original registration routes remain available for existing clients. Reconnect an MCP client after OAuth metadata or tool schema changes.
+The Vercel build runs `npx convex deploy` before `next build` for Production, so `CONVEX_DEPLOY_KEY` decides which Convex deployment receives the backend. Environment changes apply only to new deployments, so redeploy after changing them. Production advertises dynamic client registration at `https://cineblock.vercel.app/api/oauth/register/v3` so machine clients do not cross the public-site CDN; the original registration routes remain available for existing clients. Reconnect an MCP client after OAuth metadata or tool schema changes.
 
 ### CLI Usage
 
@@ -193,7 +219,7 @@ python cineblock-cli.py
 
 1. Fork the repository.
 2. Create a feature branch (`git checkout -b feature/your-name`).
-3. Run `npm install` and `npm test`.
+3. Run `npm install`, then check your change with `npm run lint`, `npx tsc --noEmit` and `npm run build`.
 4. Follow the **glass-theme** styling conventions — new modals and cards should be glass-aware.
 5. Open a Pull Request.
 
