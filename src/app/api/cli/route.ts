@@ -1,21 +1,12 @@
 import { NextResponse, NextRequest } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
+import { readCliToken } from "@/lib/cliAuth";
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_TMDB_BODY_BYTES = 2 * 1024 * 1024;
 const TMDB_TIMEOUT_MS = 10_000;
-
-// cb_ prefix + 48 hex chars = 51 chars total
-const TOKEN_REGEX = /^cb_[0-9a-f]{48}$/;
-
-function extractToken(req: NextRequest): string | null {
-  const auth = req.headers.get("Authorization");
-  if (!auth?.toLowerCase().startsWith("bearer ")) return null;
-  const token = auth.slice(7).trim();
-  return TOKEN_REGEX.test(token) ? token : null;
-}
 
 type CliMovie = {
   id: number;
@@ -59,13 +50,9 @@ export async function OPTIONS() {
 
 // GET — verify token without consuming a daily search count
 export async function GET(req: NextRequest) {
-  const token = extractToken(req);
-  if (!token) {
-    return json(
-      { ok: false, error: !req.headers.get("Authorization") ? "Missing token" : "Invalid token format" },
-      401
-    );
-  }
+  const auth = readCliToken(req);
+  if (!auth.ok) return json({ ok: false, error: auth.error }, 401);
+  const { token } = auth;
 
   try {
     const result = await convex.query(api.users.pingCliToken, { token });
@@ -78,13 +65,9 @@ export async function GET(req: NextRequest) {
 
 // POST — validate token AND consume one daily search count, then optionally search TMDB
 export async function POST(req: NextRequest) {
-  const token = extractToken(req);
-  if (!token) {
-    return json(
-      { ok: false, error: !req.headers.get("Authorization") ? "Missing token" : "Invalid token format" },
-      401
-    );
-  }
+  const auth = readCliToken(req);
+  if (!auth.ok) return json({ ok: false, error: auth.error }, 401);
+  const { token } = auth;
 
   // Parse optional search query from body
   let query = "";
