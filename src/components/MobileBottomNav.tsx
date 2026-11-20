@@ -7,15 +7,12 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Home, Box, Users, Sparkles, Bookmark,
-  Trophy, Newspaper, X, Tv2, User, LogIn,
+  Trophy, Newspaper, X, User, LogIn,
   Heart, Eye, LayoutGrid, ArrowUp, CheckCircle, Radio, Flame,
 } from "lucide-react";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
-import StampSearchModal from "./StampSearchModal";
 import { useMovieLists } from "@/hooks/useMovieLists";
 import { useThemeMode } from "@/hooks/useThemeMode";
-
-import { ENABLE_STREAMING } from "@/lib/featureFlags";
 
 // Spring preset for snappy interactive elements
 const navSpring = { type: "spring" as const, stiffness: 480, damping: 32 };
@@ -25,7 +22,6 @@ export default function MobileBottomNav() {
   const pathname = usePathname();
   const { liked, watchlist, watched } = useMovieLists();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [stampSearchOpen, setStampSearchOpen] = useState(false);
   const [browseOpen, setBrowseOpen] = useState(false);
   const [listsOpen, setListsOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -35,7 +31,6 @@ export default function MobileBottomNav() {
   const [btnRef, animateBtn] = useAnimate<HTMLButtonElement>();
   const theme = useThemeMode();
   const isGlass = theme === "glass";
-  const isNetflix = theme === "netflix";
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 200);
@@ -67,14 +62,14 @@ export default function MobileBottomNav() {
     const inner = (
       <>
         {/* layoutId pill behind active icon — morphs across items */}
-        {(isGlass || isNetflix) && active && (
+        {isGlass && active && (
           <motion.div
-            layoutId={isGlass ? "glass-nav-indicator" : "netflix-nav-indicator"}
+            layoutId="glass-nav-indicator"
             className="absolute inset-1 rounded-[14px]"
             style={{
-              background: isGlass ? "rgba(96,165,250,0.15)" : "rgba(229,9,20,0.22)",
-              border: isGlass ? "1px solid rgba(96,165,250,0.30)" : "1px solid rgba(229,9,20,0.40)",
-              boxShadow: isGlass ? "0 0 12px rgba(96,165,250,0.20)" : "0 0 16px rgba(229,9,20,0.16)",
+              background: "rgba(96,165,250,0.15)",
+              border: "1px solid rgba(96,165,250,0.30)",
+              boxShadow: "0 0 12px rgba(96,165,250,0.20)",
             }}
             transition={navSpring}
           />
@@ -84,8 +79,6 @@ export default function MobileBottomNav() {
           animate={
             isGlass
               ? { color: active ? "#93C5FD" : "rgba(100,116,139,1)", scale: active ? 1.12 : 1 }
-              : isNetflix
-              ? { color: active ? "#FFFFFF" : "rgba(255,255,255,0.45)", scale: active ? 1.08 : 1 }
               : { color: active ? "var(--theme-primary)" : "#555" }
           }
           whileTap={{ scale: 0.84 }}
@@ -141,7 +134,7 @@ export default function MobileBottomNav() {
             }}
             aria-label="Scroll to top"
             className={`fixed bottom-20 right-4 z-[59] w-10 h-10 flex items-center justify-center ${
-              isGlass ? "rounded-2xl" : isNetflix ? "rounded-full border" : "bg-brutal-yellow border-3 border-brutal-border shadow-brutal text-black"
+              isGlass ? "rounded-2xl" : "bg-brutal-yellow border-3 border-brutal-border shadow-brutal text-black"
             }`}
             style={isGlass ? {
               background: "rgba(96,165,250,0.12)",
@@ -151,11 +144,6 @@ export default function MobileBottomNav() {
               color: "#93C5FD",
               borderRadius: "14px",
               boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 16px rgba(96,165,250,0.15), inset 0 1px 0 rgba(255,255,255,0.10)",
-            } : isNetflix ? {
-              background: "rgba(24,24,24,0.95)",
-              borderColor: "rgba(255,255,255,0.12)",
-              color: "#FFFFFF",
-              boxShadow: "0 10px 24px rgba(0,0,0,0.45)",
             } : undefined}
             initial={{ opacity: 0, y: 12, scale: 0.88 }}
             animate={{ opacity: 1, y: 0, scale: 1, transition: navSpring }}
@@ -204,7 +192,7 @@ export default function MobileBottomNav() {
       </AnimatePresence>
 
       {/* ── Fixed bottom bar ── */}
-      <nav className={`fixed bottom-0 left-0 right-0 z-[60] lg:hidden ${!isGlass && !isNetflix ? "bg-bg border-t-3 border-brutal-border" : ""}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 z-[60] lg:hidden ${!isGlass ? "bg-bg border-t-3 border-brutal-border" : ""}`}>
         {isGlass ? (
           /* Glass: floating pill */
           <div className="px-3 sm:px-5 pb-safe pt-2 pb-3">
@@ -252,22 +240,6 @@ export default function MobileBottomNav() {
                     strokeWidth={2.5}
                     fill={totalCount > 0 ? "currentColor" : "none"}
                   />
-                  {totalCount > 0 && (
-                    <motion.span
-                      className="absolute -top-1 -right-1 text-[8px] font-black font-mono w-4 h-4 flex items-center justify-center rounded-full"
-                      style={{
-                        background: "#60A5FA",
-                        color: "#fff",
-                        border: "1.5px solid rgba(2,10,30,0.9)",
-                        boxShadow: "0 0 8px rgba(96,165,250,0.5)",
-                      }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 600, damping: 20 }}
-                    >
-                      {totalCount}
-                    </motion.span>
-                  )}
                 </motion.button>
               </div>
 
@@ -286,71 +258,6 @@ export default function MobileBottomNav() {
               </NavItem>
             </div>
           </div>
-        ) : isNetflix ? (
-          <div className="px-3 pb-safe pt-2 pb-3">
-            <div
-              className="flex items-center justify-around rounded-[20px] border px-2 py-1.5"
-              style={{
-                background: "rgba(20,20,20,0.96)",
-                borderColor: "rgba(255,255,255,0.10)",
-                boxShadow: "0 -6px 26px rgba(0,0,0,0.45), 0 10px 28px rgba(0,0,0,0.32)",
-              }}
-            >
-              <NavItem active={isActive("/")} href="/" onClick={() => window.dispatchEvent(new CustomEvent("reset-filters"))}>
-                <Home className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-              </NavItem>
-
-              <NavItem active={browseOpen} onClick={() => { setListsOpen(false); setBrowseOpen((o) => !o); }}>
-                <Box className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-              </NavItem>
-
-              <div className="relative -mt-5">
-                <motion.button
-                  onClick={() => { setBrowseOpen(false); setListsOpen((o) => !o); }}
-                  className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full border sm:h-14 sm:w-14"
-                  style={{
-                    background: listsOpen ? "#E50914" : "#141414",
-                    borderColor: listsOpen ? "#E50914" : "rgba(255,255,255,0.18)",
-                    boxShadow: listsOpen ? "0 0 18px rgba(229,9,20,0.25)" : "0 8px 20px rgba(0,0,0,0.38)",
-                  }}
-                  whileTap={{ scale: 0.86 }}
-                  transition={navSpring}
-                >
-                  <Bookmark
-                    className="w-5 h-5 sm:w-6 sm:h-6"
-                    style={{ color: "#FFFFFF" }}
-                    strokeWidth={2.4}
-                    fill={totalCount > 0 ? "currentColor" : "none"}
-                  />
-                  {totalCount > 0 && (
-                    <motion.span
-                      className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-black text-white"
-                      style={{ background: "#E50914" }}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 600, damping: 20 }}
-                    >
-                      {totalCount}
-                    </motion.span>
-                  )}
-                </motion.button>
-              </div>
-
-              <NavItem active={isActive("/blocks")} href="/blocks">
-                <Users className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-              </NavItem>
-
-              <NavItem
-                active={isActive("/profile") || isActive("/sign-in")}
-                href={isAuthenticated ? "/profile" : "/sign-in"}
-              >
-                {!isLoading && isAuthenticated
-                  ? <User className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-                  : <LogIn className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.4} />
-                }
-              </NavItem>
-            </div>
-          </div>
         ) : (
           /* Brutalist: original layout */
           <div className="flex items-center justify-around px-2 py-2 pb-safe">
@@ -365,11 +272,6 @@ export default function MobileBottomNav() {
             <button onClick={() => { setBrowseOpen(false); setListsOpen((o) => !o); }}
               className={`relative flex items-center justify-center w-14 h-14 -mt-6 transition-all duration-300 bg-brutal-lime border-3 border-brutal-border shadow-[3px_3px_0px_#000] text-black`}>
               <Bookmark className="w-6 h-6" strokeWidth={2.5} fill={totalCount > 0 ? "currentColor" : "none"} />
-              {totalCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black font-mono w-4 h-4 flex items-center justify-center bg-black text-brutal-lime border border-brutal-border">
-                  {totalCount}
-                </span>
-              )}
             </button>
             <Link href="/blocks" className={`flex items-center justify-center w-12 h-12 tap-target transition-colors ${isActive("/blocks") ? "text-brutal-yellow" : "text-brutal-dim hover:text-brutal-muted"}`}>
               <Users className="w-6 h-6" strokeWidth={2.5} />
@@ -460,7 +362,6 @@ export default function MobileBottomNav() {
 
                 {[
                   { onClick: () => { setBrowseOpen(false); setWizardOpen(true); }, icon: Sparkles, label: "FIND MOVIE", color: "blue" },
-                  { onClick: () => { setBrowseOpen(false); setStampSearchOpen(true); }, icon: CheckCircle, label: "STAMP FILMS", color: "orange" },
                 ].map(({ onClick, icon: Icon, label }) => (
                   <button key={label} onClick={onClick}
                     className={`flex items-center gap-3 px-4 transition-all duration-200 active:scale-[0.97] ${
@@ -476,6 +377,16 @@ export default function MobileBottomNav() {
                     <span className={`font-black tracking-widest ${isGlass ? "font-display text-xs" : "font-mono text-xs"}`}>{label}</span>
                   </button>
                 ))}
+
+                <Link
+                  href="/stamps"
+                  onClick={() => setBrowseOpen(false)}
+                  className={`flex items-center gap-3 px-4 transition-all duration-200 active:scale-[0.97] ${isGlass ? "py-4 rounded-2xl border text-slate-300 hover:text-white" : "brutal-btn py-5 border-2 border-brutal-pink text-brutal-pink bg-brutal-pink/10"}`}
+                  style={isGlass ? { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" } : undefined}
+                >
+                  <CheckCircle className={`shrink-0 ${isGlass ? "w-4 h-4 text-orange-300" : "w-5 h-5"}`} strokeWidth={2.5} />
+                  <span className={`font-black tracking-widest ${isGlass ? "font-display text-xs" : "font-mono text-xs"}`}>STAMP FILMS</span>
+                </Link>
 
                 {[
                   { href: "/box-office",   icon: Trophy,     label: "BOX OFFICE",      brutalColor: "lime" },
@@ -503,14 +414,7 @@ export default function MobileBottomNav() {
                   </Link>
                 ))}
 
-                {ENABLE_STREAMING && (
-                  <Link href="/streaming" onClick={() => setBrowseOpen(false)}
-                    className={`col-span-2 flex items-center gap-3 px-4 py-4 transition-all duration-200 ${isGlass ? "rounded-2xl border text-slate-300" : "brutal-btn py-5 border-2 border-brutal-yellow text-brutal-yellow bg-brutal-yellow/10"}`}
-                    style={isGlass ? { background: "rgba(255,255,255,0.06)", borderColor: "rgba(255,255,255,0.10)" } : undefined}>
-                    <Tv2 className={`shrink-0 ${isGlass ? "w-4 h-4 text-slate-400" : "w-5 h-5"}`} strokeWidth={2.5} />
-                    <span className={`font-black tracking-widest ${isGlass ? "font-display text-xs" : "font-mono text-xs"}`}>STREAMING</span>
-                  </Link>
-                )}
+
               </div>
             </motion.div>
           </motion.div>
@@ -593,9 +497,6 @@ export default function MobileBottomNav() {
       </AnimatePresence>
 
       {wizardOpen && <FindMyMovieWizard onClose={() => setWizardOpen(false)} />}
-      {stampSearchOpen && (
-        <StampSearchModal isOpen={stampSearchOpen} onClose={() => setStampSearchOpen(false)} />
-      )}
     </>
   );
 }

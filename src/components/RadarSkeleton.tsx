@@ -38,32 +38,6 @@ export default function RadarSkeleton() {
     );
   }
 
-  if (theme === "netflix") {
-    return (
-      <div className="flex gap-3 overflow-x-auto px-3 no-scrollbar sm:px-4">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="min-w-[135px] shrink-0 sm:min-w-[165px]">
-            <div className="relative mb-2 aspect-[2/3] overflow-hidden rounded-[6px] border border-white/[0.08] bg-[#1a1a1a]">
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: "linear-gradient(110deg, transparent 18%, rgba(255,255,255,0.05) 38%, rgba(229,9,20,0.10) 52%, rgba(255,255,255,0.05) 66%, transparent 84%)",
-                  backgroundSize: "200% 100%",
-                  animation: `shimmerSlide 1.8s ease-in-out ${i * 0.12}s infinite`,
-                }}
-              />
-              <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/95 to-transparent" />
-            </div>
-            <div className="space-y-1.5 px-0.5">
-              <div className="h-3 w-4/5 rounded-sm bg-white/10" />
-              <div className="h-2.5 w-1/2 rounded-sm bg-white/6" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <div className="flex gap-4 overflow-x-auto px-4 no-scrollbar">
       {[1, 2, 3, 4, 5, 6].map((i) => (

@@ -58,7 +58,14 @@ function CreateBlockModal({ onClose, onCreate }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
+      />
       <div className="relative w-full max-w-md bg-bg border-4 border-brutal-border brutal-shadow animate-pop-in">
         <div className="flex items-center justify-between p-4 border-b-4 border-brutal-border bg-brutal-violet">
           <h2 className="font-display font-bold text-xl uppercase tracking-widest text-black">New CineBlock</h2>

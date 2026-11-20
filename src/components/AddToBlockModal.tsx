@@ -116,7 +116,14 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in motion-reduce:animate-none" onClick={!busy ? onClose : undefined} />
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label="Close"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in motion-reduce:animate-none"
+        onClick={!busy ? onClose : undefined}
+        onKeyDown={(e) => { if (!busy && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClose(); } }}
+      />
 
       <div
         role="dialog"

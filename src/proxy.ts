@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextFetchEvent, NextRequest, NextResponse } from "next/server";
 import { convexAuthNextjsMiddleware } from "@convex-dev/auth/nextjs/server";
 
 function withSecurityHeaders(response: NextResponse): NextResponse {
@@ -33,11 +33,21 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// Proxy wraps auth token into requests + applies security headers
-// (client-side guards handle redirects to avoid auth race conditions)
-export default convexAuthNextjsMiddleware(() => {
+// MCP protocol endpoints own their authentication and CORS decisions. ChatGPT
+// may call OAuth registration with Origin: null; Convex Auth's CORS helper
+// parses Origin as a URL and would throw before these routes can handle the
+// request. Keep protocol traffic outside cookie auth middleware while retaining
+// the same security headers. The MCP route still requires its bearer token.
+const authMiddleware = convexAuthNextjsMiddleware(() => {
   return withSecurityHeaders(NextResponse.next());
 });
+
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  if (["/api/mcp", "/api/oauth/register", "/api/oauth/token"].includes(request.nextUrl.pathname)) {
+    return withSecurityHeaders(NextResponse.next());
+  }
+  return authMiddleware(request, event);
+}
 
 export const config = {
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],

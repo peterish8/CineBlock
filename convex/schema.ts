@@ -6,6 +6,47 @@ import { authTables } from "@convex-dev/auth/server";
 const { users: _usersTable, ...otherAuthTables } = authTables;
 void _usersTable;
 
+const nullableString = v.union(v.string(), v.null());
+
+// One movie inside a Franchise Vault snapshot (mirrors FranchisePart in src/lib/franchiseBuilder.ts)
+export const franchisePartValidator = v.object({
+  id: v.number(),
+  title: v.string(),
+  original_title: v.string(),
+  overview: v.string(),
+  poster_path: nullableString,
+  backdrop_path: nullableString,
+  release_date: v.string(),
+  vote_average: v.number(),
+  vote_count: v.number(),
+  genre_ids: v.array(v.number()),
+  original_language: v.string(),
+  popularity: v.number(),
+  adult: v.boolean(),
+  custom_era: v.optional(v.string()),
+});
+
+// How a franchise is assembled from TMDB (mirrors FranchiseSource in src/lib/franchiseBuilder.ts)
+export const franchiseSourceValidator = v.union(
+  // A plain TMDB collection
+  v.object({ type: v.literal("collection"), tmdbCollectionId: v.number() }),
+  // Every film tagged with a TMDB keyword (optionally from one studio), e.g. the MCU
+  v.object({
+    type: v.literal("keyword"),
+    keywordId: v.number(),
+    companyId: v.optional(v.number()),
+    excludeGenreIds: v.array(v.number()),
+    excludeIds: v.array(v.number()),
+    pinnedOrder: v.array(v.number()), // known in-universe order; new films append by date
+    minRuntime: v.number(), // released films shorter than this are shorts/specials
+  }),
+  // Several TMDB collections merged, each labelled as an era, e.g. Spider-Man
+  v.object({
+    type: v.literal("merge"),
+    eras: v.array(v.object({ tmdbCollectionId: v.number(), era: v.string() })),
+  })
+);
+
 const schema = defineSchema({
   ...otherAuthTables,
 
@@ -30,10 +71,17 @@ const schema = defineSchema({
     cliToken: v.optional(v.string()),
     cliSearchesUsed: v.optional(v.number()),
     cliSearchesResetAt: v.optional(v.number()),
+    // Remote MCP access token. Kept separate from the CLI token so either
+    // integration can be revoked without affecting the other.
+    mcpToken: v.optional(v.string()),
+    mcpTokenHash: v.optional(v.string()),
+    mcpTokenLast4: v.optional(v.string()),
   })
     .index("email", ["email"])
     .index("by_username", ["username"])
     .index("by_cliToken", ["cliToken"])
+    .index("by_mcpToken", ["mcpToken"])
+    .index("by_mcpTokenHash", ["mcpTokenHash"])
     .searchIndex("search_by_username", { searchField: "username" })
     .searchIndex("search_by_name", { searchField: "name" }),
 
@@ -57,7 +105,8 @@ const schema = defineSchema({
     watchedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_movieId", ["userId", "movieId"]),
+    .index("by_userId_movieId", ["userId", "movieId"])
+    .index("by_userId_watchedAt", ["userId", "watchedAt"]),
 
   liked: defineTable({
     userId: v.id("users"),
@@ -102,6 +151,7 @@ const schema = defineSchema({
   stamps: defineTable({
     userId: v.id("users"),
     movieId: v.number(),
+    mediaType: v.optional(v.union(v.literal("movie"), v.literal("tv"))),
     movieTitle: v.string(),
     posterPath: v.string(),
     reviewText: v.string(),
@@ -121,6 +171,57 @@ const schema = defineSchema({
     .index("by_userId_action", ["userId", "action"])
     .index("by_lastAt", ["lastAt"]),
 
+  // Durable one-time receipts for stateless MCP write confirmations. The
+  // signed preview carries actionId; this table makes the write idempotent.
+  mcp_action_receipts: defineTable({
+    userId: v.id("users"),
+    actionId: v.string(),
+    kind: v.union(v.literal("playlist"), v.literal("stamp")),
+    blockId: v.optional(v.id("blocks")),
+    stampId: v.optional(v.id("stamps")),
+    movieCount: v.optional(v.number()),
+    isPublic: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId_actionId", ["userId", "actionId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  mcp_oauth_clients: defineTable({
+    clientId: v.string(),
+    clientName: v.optional(v.string()),
+    redirectUris: v.array(v.string()),
+    createdAt: v.number(),
+  }).index("by_clientId", ["clientId"]),
+
+  mcp_oauth_codes: defineTable({
+    codeHash: v.string(),
+    clientId: v.string(),
+    redirectUri: v.string(),
+    codeChallenge: v.string(),
+    resource: v.string(),
+    userId: v.id("users"),
+    scope: v.string(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_codeHash", ["codeHash"]),
+
+  mcp_oauth_tokens: defineTable({
+    accessTokenHash: v.string(),
+    refreshTokenHash: v.string(),
+    clientId: v.string(),
+    resource: v.string(),
+    userId: v.id("users"),
+    scope: v.string(),
+    accessExpiresAt: v.number(),
+    refreshExpiresAt: v.number(),
+    revokedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_accessTokenHash", ["accessTokenHash"])
+    .index("by_refreshTokenHash", ["refreshTokenHash"])
+    .index("by_userId", ["userId"]),
+
   news_feed: defineTable({
     fetchedDate: v.string(),
     articles: v.array(
@@ -139,6 +240,50 @@ const schema = defineSchema({
   })
     .index("by_fetchedDate", ["fetchedDate"])
     .index("by_createdAt", ["createdAt"]),
+
+  // Franchise Vault catalog — the database, not the code, decides which franchises
+  // exist. Seeded once, grown by the weekly discovery cron, health-checked by the
+  // hourly sync tick (see convex/franchises.ts). Rows stay small so the Vault grid
+  // and Radar badges can read the whole table cheaply.
+  franchises: defineTable({
+    key: v.number(), // stable id the app uses (the TMDB collection id for plain collections)
+    name: v.string(),
+    overview: v.optional(v.string()), // only for rule-built franchises; collections use TMDB's
+    source: franchiseSourceValidator,
+    featuredMovieId: v.optional(v.number()), // whose poster/backdrop represents the franchise
+    themeColor: v.optional(v.string()),
+    badge: v.optional(v.object({ label: v.optional(v.string()), tone: v.optional(v.string()) })),
+    rank: v.optional(v.number()), // curated order; discovered franchises sort by popularity
+    origin: v.union(v.literal("seed"), v.literal("discovered")),
+    status: v.union(v.literal("active"), v.literal("broken")),
+    addedAt: v.number(),
+    // Summary of the last good snapshot, so the grid never needs the full film list
+    posterPath: v.optional(nullableString),
+    filmCount: v.number(),
+    partIds: v.array(v.number()),
+    recent: v.array(v.object({ movieId: v.number(), releaseDate: v.string() })), // for Radar badges
+    popularity: v.number(),
+    // Schedule + health
+    nextSyncAt: v.number(),
+    syncedAt: v.optional(v.number()),
+    failures: v.number(),
+    health: v.optional(
+      v.object({ ok: v.boolean(), checkedAt: v.number(), issues: v.array(v.string()) })
+    ),
+  })
+    .index("by_key", ["key"])
+    .index("by_nextSyncAt", ["nextSyncAt"]),
+
+  // Full film list per franchise (last good TMDB snapshot), read by the Vault modal
+  franchise_snapshots: defineTable({
+    collectionId: v.number(), // = franchises.key
+    name: v.string(),
+    overview: v.string(),
+    poster_path: nullableString,
+    backdrop_path: nullableString,
+    parts: v.array(franchisePartValidator),
+    changedAt: v.number(), // last time the content actually changed
+  }).index("by_collectionId", ["collectionId"]),
 
   rooms: defineTable({
     name: v.string(),

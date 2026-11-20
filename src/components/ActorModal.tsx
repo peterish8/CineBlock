@@ -65,8 +65,12 @@ export default function ActorModal({ actorId, onClose, onMovieClick }: ActorModa
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label="Close"
       className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6"
       onClick={onClose}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
     >
       {/* Overlay */}
       <div
@@ -91,6 +95,7 @@ export default function ActorModal({ actorId, onClose, onMovieClick }: ActorModa
           boxShadow: "0 24px 64px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
         } : undefined}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
       >
         {/* Glass: accent bar */}
         {isGlass && (
@@ -189,6 +194,8 @@ export default function ActorModal({ actorId, onClose, onMovieClick }: ActorModa
               {movies.map((movie) => (
                 <div
                   key={movie.id}
+                  role="button"
+                  tabIndex={0}
                   className={`group relative aspect-[2/3] cursor-pointer overflow-hidden transition-all ${
                     isGlass
                       ? "glass-actor-movie rounded-xl"
@@ -201,6 +208,17 @@ export default function ActorModal({ actorId, onClose, onMovieClick }: ActorModa
                       media_type: "movie",
                     } as TMDBMovie);
                     onClose();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onMovieClick({
+                        ...movie,
+                        original_title: movie.title,
+                        media_type: "movie",
+                      } as TMDBMovie);
+                      onClose();
+                    }
                   }}
                 >
                   <Image

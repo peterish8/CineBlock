@@ -20,12 +20,12 @@ Live: **https://cineblock.in**
 ### Glass UI Theme (app-wide)
 A premium visual style using dark semi-transparent surfaces, backdrop-blur, animated depth orbs, and micro-interactions — inspired by visionOS, Linear, and Raycast.
 
-- Toggled globally via a theme switch; every component reads `useThemeMode()` and swaps class sets
+- Permanently enabled for every user; `useThemeMode()` keeps shared components on the Glass visual system
 - Animated depth orbs (`globals.css`) pulse slowly behind all content in glass mode
 - Glass-aware components: `PosterCard`, `MovieModal`, `MobileBottomNav`, `CommandHub`, `TrendingHero`, `ToastProvider`, `MovieActionRail`, `UserListButtons`, `SkeletonCard`, `RadarSkeleton`
-- **Profile page** — all sections (stats, lists, CLI token panel, stamp grid) use glass surfaces
+- **Profile page** — identity, stats, lists, data privacy, and the MCP access panel use glass surfaces; stamps live on the dedicated `/stamps` page
 - **Watch Blocks page** — `CreateBlockModal`, `JoinBlockModal`, room cards, invite panel, and empty state all switch to glass-dark cards with violet/green/cyan accents
-- Brutalist theme fully preserved for non-glass users
+- Legacy brutalist classes remain only for compatibility and are not exposed as a user-selectable theme
 
 ### CineSwipe — Gesture-Based Discovery (`/swipe`)
 Full-screen swipe deck for discovering movies with gestures or keyboard:
@@ -77,8 +77,10 @@ Secure the CLI without exposing your password.
 
 - **Schema fields:** `cliToken`, `cliSearchesUsed`, `cliSearchesResetAt` (convex/schema.ts)
 - **Rate limit:** 15 CLI requests per day, enforced in `/api/cli`
-- **User flow:** Profile page → *Generate Token* → copy `cb_...` token → pass to CLI
+- **User flow:** The CLI token UI is intentionally hidden until the npm package is live; keep the terminal route/package contract separate from the MCP controls shown in Profile.
 - Token is stored locally in `~/.cineblock_token` for subsequent runs
+
+The `cb_...` credential is terminal-only. It is not accepted by `/api/mcp` and is not the credential used by ChatGPT. ChatGPT/custom MCP clients use a separate `mcp_...` token (or OAuth) to read your library, show watched titles that do not yet have stamps, preview exact movie identities, create public/private CineBlocks, and save personal Markdown stamps. The stamp flow uses a compact in-chat card with three optional feeling prompts, selectable answers, and an own-words field for every prompt before showing the exact poster, title, visibility, and Markdown for approval. CineBlock Terminal offers AI natural-language search with the user’s own Gemini/Groq/OpenRouter key, plus a Guided no-AI mode that asks story signal, language, and release-era questions and returns five server-ranked results.
 
 ### Watch Blocks (Collaborative Rooms)
 Create a named room, share a 6-character invite code with friends, and build a shared movie list together.
@@ -104,6 +106,13 @@ Multi-step guided movie finder (mood → genre → language → time → keyword
 ### API Filter Optimizations
 Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, and language filters applied at the database/TMDB query level rather than client-side. Reduces payload size and lowers latency on slower networks.
 
+### Franchise Vault (`/collections`)
+The franchise catalog lives in Convex (`franchises` and `franchise_snapshots` tables) and keeps itself current from TMDB with no manual edits and no AI:
+- `convex/crons.ts` runs `franchises:syncDue` hourly. Each franchise is refreshed on its own schedule: daily near a release, every few days when a film is upcoming, otherwise weekly. Failures back off.
+- A health check rejects suspicious updates (for example a franchise suddenly losing half its films), skips writes when nothing changed, and re-finds a franchise by exact name when TMDB retires a collection ID.
+- `franchises:discoverNew` runs weekly and adds new collections found in trending, popular, upcoming and now-playing films.
+- The first run seeds the catalog from `src/lib/franchiseSeed.ts`. To fill a fresh deployment straight away, run `npx convex run franchises:syncDue`.
+
 ---
 
 ## Routes
@@ -117,8 +126,10 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 | `/watched` | Watched log (filter + multi-select) |
 | `/blocks` | Watch Blocks lobby |
 | `/blocks/[roomId]` | Shared room |
-| `/profile` | User profile, stats, CLI token |
+| `/profile` | User profile, stats, MCP access |
+| `/stamps` | Personal stamped films and drafts |
 | `/radar` | Upcoming releases radar |
+| `/collections` | Franchise Vault: every saga and how much of it you have watched |
 | `/recommendations` | Personalized picks |
 | `/search` | Global movie/TV search |
 | `/movie/[id]` | Movie detail |
@@ -126,7 +137,6 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 | `/u/[username]` | Public user profile |
 | `/box-office` | Box office charts |
 | `/news` | Movie news |
-| `/streaming` | Streaming availability |
 
 ---
 
@@ -150,10 +160,48 @@ Server-side filtering in `src/app/api/movies/route.ts` — genre, year, rating, 
 git clone <repo-url>
 cd movieX
 npm install
+npx convex dev        # links a Convex dev deployment and writes its URLs to .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`. Toggle **Glass** in settings to switch themes.
+Open `http://localhost:3000`. Glass is enabled by default and is the only user-facing theme.
+
+### Convex setup
+
+The backend reads these Convex environment variables. Set them on each deployment with `npx convex env set NAME value` (add `--prod` for production); never commit their values:
+
+- `TMDB_API_KEY`: TMDB credential for server-side fetches and the Franchise Vault sync
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: Google OAuth client for sign-in
+- `JWT_PRIVATE_KEY` and `JWKS`: the Convex Auth signing key pair
+- `SITE_URL`: the app origin users return to after sign-in (`http://localhost:3000` in dev)
+- `NEXT_PUBLIC_APP_URL`: the public share-link origin
+- `INTERNAL_API_SECRET`: shared secret between Convex and the Next.js app; it must match the app's value
+
+`CONVEX_SITE_URL` is provided by Convex automatically.
+
+After `.env.local` holds your secrets, `node scripts/sync-convex-env.mjs` copies the backend ones onto the linked dev deployment without printing them, and keeps `NEXT_PUBLIC_CONVEX_SITE_URL` on the same deployment as `NEXT_PUBLIC_CONVEX_URL`. Use `--prod` to target production.
+
+Google sign-in returns to `https://<deployment>.convex.site/api/auth/callback/google`, so every Convex deployment's callback URL must be listed under **Authorised redirect URIs** on the Google OAuth client.
+
+### Vercel and MCP deployment
+
+The production MCP endpoint is:
+
+```text
+https://cineblock.vercel.app/api/mcp
+```
+
+OAuth continues to identify `https://www.cineblock.in/api/mcp` as the canonical protected resource. The direct Vercel URL is the connector transport so machine-to-machine POST requests bypass the public-site bot/CDN layer.
+
+For a production deployment, configure these Vercel variables without committing their values:
+
+- `NEXT_PUBLIC_APP_URL` and `SITE_URL`: `https://www.cineblock.in`
+- `MCP_ALLOWED_ORIGIN`: an explicit comma-separated allowlist for ChatGPT and the CineBlock origins; never use `*`
+- `NEXT_PUBLIC_CONVEX_URL` and `NEXT_PUBLIC_CONVEX_SITE_URL`: the browser-safe URLs for the production Convex deployment
+- `CONVEX_DEPLOYMENT`: the production deployment selector
+- `CONVEX_DEPLOY_KEY`: the production-only Convex deploy credential used by the Vercel build
+
+The Vercel build runs `npx convex deploy` before `next build` for Production, so `CONVEX_DEPLOY_KEY` decides which Convex deployment receives the backend. Environment changes apply only to new deployments, so redeploy after changing them. Production advertises dynamic client registration at `https://cineblock.vercel.app/api/oauth/register/v3` so machine clients do not cross the public-site CDN; the original registration routes remain available for existing clients. Reconnect an MCP client after OAuth metadata or tool schema changes.
 
 ### CLI Usage
 
@@ -171,7 +219,7 @@ python cineblock-cli.py
 
 1. Fork the repository.
 2. Create a feature branch (`git checkout -b feature/your-name`).
-3. Run `npm install` and `npm test`.
+3. Run `npm install`, then check your change with `npm run lint`, `npx tsc --noEmit` and `npm run build`.
 4. Follow the **glass-theme** styling conventions — new modals and cards should be glass-aware.
 5. Open a Pull Request.
 

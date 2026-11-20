@@ -10,6 +10,9 @@ import { posterUrl } from "@/lib/constants";
 import { useToast } from "@/components/ToastProvider";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
+const STAMP_REVIEW_MAX = 1000;
+const STAMP_WARN_AT = 900;
+
 type StampModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -40,7 +43,15 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
 
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const titleId = useId();
+
+  const resizeTextarea = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -98,6 +109,11 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
     }
   }, [isOpen, initialized, existingStamp]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    resizeTextarea();
+  }, [isOpen, reviewText, initialized]);
+
   if (!isOpen || !isAuthenticated) return null;
 
   // Already published — nothing to do, X closes
@@ -140,7 +156,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
         posterPath: movie.posterPath,
         reviewText: trimmed,
       });
-      pushToast("success", "Draft saved — continue anytime from your profile.");
+      pushToast("success", "Feeling saved as a draft — continue anytime from Your Film Feelings.");
       onClose();
     } catch (err) {
       pushToast("error", err instanceof Error ? err.message : "Failed to save draft.");
@@ -152,24 +168,29 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
   const charCount = reviewText.length;
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[1100] overflow-y-auto">
       {/* Overlay */}
       <div
-        className="absolute inset-0 animate-fade-in motion-reduce:animate-none"
+        role="button"
+        tabIndex={0}
+        aria-label="Close"
+        className="fixed inset-0 animate-fade-in motion-reduce:animate-none"
         style={isGlass
           ? { background: "rgba(2,8,23,0.80)", backdropFilter: "blur(8px)" }
           : { background: "rgba(0,0,0,0.70)", backdropFilter: "blur(2px)" }
         }
         onClick={!isSubmitting ? onClose : undefined}
+        onKeyDown={(e) => { if (!isSubmitting && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClose(); } }}
       />
 
       {/* Modal container */}
+      <div className="relative flex min-h-full items-center justify-center p-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         data-stamp-modal="true"
-        className={`relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden animate-slide-up motion-reduce:animate-none ${
+        className={`relative flex w-full max-w-xl flex-col overflow-hidden animate-slide-up motion-reduce:animate-none ${
           isGlass ? "" : "border-4 border-brutal-border brutal-shadow"
         }`}
         style={isGlass ? {
@@ -190,7 +211,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
         {isGlass ? (
           <div className="flex items-center justify-between px-6 py-4">
             <h2 id={titleId} className="font-display font-semibold text-base text-white tracking-tight">
-              {isDraft ? "Continue Draft" : "The Criterion"}
+              {isDraft ? "Continue Feeling" : "Your Film Feelings"}
             </h2>
             <button
               ref={closeButtonRef}
@@ -205,7 +226,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
         ) : (
           <div className="flex items-center justify-between border-b-4 border-brutal-border bg-brutal-yellow p-4">
             <h2 id={titleId} className="font-outfit text-xl font-black uppercase tracking-wider text-black">
-              {isDraft ? "CONTINUE DRAFT" : "THE CRITERION"}
+              {isDraft ? "CONTINUE FEELING" : "YOUR FILM FEELINGS"}
             </h2>
             <button
               ref={closeButtonRef}
@@ -233,7 +254,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
           </div>
           <div className="flex flex-col justify-center gap-1">
             <span className={`text-xs uppercase tracking-wider ${isGlass ? "text-slate-400" : "font-inter text-text-muted"}`}>
-              {isDraft ? "Draft for" : "Write your stamp for"}
+              {isDraft ? "Feeling draft for" : "What did it leave with you?"}
             </span>
             <span className={`line-clamp-2 text-lg font-bold leading-tight ${isGlass ? "text-white" : "font-outfit"}`}>{movie.title}</span>
             {isDraft && (
@@ -255,19 +276,20 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
               Already stamped for this film.
             </span>
             <span className={`text-[10px] ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>
-              Delete the stamp from your profile to re-stamp.
+              Delete the stamp from Your Film Feelings to write it again.
             </span>
           </div>
         ) : (
           <form onSubmit={(e) => void handlePublish(e)} className="flex flex-col gap-4 p-5">
             <div className="relative">
               <textarea
+                ref={textareaRef}
                 value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                maxLength={280}
-                placeholder="Write your stamp review..."
-                rows={4}
-                className={`w-full resize-none p-3 text-sm placeholder-slate-500 ${
+                onChange={(e) => setReviewText(e.target.value.slice(0, STAMP_REVIEW_MAX))}
+                maxLength={STAMP_REVIEW_MAX}
+                placeholder="Write what this film made you feel... Markdown is supported."
+                rows={8}
+                className={`w-full resize-none overflow-hidden p-3 pb-8 text-sm leading-relaxed placeholder-slate-500 ${
                   isGlass
                     ? "rounded-xl text-white bg-transparent focus:outline-none"
                     : "border-4 border-brutal-border bg-surface font-mono text-text placeholder-text-muted focus:border-brutal-yellow focus:outline-none"
@@ -278,12 +300,13 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
                   borderRadius: "12px",
                   color: "#fff",
                   outline: "none",
-                } : undefined}
+                  minHeight: "14rem",
+                } : { minHeight: "14rem" }}
                 disabled={isSubmitting}
                 autoFocus={!isDraft}
               />
-              <span className={`absolute bottom-2 right-2 text-[10px] ${charCount > 250 ? (isGlass ? "text-amber-400" : "text-brutal-yellow") : (isGlass ? "text-slate-500" : "text-text-muted")} ${isGlass ? "" : "font-mono"}`}>
-                {charCount}/280
+              <span className={`absolute bottom-2 right-2 text-[10px] ${charCount > STAMP_WARN_AT ? (isGlass ? "text-amber-400" : "text-brutal-yellow") : (isGlass ? "text-slate-500" : "text-text-muted")} ${isGlass ? "" : "font-mono"}`}>
+                {charCount}/{STAMP_REVIEW_MAX}
               </span>
             </div>
 
@@ -348,6 +371,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
             </div>
           </form>
         )}
+      </div>
       </div>
     </div>
   );

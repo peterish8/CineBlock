@@ -65,7 +65,6 @@ export default function PosterGrid({
   const abortRef = useRef<AbortController | null>(null);
   const theme = useThemeMode();
   const isGlass = theme === "glass";
-  const isNetflix = theme === "netflix";
 
   const fetchMovies = useCallback(
     async (pageNum: number, append = false) => {
@@ -156,9 +155,7 @@ export default function PosterGrid({
     return () => observer.disconnect();
   }, [page, totalPages, loading, loadingMore, fetchMovies]);
 
-  const gridClassName = isNetflix
-    ? "grid grid-cols-2 gap-2 px-3 sm:grid-cols-3 sm:px-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-2.5 lg:px-6"
-    : "grid grid-cols-2 gap-3 px-3 sm:grid-cols-3 sm:gap-4 sm:px-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-5 lg:px-6";
+  const gridClassName = "grid grid-cols-2 gap-3 px-3 sm:grid-cols-3 sm:gap-4 sm:px-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-5 lg:px-6";
 
   const [gridCols, setGridCols] = useState(5);
   useEffect(() => {
@@ -178,13 +175,13 @@ export default function PosterGrid({
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
-        <div className={`max-w-md w-full ${isNetflix ? "rounded-md border border-white/10 bg-[#181818] p-8 shadow-[0_18px_50px_rgba(0,0,0,0.45)]" : "brutal-card p-8"}`}>
-          <Film className={`mx-auto mb-4 h-12 w-12 ${isNetflix ? "text-[#E50914]" : "text-brutal-yellow"}`} strokeWidth={2} />
-          <p className={`${isNetflix ? "text-white" : "text-brutal-white"} mb-2 text-lg font-bold ${isNetflix ? "" : "font-display uppercase"}`}>
+        <div className="max-w-md w-full brutal-card p-8">
+          <Film className="mx-auto mb-4 h-12 w-12 text-brutal-yellow" strokeWidth={2} />
+          <p className="text-brutal-white mb-2 text-lg font-bold font-display uppercase">
             No Connection
           </p>
-          <p className={`${isNetflix ? "text-white/65" : "text-brutal-muted"} text-sm ${isNetflix ? "font-medium" : "font-mono"}`}>{error}</p>
-          <p className={`${isNetflix ? "border-white/10 text-white/40" : "border-brutal-border text-brutal-dim"} mt-3 border-t pt-3 text-xs ${isNetflix ? "" : "font-mono"}`}>
+          <p className="text-brutal-muted text-sm font-mono">{error}</p>
+          <p className="border-brutal-border text-brutal-dim mt-3 border-t pt-3 text-xs font-mono">
             Add your TMDB API key to `.env.local`
           </p>
         </div>
@@ -382,16 +379,6 @@ export default function PosterGrid({
               <span style={{ color: "#60A5FA" }}>↑</span> try different filters
             </div>
           </motion.div>
-        ) : isNetflix ? (
-          <div className="flex max-w-md flex-col items-center rounded-md border border-white/10 bg-[#181818] px-8 py-10 shadow-[0_22px_55px_rgba(0,0,0,0.45)]">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#E50914]/15">
-              <SearchX className="h-9 w-9 text-[#E50914]" strokeWidth={1.8} />
-            </div>
-            <p className="mb-2 text-2xl font-black tracking-tight text-white">No titles found</p>
-            <p className="max-w-[290px] text-sm leading-relaxed text-white/60">
-              Try a broader search, clear a few filters, or jump back into browsing.
-            </p>
-          </div>
         ) : (
           <div className="brutal-card relative flex w-full max-w-md flex-col items-center overflow-hidden bg-surface p-10">
             <div
@@ -482,11 +469,6 @@ export default function PosterGrid({
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               Loading more...
             </div>
-          ) : isNetflix ? (
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-[#181818] px-4 py-2 text-xs font-semibold text-white/72">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-[#E50914]" />
-              Loading more titles...
-            </div>
           ) : (
             <div className="brutal-chip flex items-center gap-2 border-brutal-yellow text-brutal-yellow">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -503,10 +485,6 @@ export default function PosterGrid({
             style={{ color: "rgba(100,116,139,0.7)", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
           >
             {trimmedCards.length} films · page {page}/{totalPages}
-          </span>
-        ) : isNetflix ? (
-          <span className="inline-block rounded-full border border-white/10 bg-[#181818] px-3 py-1 text-[11px] font-semibold text-white/58">
-            {visibleMovies.length} titles · page {page}/{totalPages}
           </span>
         ) : (
           <span className="brutal-chip inline-block text-brutal-dim">

@@ -6,7 +6,8 @@ import Image from "next/image";
 import { Film, Calendar } from "lucide-react";
 import { RadarMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
-import { FRANCHISE_MAP } from "@/lib/franchises";
+import { useFranchiseBadges } from "@/hooks/useFranchiseBadges";
+import FranchiseRibbon from "@/components/FranchiseRibbon";
 
 interface ReleaseTimelineProps {
   movies: RadarMovie[];
@@ -15,6 +16,7 @@ interface ReleaseTimelineProps {
 
 export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelineProps) {
   const desktopContainerRef = useRef<HTMLDivElement>(null);
+  const franchiseBadges = useFranchiseBadges();
 
   // Group movies by Month/Year
   const groups = useMemo(() => {
@@ -168,13 +170,7 @@ export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelin
                           )}
 
                           {/* Franchise Ribbon (Desktop) */}
-                          {FRANCHISE_MAP[movie.id] && (
-                            <div className="absolute top-0 right-0 overflow-hidden w-20 h-20 pointer-events-none z-20">
-                              <div className={`absolute top-4 -right-6 w-[120px] py-1 ${FRANCHISE_MAP[movie.id].color} ${FRANCHISE_MAP[movie.id].borderColor} border-y-2 text-[8px] font-mono font-black text-white text-center rotate-45 shadow-sm uppercase tracking-widest`}>
-                                {FRANCHISE_MAP[movie.id].name}
-                              </div>
-                            </div>
-                          )}
+                          <FranchiseRibbon badge={franchiseBadges.get(movie.id)} variant="corner-large" />
                           
                           {/* Release Year Overlay (Only if truly upcoming) */}
                           {isUpcoming && (
@@ -253,11 +249,7 @@ export default function ReleaseTimeline({ movies, onMovieClick }: ReleaseTimelin
                     )}
 
                     {/* Franchise Badge (Mobile - Tiny Corner) */}
-                    {FRANCHISE_MAP[movie.id] && (
-                      <div className={`absolute top-0 left-0 ${FRANCHISE_MAP[movie.id].color} ${FRANCHISE_MAP[movie.id].borderColor} border-r-2 border-b-2 px-1.5 py-0.5 text-[7px] font-mono font-black text-white uppercase tracking-tighter z-10`}>
-                        {FRANCHISE_MAP[movie.id].name}
-                      </div>
-                    )}
+                    <FranchiseRibbon badge={franchiseBadges.get(movie.id)} variant="tag" />
                   </div>
 
                   {/* Info */}

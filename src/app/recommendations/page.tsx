@@ -261,7 +261,16 @@ function RecommendationsContent() {
             ? { background: "rgba(2,8,23,0.80)", backdropFilter: "blur(8px)" }
             : undefined}
         >
-          {!isGlass && <div className="absolute inset-0 brutal-modal-overlay" onClick={() => setShowSources(false)} />}
+          {!isGlass && (
+            <div
+              role="button"
+              tabIndex={0}
+              aria-label="Close"
+              className="absolute inset-0 brutal-modal-overlay"
+              onClick={() => setShowSources(false)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowSources(false); } }}
+            />
+          )}
           <div
             className={`w-full max-w-2xl p-6 relative animate-slide-up flex flex-col max-h-[80vh] ${
               isGlass ? "" : "brutal-card bg-bg"
@@ -402,9 +411,12 @@ function RecommendationsContent() {
                 return (
                   <div
                     key={movie.id}
+                    role="button"
+                    tabIndex={0}
                     className="group brutal-poster relative aspect-[2/3] w-full animate-fade-in cursor-pointer"
                     style={{ animationDelay: `${(i % 30) * 30}ms` }}
                     onClick={() => setSelectedMovie(movie)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedMovie(movie); } }}
                   >
                     {movie.poster_path ? (
                       <Image
@@ -447,7 +459,10 @@ function RecommendationsContent() {
 
                     {/* Watchlist bookmark */}
                     <div
+                      role="button"
+                      tabIndex={0}
                       onClick={(e) => handleToggleWatchlist(movie, e)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleWatchlist(movie); } }}
                       className={`absolute top-0 left-0 border-b-3 border-r-3 border-brutal-border px-2 py-2 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer transition-colors duration-100 z-10 ${
                         saved
                           ? "bg-brutal-lime text-black"

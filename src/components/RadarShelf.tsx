@@ -8,7 +8,8 @@ import { useRadar } from "@/hooks/useRadar";
 import { posterUrl } from "@/lib/constants";
 import RadarSkeleton from "./RadarSkeleton";
 import { RadarMovie } from "@/lib/types";
-import { FRANCHISE_MAP } from "@/lib/franchises";
+import { useFranchiseBadges } from "@/hooks/useFranchiseBadges";
+import FranchiseRibbon from "@/components/FranchiseRibbon";
 
 interface RadarShelfProps {
   onMovieClick: (movie: RadarMovie) => void;
@@ -16,6 +17,7 @@ interface RadarShelfProps {
 
 export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
   const { movies, loading, error, isPersonalized } = useRadar();
+  const franchiseBadges = useFranchiseBadges();
 
   if (loading) {
     return (
@@ -135,13 +137,7 @@ export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
                  )}
 
                  {/* Franchise Ribbon */}
-                 {FRANCHISE_MAP[movie.id] && (
-                   <div className="absolute top-0 right-0 overflow-hidden w-16 h-16 pointer-events-none z-20">
-                     <div className={`absolute top-3 -right-5 w-[100px] py-0.5 ${FRANCHISE_MAP[movie.id].color} ${FRANCHISE_MAP[movie.id].borderColor} border-y-2 text-[7px] font-mono font-black text-white text-center rotate-45 shadow-sm uppercase tracking-widest`}>
-                       {FRANCHISE_MAP[movie.id].name}
-                     </div>
-                   </div>
-                 )}
+                 <FranchiseRibbon badge={franchiseBadges.get(movie.id)} variant="corner" />
 
                  {/* Pre-release marker (Only if truly upcoming) */}
                  {isUpcoming && (

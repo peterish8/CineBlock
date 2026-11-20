@@ -1,0 +1,92 @@
+# CineBlock MCP
+
+CineBlock exposes a protected, stateless MCP endpoint for ChatGPT and other MCP clients:
+
+`https://<your-deployment>/api/mcp`
+
+For the production ChatGPT/Claude connector, use the direct machine transport URL `https://cineblock.vercel.app/api/mcp`. CineBlock still advertises `https://www.cineblock.in/api/mcp` as the canonical OAuth resource, while registration and token exchange use the direct Vercel origin so automated clients do not cross the public-site bot/CDN layer.
+
+The server follows the 2026-07-28 MCP shape through `createMcpHandler`, with stateless legacy fallback for clients that still speak the 2025-era protocol. Durable data remains in Convex; no MCP session is stored in memory.
+
+## Connect ChatGPT
+
+1. Sign in to CineBlock and open `/profile`.
+2. In **ChatGPT / MCP**, generate an MCP token and copy it immediately; CineBlock stores only a hash and cannot reveal it again after a page reload.
+3. Add a custom connector/server in ChatGPT using the MCP URL above. ChatGPT can discover CineBlock's OAuth metadata from the `401` challenge or the well-known metadata endpoints.
+4. Prefer OAuth when ChatGPT offers it: the flow opens CineBlock's consent page, uses S256 PKCE, and returns a short-lived access token plus rotating refresh token. The manual bearer-token option remains available for clients that do not support OAuth.
+5. Regenerating the manual token revokes the previous manual token and all OAuth sessions immediately.
+
+Opening `/api/mcp` directly in a browser is not a login screen; the expected `401` response is the protected-resource challenge that tells ChatGPT where to discover OAuth. In ChatGPT, create the custom app in Developer Mode, provide the MCP endpoint, and choose OAuth when prompted.
+
+ChatGPT's current full MCP write support is rolling out on the web for Business and Enterprise/Edu workspaces. In ChatGPT, create a custom app in developer mode, provide the remote endpoint and authentication mechanism, scan the tools, and approve the write actions.
+
+The token is a bearer credential. Keep it private and never paste it into a movie review or a shared chat.
+
+Credential boundary: `mcp_...` tokens (or MCP OAuth access tokens) are accepted by `/api/mcp` only. The separate `cb_...` CineBlock Terminal token is accepted by `/api/cli` for terminal movie search and its daily quota only; never exchange or reuse one in the other flow.
+
+OAuth endpoints:
+
+- Protected-resource metadata: `/.well-known/oauth-protected-resource`
+- Authorization-server metadata: `/.well-known/oauth-authorization-server`
+- Dynamic client registration: `https://cineblock.vercel.app/api/oauth/register/v3` in production, bypassing the public-site CDN for machine-to-machine registration (`/api/oauth/register` and `/v2` remain available for existing clients)
+- Authorization: `/oauth/authorize`
+- Token exchange/refresh: `https://cineblock.vercel.app/api/oauth/token` in production
+
+OAuth clients must send `resource=https://<your-deployment>/api/mcp` in both the authorization and token requests. The server accepts public clients only (`token_endpoint_auth_method=none`) and requires `code_challenge_method=S256`.
+
+## Available tools
+
+- `find_titles` searches TMDB and returns poster-backed movie/series candidates.
+- `get_library` reads liked/favourite, watchlist, and watched titles.
+- `get_unstamped_watched` returns up to 25 watched titles without a saved stamp, so users can choose a fresh title to write about.
+- `preview_playlist` prepares a public/private CineBlock preview and a signed ten-minute confirmation handle.
+- `create_playlist` commits only that exact approved preview and returns the CineBlock share URL.
+- `get_stamp_questions` returns a compact three-prompt personal interview for one exact title.
+- `preview_stamp` resolves one exact TMDB movie or series, shows its poster/title/year/type, and previews the user-approved personal Markdown under the 1,000-character limit.
+- `save_stamp` commits only that exact approved stamp preview.
+
+### In-chat MCP App UI
+
+CineBlock also advertises portable MCP App resources for hosts that support them:
+
+- `find_titles` renders a poster carousel with exact movie/series identity and a **Use this title** handoff.
+- `get_stamp_questions` renders a compact stamp card: three optional prompts, tap-to-select answers, a free-text answer for every prompt, an optional **Anything else?** box, private/public selection, and a live 1,000-character counter (warns at 900, blocks preview above 1,000). Each text box also accepts up to 1,000 characters; the combined stamp is what must fit. **Preview my stamp** calls `preview_stamp` (read-only) from the card with the user's own words and shows the approval card inline; **Ask the AI to polish it first** sends the answers back to the conversation so the model can draft and preview.
+- `preview_playlist` and `preview_stamp` render approval cards showing the exact titles, visibility, poster(s), and approved text.
+- **Approve & save** on an approval card calls `create_playlist` or `save_stamp` directly (an MCP Apps `tools/call`, or `window.openai.callTool` in ChatGPT) with only the exact `confirmationToken` that preview returned. On success the card shows the saved state and tells the model, through `ui/update-model-context`, not to save again.
+
+Preview and commit stay separate tool calls. The card never invents a handle: the server still verifies the signed, ten-minute, user-bound token and the Convex receipt makes a retry return the original result. Hosts may show their own consent prompt for a write started from the card. Hosts without MCP App support continue to receive the text and structured results.
+
+The resources use the standard `text/html;profile=mcp-app` MIME type, implement MCP Apps protocol `2026-01-26` (`ui/initialize`, `ui/notifications/size-changed`, `ui/open-link`, `ui/message`, `tools/call`), and use a narrow CSP allowing TMDB poster images only. Their versioned `ui://cineblock/.../v2.html` URIs are cache keys; publish a new URI when the widget contract changes and reconnect clients after tool metadata changes.
+
+### Personal stamp conversation contract
+
+If the user has already talked about a title in the conversation (a reaction plus at least one detail or reason), skip the interview: resolve the title with `find_titles`, organise only their own words into a clean first-person Markdown stamp (at most 1,000 characters), call `preview_stamp`, and call `save_stamp` with that preview's token only after they approve. The server sends this rule in its MCP `instructions`, and `preview_stamp` returns `characterCount`, `characterLimit`, and `nextStep` hints. Use the interview below when the user has said little or nothing.
+
+When a user asks ChatGPT to stamp a movie or series without saying much yet, use this order:
+
+1. Call `find_titles` and confirm the exact poster-backed title, year, and media type.
+2. Call `get_stamp_questions` for that exact TMDB ID. In a host that supports MCP Apps, let the user answer inside the CineBlock card rather than reproducing the prompts in chat. The card contains exactly three prompts: what it left them feeling, what stayed with them, and why it mattered.
+3. The user may answer any one to three prompts, tap a suggested option, or add their own words. Do not ask additional questions unless the user explicitly requests a deeper interview. If the title already has a published stamp, the tool stops before the interview. A private draft may be continued through the normal preview flow.
+4. Draft the stamp in first-person Markdown using only supplied answers, keeping it personal and spoiler-light. It is a feeling/memory, not a critic review or plot summary. A useful shape is:
+
+   ```md
+   ## What stayed with me
+   [feeling, image, idea, or question]
+
+   ## The moment
+   [scene/detail and why it landed]
+
+   ## After the credits
+   [what changed, was confirmed, or stayed unresolved]
+   ```
+
+5. Call `preview_stamp` with the exact Markdown and wait for approval of the title, poster, visibility, and text. Keep the entire `reviewText` payload at or below 1,000 characters. Do not use HTML or fabricate personal reactions. Default to private unless the user selected or requested public.
+6. Call `save_stamp` only with the exact confirmation token returned by `preview_stamp`; do not rewrite the Markdown between preview and save.
+
+Writes intentionally require a preview followed by the exact confirmation token. Confirmation handles are signed with the authenticated bearer token, expire after ten minutes, and contain a unique action ID. Convex stores a durable receipt for that ID, so retries return the original result instead of creating a duplicate playlist or stamp. MCP tool annotations also identify reads versus writes so compatible clients can request confirmation; the bearer token itself must still be treated as a powerful credential.
+
+## Deployment notes
+
+Set `NEXT_PUBLIC_APP_URL` to the public CineBlock origin for canonical share links and host validation. Set `MCP_ALLOWED_ORIGIN` to the exact browser client origin (or a comma-separated allowlist) when using a browser-based MCP client. In production, the route fails closed when neither a configured origin nor a configured canonical host is available. Poster proxying is restricted to `image.tmdb.org`.
+
+The route uses the regular Node.js/Fluid Compute runtime. The Vercel CLI is optional for Git-connected deployments; run `npx vercel env pull`, `npx vercel deploy`, or `npx vercel logs` directly.

@@ -157,6 +157,8 @@ function WatchedContent() {
                   return (
                     <div
                       key={movie.id}
+                      role="button"
+                      tabIndex={0}
                       className={`group brutal-poster relative aspect-[2/3] w-full animate-fade-in cursor-pointer ${
                         isSelected
                           ? isGlass ? "ring-2 ring-cyan-400 ring-offset-1 ring-offset-transparent" : "ring-2 ring-brutal-yellow ring-offset-2 ring-offset-bg"
@@ -164,6 +166,7 @@ function WatchedContent() {
                       }`}
                       style={{ animationDelay: `${(i % 30) * 30}ms` }}
                       onClick={() => selectMode ? toggleSelect(movie.id) : setSelectedMovie(movie)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (selectMode) { toggleSelect(movie.id); } else { setSelectedMovie(movie); } } }}
                     >
                       {movie.poster_path ? (
                         <Image src={posterUrl(movie.poster_path, "medium")} alt={title} fill className="object-cover opacity-80" sizes="17vw" loading="lazy" />
