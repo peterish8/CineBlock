@@ -130,8 +130,8 @@ const SEED_ENTRIES: SeedEntry[] = [
   { id: 8650, name: "Transformers Collection", themeColor: "#0a0a2d" },
 
   // ── Horror ────────────────────────────────────────────────────────────────────
-  { id: 504068, name: "The Conjuring Universe", themeColor: "#0a0a0a", badge: { label: "CONJURING", tone: "slate" } },
-  { id: 313086, name: "The Conjuring Collection", themeColor: "#050505" },
+  // TMDB retired the combined "Conjuring Universe" (504068); its films live in these three.
+  { id: 313086, name: "The Conjuring Collection", themeColor: "#050505", badge: { label: "CONJURING", tone: "slate" } },
   { id: 402074, name: "Annabelle Collection", themeColor: "#0a0500" },
   { id: 968052, name: "The Nun Collection", themeColor: "#050505" },
   { id: 477962, name: "IT Collection", themeColor: "#2d0000" },
