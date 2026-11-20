@@ -85,7 +85,8 @@ export const listCatalog = query({
     const rows = await ctx.db.query("franchises").collect();
     const now = Date.now();
     return rows
-      .filter((r) => r.status === "active" && (r.filmCount > 0 || r.syncedAt === undefined))
+      // Never-synced rows show as "syncing" only until their first check fails.
+      .filter((r) => r.status === "active" && (r.filmCount > 0 || (r.syncedAt === undefined && r.failures === 0)))
       .sort(byDisplayOrder)
       .map((r) => ({
         key: r.key,
@@ -195,15 +196,25 @@ export const healthReport = internalQuery({
 
 // ─── Internal plumbing ──────────────────────────────────────────────────────
 
-/** First run on a fresh deployment: fill the empty catalog from the seed, once. */
-export const seedIfEmpty = internalMutation({
+/**
+ * Adds any seed entry the catalog doesn't have yet. On a fresh deployment that is the
+ * whole seed; afterwards it lets a corrected or new seed entry reach live deployments.
+ * Existing rows are never touched, so synced data and healed sources stay put.
+ */
+export const seedMissing = internalMutation({
   args: {},
   handler: async (ctx) => {
-    if (await ctx.db.query("franchises").first()) {
-      return 0;
-    }
     const now = Date.now();
+    let added = 0;
     for (const seed of FRANCHISE_SEED) {
+      const existing = await ctx.db
+        .query("franchises")
+        .withIndex("by_key", (q) => q.eq("key", seed.key))
+        .first();
+      if (existing) {
+        continue;
+      }
+      added++;
       await ctx.db.insert("franchises", {
         key: seed.key,
         name: seed.name,
@@ -224,7 +235,7 @@ export const seedIfEmpty = internalMutation({
         failures: 0,
       });
     }
-    return FRANCHISE_SEED.length;
+    return added;
   },
 });
 
@@ -418,9 +429,9 @@ export const syncDue = internalAction({
       return;
     }
 
-    const seeded: number = await ctx.runMutation(internal.franchises.seedIfEmpty, {});
+    const seeded: number = await ctx.runMutation(internal.franchises.seedMissing, {});
     if (seeded) {
-      console.log(`franchise catalog seeded with ${seeded} franchises`);
+      console.log(`franchise catalog: added ${seeded} seed franchises`);
     }
 
     const { items, more }: DueBatch = await ctx.runQuery(internal.franchises.dueFranchises, { now: Date.now(), limit: BATCH_SIZE });
