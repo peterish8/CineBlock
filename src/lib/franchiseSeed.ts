@@ -1,8 +1,9 @@
 /**
- * Franchise Vault SEED — used exactly once, to fill an empty `franchises` table in
- * Convex (see `seedIfEmpty` in convex/franchises.ts). After that the database is the
- * source of truth: the weekly discovery cron adds new franchises, the sync cron
- * health-checks and self-heals them, and nothing here is read at runtime.
+ * Franchise Vault SEED: each sync adds any entry here that the `franchises` table is
+ * missing (see `seedMissing` in convex/franchises.ts), so a fresh deployment fills
+ * itself and a corrected entry reaches live deployments. Existing rows are never
+ * overwritten: the database stays the source of truth, the weekly discovery cron adds
+ * new franchises, and the sync cron health-checks and self-heals them.
  *
  * Pure data with relative imports only, so the Convex bundler can include it.
  */
@@ -63,12 +64,12 @@ const SEED_ENTRIES: SeedEntry[] = [
   // ── Star Wars & Space ─────────────────────────────────────────────────────────
   { id: 10, name: "Star Wars Collection", themeColor: "#000b1e", badge: { label: "STAR WARS", tone: "yellow" } },
   { id: 87096, name: "Avatar Collection", themeColor: "#001a2d", badge: { label: "AVATAR", tone: "cyan" } },
-  { id: 111818, name: "Star Trek Kelvin Collection", themeColor: "#001a3b" },
+  { id: 115575, name: "Star Trek: Alternate Reality Collection", themeColor: "#001a3b" },
   { id: 726871, name: "Dune Collection", themeColor: "#2d1a00", badge: { label: "DUNE", tone: "amber" } },
   { id: 2344, name: "The Matrix Collection", themeColor: "#001a00" },
   { id: 8091, name: "Alien Collection", themeColor: "#0a0f0a" },
   { id: 106, name: "Predator Collection", themeColor: "#0a1a0a" },
-  { id: 117251, name: "Alien vs. Predator Collection", themeColor: "#0f0a0f" },
+  { id: 115762, name: "AVP Collection", themeColor: "#0f0a0f" },
   { id: 8945, name: "Mad Max Collection", themeColor: "#2d1500" },
   { id: 528, name: "Terminator Collection", themeColor: "#111111" },
   { id: 264, name: "Back to the Future Collection", themeColor: "#001a2d" },

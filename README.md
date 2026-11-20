@@ -111,7 +111,7 @@ The franchise catalog lives in Convex (`franchises` and `franchise_snapshots` ta
 - `convex/crons.ts` runs `franchises:syncDue` hourly. Each franchise is refreshed on its own schedule: daily near a release, every few days when a film is upcoming, otherwise weekly. Failures back off.
 - A health check rejects suspicious updates (for example a franchise suddenly losing half its films), skips writes when nothing changed, and re-finds a franchise by exact name when TMDB retires a collection ID.
 - `franchises:discoverNew` runs weekly and adds new collections found in trending, popular, upcoming and now-playing films.
-- The first run seeds the catalog from `src/lib/franchiseSeed.ts`. To fill a fresh deployment straight away, run `npx convex run franchises:syncDue`.
+- Every run adds any entry from `src/lib/franchiseSeed.ts` that the catalog is missing, so a fresh deployment fills itself and seed corrections reach live deployments. To fill a fresh deployment straight away, run `npx convex run franchises:syncDue`.
 
 ---
 
