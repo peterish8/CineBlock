@@ -338,6 +338,60 @@ export const validateCliSearch = mutation({
   },
 });
 
+const CLI_LIBRARY_MAX = 100;
+
+// Read one of the token owner's lists for CineBlock Terminal, newest first.
+// Read-only and authenticated by the CLI token alone, like pingCliToken.
+export const getCliLibrary = query({
+  args: {
+    token: v.string(),
+    list: v.union(v.literal("watchlist"), v.literal("liked"), v.literal("watched")),
+    limit: v.number(),
+  },
+  handler: async (ctx, { token, list, limit }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_cliToken", (q) => q.eq("cliToken", token))
+      .first();
+    if (!user) return { ok: false as const, error: "Invalid token" };
+
+    const take = Math.min(CLI_LIBRARY_MAX, Math.max(1, Math.floor(limit)));
+    let rows: { movieId: number; movieTitle: string; posterPath: string; at: number }[];
+    let total: number | undefined;
+    if (list === "watched") {
+      const docs = await ctx.db.query("watched")
+        .withIndex("by_userId_watchedAt", (q) => q.eq("userId", user._id))
+        .order("desc").take(take);
+      rows = docs.map((d) => ({ ...d, at: d.watchedAt }));
+      total = user.watchedCount;
+    } else if (list === "liked") {
+      const docs = await ctx.db.query("liked")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .order("desc").take(take);
+      rows = docs.map((d) => ({ ...d, at: d.likedAt }));
+      total = user.likedCount;
+    } else {
+      const docs = await ctx.db.query("watchlist")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .order("desc").take(take);
+      rows = docs.map((d) => ({ ...d, at: d.addedAt }));
+      total = user.watchlistCount;
+    }
+
+    return {
+      ok: true as const,
+      list,
+      total: total ?? null,
+      items: rows.map((r) => ({
+        tmdbId: r.movieId,
+        title: r.movieTitle,
+        posterPath: r.posterPath || null,
+        addedAt: new Date(r.at).toISOString(),
+      })),
+    };
+  },
+});
+
 // ── REMOTE MCP TOKEN ─────────────────────────────────────────────────────────
 
 async function hashMcpToken(token: string) {
