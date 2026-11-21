@@ -258,6 +258,19 @@ export const currentUser = query({
 
 // ── CLI TOKEN ─────────────────────────────────────────────────────────────────
 
+const CLI_DAILY_LIMIT = 15;
+
+/** Searches used today; the count resets at midnight UTC. */
+function cliSearchesToday(user: { cliSearchesUsed?: number; cliSearchesResetAt?: number }, todayStart: number) {
+  return (user.cliSearchesResetAt ?? 0) < todayStart ? 0 : (user.cliSearchesUsed ?? 0);
+}
+
+function utcDayStart() {
+  const day = new Date();
+  day.setUTCHours(0, 0, 0, 0);
+  return day.getTime();
+}
+
 export const generateCliToken = mutation({
   args: {},
   handler: async (ctx) => {
@@ -268,7 +281,8 @@ export const generateCliToken = mutation({
     crypto.getRandomValues(bytes);
     const token = "cb_" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 
-    await ctx.db.patch(userId, { cliToken: token, cliSearchesUsed: 0, cliSearchesResetAt: 0 });
+    // Only the token changes. Keeping the counters means a new token can't reset the daily quota.
+    await ctx.db.patch(userId, { cliToken: token });
     return token;
   },
 });
@@ -283,18 +297,12 @@ export const pingCliToken = query({
       .first();
     if (!user) return { ok: false, error: "Invalid token" };
 
-    const DAILY_LIMIT = 15;
-    const todayUtcStart = new Date();
-    todayUtcStart.setUTCHours(0, 0, 0, 0);
-    const todayStart = todayUtcStart.getTime();
-    const resetAt = user.cliSearchesResetAt ?? 0;
-    const searchesUsed = resetAt < todayStart ? 0 : (user.cliSearchesUsed ?? 0);
-
+    const searchesUsed = cliSearchesToday(user, utcDayStart());
     return {
       ok: true,
       name: user.name ?? "User",
       searchesUsed,
-      searchesRemaining: Math.max(0, DAILY_LIMIT - searchesUsed),
+      searchesRemaining: Math.max(0, CLI_DAILY_LIMIT - searchesUsed),
     };
   },
 });
@@ -309,28 +317,22 @@ export const validateCliSearch = mutation({
 
     if (!user) return { ok: false, error: "Invalid token" };
 
-    const DAILY_LIMIT = 15;
-    const now = Date.now();
-    const todayUtcStart = new Date();
-    todayUtcStart.setUTCHours(0, 0, 0, 0);
-    const todayStart = todayUtcStart.getTime();
+    const todayStart = utcDayStart();
+    const searchesUsed = cliSearchesToday(user, todayStart);
 
-    const resetAt = user.cliSearchesResetAt ?? 0;
-    const searchesUsed = resetAt < todayStart ? 0 : (user.cliSearchesUsed ?? 0);
-
-    if (searchesUsed >= DAILY_LIMIT) {
-      return { ok: false, error: "Daily limit reached", searchesUsed: DAILY_LIMIT, searchesRemaining: 0 };
+    if (searchesUsed >= CLI_DAILY_LIMIT) {
+      return { ok: false, error: "Daily limit reached", searchesUsed: CLI_DAILY_LIMIT, searchesRemaining: 0 };
     }
 
     await ctx.db.patch(user._id, {
       cliSearchesUsed: searchesUsed + 1,
-      cliSearchesResetAt: resetAt < todayStart ? now : resetAt,
+      cliSearchesResetAt: (user.cliSearchesResetAt ?? 0) < todayStart ? Date.now() : user.cliSearchesResetAt,
     });
 
     return {
       ok: true,
       searchesUsed: searchesUsed + 1,
-      searchesRemaining: DAILY_LIMIT - searchesUsed - 1,
+      searchesRemaining: CLI_DAILY_LIMIT - searchesUsed - 1,
       name: user.name ?? "User",
     };
   },

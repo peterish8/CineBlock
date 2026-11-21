@@ -12,6 +12,7 @@ import Image from "next/image";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { getThemeDisplayName } from "@/lib/themeConfig";
 import IntegrationAccessModal from "@/components/IntegrationAccessModal";
+import TerminalAccessCard from "@/components/TerminalAccessCard";
 
 type ImportDataPreview = {
   watched?: unknown[];
@@ -763,8 +764,7 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* MCP is the only integration exposed in Profile. The future CLI package
-            keeps its backend route, but its token UI remains intentionally hidden. */}
+        {/* Two separate credentials: mcp_ for ChatGPT/Claude, cb_ for CineBlock Terminal. */}
         <button
           type="button"
           onClick={() => setShowIntegrationAccess(true)}
@@ -805,6 +805,12 @@ export default function ProfilePage() {
           onToggleMcpToken={() => setMcpTokenVisible((value) => !value)}
           onCopyMcpToken={copyMcpToken}
           onGenerateMcpToken={() => void handleGenerateMcpToken()}
+        />
+
+        <TerminalAccessCard
+          cliToken={user?.cliToken}
+          cliSearchesUsed={user?.cliSearchesUsed}
+          cliSearchesResetAt={user?.cliSearchesResetAt}
         />
 
         {/* ── Data & Privacy ────────────────────────────────── */}

@@ -23,7 +23,7 @@ A premium visual style using dark semi-transparent surfaces, backdrop-blur, anim
 - Permanently enabled for every user; `useThemeMode()` keeps shared components on the Glass visual system
 - Animated depth orbs (`globals.css`) pulse slowly behind all content in glass mode
 - Glass-aware components: `PosterCard`, `MovieModal`, `MobileBottomNav`, `CommandHub`, `TrendingHero`, `ToastProvider`, `MovieActionRail`, `UserListButtons`, `SkeletonCard`, `RadarSkeleton`
-- **Profile page** — identity, stats, lists, data privacy, and the MCP access panel use glass surfaces; stamps live on the dedicated `/stamps` page
+- **Profile page** — identity, stats, lists, data privacy, the MCP access panel and the CineBlock Terminal card use glass surfaces; stamps live on the dedicated `/stamps` page
 - **Watch Blocks page** — `CreateBlockModal`, `JoinBlockModal`, room cards, invite panel, and empty state all switch to glass-dark cards with violet/green/cyan accents
 - Legacy brutalist classes remain only for compatibility and are not exposed as a user-selectable theme
 
@@ -57,28 +57,22 @@ Smart, persistent recommendation cards built from your watched + liked history:
 - API cost: 1–2 TMDB discover calls per "new movies added" event
 
 ### Offline JSON Import / Export
-Back up and restore your entire collection locally.
+Back up and restore your collection from **Profile → Data & Privacy**. Export downloads a JSON file of your chosen lists, CineBlocks and stamps (`convex/dataExport.ts`); import merges a backup into your account.
 
-**Python CLI (`cineblock-cli.py`)** — zero dependencies (stdlib only):
+### CineBlock Terminal (`cineblock` on npm)
+Find movies from a terminal. The CLI lives in its own repository and is published to npm as [`cineblock`](https://www.npmjs.com/package/cineblock).
+
 ```bash
-# Save token once
-CINEBLOCK_TOKEN=cb_... python cineblock-cli.py
-
-# Search movies from your terminal
-python cineblock-cli.py   # interactive menu
+npm install -g cineblock
+cineblock login      # paste the cb_ token from Profile
+cineblock            # interactive menu
+cineblock guided --signal "time loop" --era 2010s --json
 ```
 
-**API endpoint:** `POST /api/cli`
-- Validates Bearer token, parses JSON body, and runs the appropriate Convex mutations
-- Supports export (dumps Liked / Watchlist / Watched / CineBlocks) and import (restores a backup)
-
-### CLI Token Authentication
-Secure the CLI without exposing your password.
-
-- **Schema fields:** `cliToken`, `cliSearchesUsed`, `cliSearchesResetAt` (convex/schema.ts)
-- **Rate limit:** 15 CLI requests per day, enforced in `/api/cli`
-- **User flow:** The CLI token UI is intentionally hidden until the npm package is live; keep the terminal route/package contract separate from the MCP controls shown in Profile.
-- Token is stored locally in `~/.cineblock_token` for subsequent runs
+- **Token:** Profile → CineBlock Terminal creates, shows, copies and replaces the `cb_` token. Replacing it revokes the old one immediately and keeps today's search count.
+- **Quota:** 15 searches per day, reset at midnight UTC (`convex/users.ts`). Rerolls and list reads are free.
+- **Routes:** `GET /api/cli` checks the token and reads the quota, `POST /api/cli` spends one search, and `GET /api/cli/library?list=watchlist|liked|watched` reads a list. All take `Authorization: Bearer cb_...`.
+- **Schema fields:** `cliToken`, `cliSearchesUsed`, `cliSearchesResetAt` (`convex/schema.ts`)
 
 The `cb_...` credential is terminal-only. It is not accepted by `/api/mcp` and is not the credential used by ChatGPT. ChatGPT/custom MCP clients use a separate `mcp_...` token (or OAuth) to read your library, show watched titles that do not yet have stamps, preview exact movie identities, create public/private CineBlocks, and save personal Markdown stamps. The stamp flow uses a compact in-chat card with three optional feeling prompts, selectable answers, and an own-words field for every prompt before showing the exact poster, title, visibility, and Markdown for approval. CineBlock Terminal offers AI natural-language search with the user’s own Gemini/Groq/OpenRouter key, plus a Guided no-AI mode that asks story signal, language, and release-era questions and returns five server-ranked results.
 
@@ -126,7 +120,7 @@ The franchise catalog lives in Convex (`franchises` and `franchise_snapshots` ta
 | `/watched` | Watched log (filter + multi-select) |
 | `/blocks` | Watch Blocks lobby |
 | `/blocks/[roomId]` | Shared room |
-| `/profile` | User profile, stats, MCP access |
+| `/profile` | User profile, stats, MCP access, CineBlock Terminal token |
 | `/stamps` | Personal stamped films and drafts |
 | `/radar` | Upcoming releases radar |
 | `/collections` | Franchise Vault: every saga and how much of it you have watched |
@@ -149,7 +143,7 @@ The franchise catalog lives in Convex (`franchises` and `franchise_snapshots` ta
 | Backend / DB | Convex (schema in `convex/schema.ts`) |
 | Auth | `@convex-dev/auth` + `@auth/core` |
 | Data | TMDB API |
-| CLI | Python 3 (`cineblock-cli.py`, stdlib only) |
+| CLI | CineBlock Terminal, Node.js (`cineblock` on npm) |
 | Analytics | Vercel Analytics |
 
 ---
@@ -202,16 +196,6 @@ For a production deployment, configure these Vercel variables without committing
 - `CONVEX_DEPLOY_KEY`: the production-only Convex deploy credential used by the Vercel build
 
 The Vercel build runs `npx convex deploy` before `next build` for Production, so `CONVEX_DEPLOY_KEY` decides which Convex deployment receives the backend. Environment changes apply only to new deployments, so redeploy after changing them. Production advertises dynamic client registration at `https://cineblock.vercel.app/api/oauth/register/v3` so machine clients do not cross the public-site CDN; the original registration routes remain available for existing clients. Reconnect an MCP client after OAuth metadata or tool schema changes.
-
-### CLI Usage
-
-```bash
-# Set your token (get it from /profile)
-export CINEBLOCK_TOKEN=cb_your_token_here
-
-# Run the interactive CLI
-python cineblock-cli.py
-```
 
 ---
 
