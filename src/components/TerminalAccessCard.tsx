@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "convex/react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check, Copy, Eye, EyeOff, RefreshCw, TerminalSquare } from "lucide-react";
 import { api } from "../../convex/_generated/api";
 
@@ -24,7 +25,54 @@ function searchesUsedToday(used = 0, resetAt = 0) {
 const surface = { background: "rgba(255,255,255,0.045)", border: "1px solid rgba(255,255,255,0.10)" };
 const well = { background: "rgba(1,5,18,0.78)", border: "1px solid rgba(148,163,184,0.16)" };
 const accentButton = { background: "rgba(249,115,22,0.14)", border: "1px solid rgba(249,115,22,0.38)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" };
+const copiedButton = { background: "rgba(52,211,153,0.16)", border: "1px solid rgba(52,211,153,0.45)", boxShadow: "0 0 14px rgba(52,211,153,0.18)" };
 const chip = "inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full px-2.5 text-[10px] font-display font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 disabled:opacity-50";
+
+/** Clipboard API first; the textarea fallback covers embedded browsers that block it. */
+async function writeClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    const copied = document.execCommand("copy");
+    area.remove();
+    if (!copied) throw new Error("Copy blocked");
+  }
+}
+
+function CopyButton({ copied, onClick, label, style }: { copied: boolean; onClick: () => void; label: string; style: React.CSSProperties }) {
+  const reduceMotion = useReducedMotion();
+  const icon = reduceMotion
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : { initial: { opacity: 0, scale: 0.4, rotate: -30 }, animate: { opacity: 1, scale: 1, rotate: 0 }, exit: { opacity: 0, scale: 0.4 } };
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      aria-label={copied ? `${label}: copied` : label}
+      whileTap={reduceMotion ? undefined : { scale: 0.92 }}
+      className={`${chip} min-w-[76px] justify-center duration-300 ${copied ? "text-emerald-200" : ""}`}
+      style={copied ? copiedButton : style}
+    >
+      <span className="relative h-3 w-3" aria-hidden>
+        <AnimatePresence initial={false}>
+          <motion.span key={copied ? "check" : "copy"} className="absolute inset-0" transition={{ type: "spring", duration: 0.35, bounce: 0.35 }} {...icon}>
+            {copied ? <Check className="h-3 w-3" strokeWidth={3} /> : <Copy className="h-3 w-3" />}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+      {copied ? "Copied" : "Copy"}
+    </motion.button>
+  );
+}
 
 export default function TerminalAccessCard({ cliToken, cliSearchesUsed, cliSearchesResetAt }: TerminalAccessCardProps) {
   const generateCliToken = useMutation(api.users.generateCliToken);
@@ -36,14 +84,25 @@ export default function TerminalAccessCard({ cliToken, cliSearchesUsed, cliSearc
 
   const remaining = Math.max(0, DAILY_SEARCHES - searchesUsedToday(cliSearchesUsed, cliSearchesResetAt));
 
+  const resetTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const installRef = useRef<HTMLElement>(null);
+  const tokenRef = useRef<HTMLSpanElement>(null);
+
   const copy = async (text: string, what: "token" | "install") => {
     setError("");
     try {
-      await navigator.clipboard.writeText(text);
+      await writeClipboard(text);
       setCopied(what);
-      setTimeout(() => setCopied(null), 2000);
+      clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => setCopied(null), 1800);
     } catch {
-      setError("Couldn't copy. Select the text and copy it by hand.");
+      // Clipboard blocked (some embedded browsers): show and select the text so Ctrl+C works.
+      if (what === "token") setVisible(true);
+      requestAnimationFrame(() => {
+        const el = (what === "token" ? tokenRef : installRef).current;
+        if (el) window.getSelection()?.selectAllChildren(el);
+      });
+      setError("This browser blocked copying. The text is selected: press Ctrl+C (⌘C on Mac).");
     }
   };
 
@@ -94,28 +153,22 @@ export default function TerminalAccessCard({ cliToken, cliSearchesUsed, cliSearc
 
       <div className="flex items-center gap-2 rounded-xl p-3 font-mono text-xs" style={well}>
         <span className="text-slate-500" aria-hidden>$</span>
-        <code className="min-w-0 flex-1 truncate text-slate-200">{INSTALL_COMMAND}</code>
-        <button type="button" onClick={() => void copy(INSTALL_COMMAND, "install")} className={`${chip} text-slate-200`} style={surface} aria-label="Copy install command">
-          {copied === "install" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          {copied === "install" ? "Copied" : "Copy"}
-        </button>
+        <code ref={installRef} className="min-w-0 flex-1 truncate text-slate-200">{INSTALL_COMMAND}</code>
+        <CopyButton copied={copied === "install"} onClick={() => void copy(INSTALL_COMMAND, "install")} label="Copy install command" style={{ ...surface, color: "#E2E8F0" }} />
       </div>
 
       {cliToken ? (
         <div className="space-y-2">
           <p className="text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-slate-400">Your CLI token · paste it into <code className="normal-case text-slate-300">cineblock login</code></p>
           <div className="flex items-center gap-2 rounded-xl p-3 font-mono text-xs" style={well}>
-            <span className={`min-w-0 flex-1 truncate text-slate-200 ${visible ? "select-all" : "select-none"}`} aria-live="polite">
+            <span ref={tokenRef} className={`min-w-0 flex-1 truncate text-slate-200 ${visible ? "select-all" : "select-none"}`} aria-live="polite">
               {visible ? cliToken : `cb_${"•".repeat(16)}${cliToken.slice(-4)}`}
             </span>
             <button type="button" onClick={() => setVisible((v) => !v)} className={`${chip} text-slate-300`} style={surface} aria-label={visible ? "Hide CLI token" : "Show CLI token"}>
               {visible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
               {visible ? "Hide" : "Show"}
             </button>
-            <button type="button" onClick={() => void copy(cliToken, "token")} className={`${chip} text-orange-200`} style={accentButton} aria-label="Copy CLI token">
-              {copied === "token" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied === "token" ? "Copied" : "Copy"}
-            </button>
+            <CopyButton copied={copied === "token"} onClick={() => void copy(cliToken, "token")} label="Copy CLI token" style={{ ...accentButton, color: "#FED7AA" }} />
           </div>
 
           {confirmReplace ? (
