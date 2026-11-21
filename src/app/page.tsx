@@ -19,6 +19,7 @@ import { usePersonalizedRecs } from "@/hooks/usePersonalizedRecs";
 import { useThemeMode } from "@/hooks/useThemeMode";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
+import Attribution from "@/components/Attribution";
 
 const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
 
@@ -294,6 +295,8 @@ function HomeContent() {
         )}
       </div>
 
+
+      <Attribution />
 
       {/* Modals */}
       <AnimatePresence mode="wait">

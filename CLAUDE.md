@@ -80,7 +80,7 @@ Recognized configuration includes:
 
 Convex lives in its own project with separate dev and prod deployments. `node scripts/sync-convex-env.mjs` copies backend secrets from `.env.local` onto the linked dev deployment (`--prod` for production) without printing them. Google sign-in returns to `https://<deployment>.convex.site/api/auth/callback/google`, so each deployment's callback must be an authorised redirect URI on the Google OAuth client; check this whenever a deployment changes. Trim copied secrets: a stray newline in a client ID breaks Google sign-in with "OAuth client was not found".
 
-Credential boundaries are strict: `cb_...` is the CineBlock Terminal CLI token for movie search and its daily quota, while `mcp_...` is the separate ChatGPT/MCP credential for library access, playlist actions, and stamps. The website must explain this distinction and never suggest swapping the two credentials.
+Credential boundaries are strict: `cb_...` is the CineBlock Terminal CLI token for movie search and its daily quota, while `mcp_...` is the separate ChatGPT/MCP credential for library access, playlist actions, and stamps. The website must explain this distinction and never suggest swapping the two credentials. Profile holds both: the MCP access panel (`IntegrationAccessModal`) and the CineBlock Terminal card (`TerminalAccessCard`). The CLI itself is the separate `cineblock` npm package.
 
 The Git-connected Vercel project uses Preview for non-production branches and Production for the production branch. Environment changes apply only to new deployments, so redeploy after changing them. The Vercel CLI is optional for Git deployments; if CLI operations are needed, run `npx vercel env pull`, `npx vercel deploy`, or `npx vercel logs` deliberately.
 

@@ -68,7 +68,18 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    return [{ source: "/favicon.ico", destination: "/brand/cineblock-favicon.png" }];
+    const rules = [{ source: "/favicon.ico", destination: "/brand/cineblock-favicon.png" }];
+    // Google sign-in runs through our own domain so the consent screen can show
+    // "CineBlock": these two Convex Auth HTTP routes are forwarded to Convex.
+    // Convex builds the URLs from CUSTOM_AUTH_SITE_URL (set on each deployment).
+    const convexSite = process.env.NEXT_PUBLIC_CONVEX_SITE_URL?.trim().replace(/\/+$/, "");
+    if (convexSite) {
+      rules.push(
+        { source: "/api/auth/signin/:path*", destination: `${convexSite}/api/auth/signin/:path*` },
+        { source: "/api/auth/callback/:path*", destination: `${convexSite}/api/auth/callback/:path*` },
+      );
+    }
+    return rules;
   },
 };
 
