@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn, Flame, ChevronLeft } from "lucide-react";
+import ErrorState from "@/components/ErrorState";
 import { useCineSwipeEngine } from "@/hooks/useCineSwipeEngine";
 import SwipeCard from "./SwipeCard";
 import SwipeTutorial from "./SwipeTutorial";
@@ -151,26 +152,13 @@ function AuthenticatedSwipeDeck() {
   if (!engine.currentMovie) {
     if (engine.fetchError) {
       return (
-        <div
-          className="flex min-h-[80vh] flex-col items-center justify-center gap-4 px-4 text-center"
-          style={isGlass ? { background: "#020817" } : undefined}
-        >
-          <BackButton isGlass={isGlass} />
-          <Flame className={`h-12 w-12 ${isGlass ? "text-orange-400" : "text-brutal-red"}`} strokeWidth={1.5} />
-          <p className={`text-sm uppercase tracking-widest ${isGlass ? "text-slate-300" : "font-mono text-brutal-white"}`}>
-            Couldn&apos;t load more movies.
-            <br />
-            Check your connection and try again.
-          </p>
-          <button
-            onClick={engine.retryFillDeck}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold uppercase tracking-widest transition-colors ${
-              isGlass ? "rounded-xl" : "brutal-btn border-2 border-brutal-pink bg-brutal-pink text-black font-mono hover:bg-white hover:text-brutal-pink"
-            }`}
-            style={isGlass ? { background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.45)", color: "#FDBA74" } : undefined}
-          >
-            Retry
-          </button>
+        <div className="flex min-h-[80vh] flex-col items-center justify-center gap-4 px-4 text-center" style={{ background: "#020817" }}>
+          <BackButton isGlass />
+          <ErrorState
+            title="The projector jammed"
+            message="We couldn't load more movies. Check your connection and try again."
+            onRetry={engine.retryFillDeck}
+          />
         </div>
       );
     }
@@ -275,7 +263,7 @@ function AuthenticatedSwipeDeck() {
           { label: "SKIP",      brutalColor: "text-brutal-dim",    glassColor: "text-slate-500",   key: "←" },
           { label: "WATCHED",   brutalColor: "text-brutal-cyan",   glassColor: "text-cyan-400",    key: "↓" },
           { label: "WATCHLIST", brutalColor: "text-brutal-lime",   glassColor: "text-emerald-400", key: "→" },
-          { label: "BLOCK",     brutalColor: "text-brutal-violet", glassColor: "text-violet-400",  key: "↑" },
+          { label: "BLOCK",     brutalColor: "text-brutal-violet", glassColor: "text-blue-400",    key: "↑" },
           { label: "FAVOURITE", brutalColor: "text-brutal-red",    glassColor: "text-orange-400",    key: "Space", deskOnly: true },
         ].map((hint) => (
           <div key={hint.label} className={`flex flex-col items-center gap-0.5 lg:gap-2 py-1 ${hint.deskOnly ? "hidden lg:flex" : "flex"}`}>

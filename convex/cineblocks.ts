@@ -2,11 +2,8 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
+import { MAX_BLOCKS_PER_USER, MAX_MOVIES_PER_BLOCK, MAX_BLOCK_TITLE_LENGTH, MAX_BLOCK_DESCRIPTION_LENGTH } from "./limits";
 
-export const MAX_BLOCKS_PER_USER = 15;
-export const MAX_MOVIES_PER_BLOCK = 35;
-export const MAX_BLOCK_TITLE_LENGTH = 60;
-export const MAX_BLOCK_DESCRIPTION_LENGTH = 280;
 const CREATE_BLOCK_MIN_INTERVAL_MS = 4000;
 const ADD_MOVIE_MIN_INTERVAL_MS = 500;
 const TOGGLE_SAVE_MIN_INTERVAL_MS = 500;

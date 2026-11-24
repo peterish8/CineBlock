@@ -3,10 +3,11 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, AlertCircle, Film, Radar } from "lucide-react";
+import { ChevronRight, Film, Radar } from "lucide-react";
 import { useRadar } from "@/hooks/useRadar";
 import { posterUrl } from "@/lib/constants";
 import RadarSkeleton from "./RadarSkeleton";
+import ErrorState from "./ErrorState";
 import { RadarMovie } from "@/lib/types";
 import { useFranchiseBadges } from "@/hooks/useFranchiseBadges";
 import FranchiseRibbon from "@/components/FranchiseRibbon";
@@ -36,18 +37,13 @@ export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
 
   if (error) {
     return (
-      <section className="py-8 px-4 border-b-4 border-brutal-border bg-bg/50">
-        <div className="max-w-md mx-auto border-4 border-brutal-red bg-surface p-6 brutal-shadow text-center">
-          <AlertCircle className="w-10 h-10 text-brutal-red mx-auto mb-3" />
-          <h3 className="font-display font-black uppercase text-lg mb-2 text-text">RADAR OFFLINE</h3>
-          <p className="font-mono text-xs text-brutal-dim mb-4 tracking-tight">UPSTREAM FAILED — TRY AGAIN LATER</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="brutal-btn px-4 py-2 bg-brutal-red text-black font-bold text-xs uppercase"
-          >
-            RELOAD RADAR
-          </button>
-        </div>
+      <section className="px-4 py-8">
+        <ErrorState
+          icon={Radar}
+          title="Release Radar went quiet"
+          message="We couldn't load upcoming releases. Check your connection and try again."
+          onRetry={() => window.location.reload()}
+        />
       </section>
     );
   }
@@ -56,13 +52,8 @@ export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
 
   if (displayMovies.length === 0) {
     return (
-      <section className="py-8 px-4 border-b-4 border-brutal-border bg-bg/50">
-        <div className="border-4 border-brutal-yellow bg-surface p-8 brutal-shadow text-center max-w-2xl mx-auto">
-          <h3 className="font-display font-black uppercase text-xl mb-3 text-text">NO RADAR DATA</h3>
-          <p className="font-mono text-sm text-brutal-dim tracking-tight">
-            EXPLORE AND LIKE MORE FILMS TO SEE CUSTOM RELEASES HERE
-          </p>
-        </div>
+      <section className="px-4 py-8">
+        <ErrorState icon={Radar} title="Nothing on the radar yet" message="Like a few films and upcoming releases you'd enjoy will show up here." />
       </section>
     );
   }

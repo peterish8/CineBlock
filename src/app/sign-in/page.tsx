@@ -182,7 +182,7 @@ function SignInContent() {
                   {[
                     isOAuthConnection ? "One sign-in links your existing CineBlock account" : "Your collections stay synced across CineBlock",
                     "You approve writes before anything is saved",
-                    "OAuth tokens are short-lived and protected with PKCE",
+                    "You can disconnect ChatGPT from your profile at any time",
                   ].map((item) => (
                     <div key={item} className="flex items-start gap-2.5 text-xs leading-5 text-slate-400">
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-200/80" strokeWidth={2.5} />

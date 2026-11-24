@@ -51,7 +51,7 @@ const gestures = [
     label: "CINEBLOCK",
     desc: "Swipe up",
     key: "↑",
-    glassColor: "text-violet-400",
+    glassColor: "text-blue-400",
     glassBorder: "rgba(139,92,246,0.45)",
     glassGlow: "rgba(139,92,246,0.12)",
     brutalColor: "text-brutal-violet",

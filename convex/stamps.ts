@@ -2,15 +2,12 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
-
-export const STAMP_REVIEW_MAX = 1000;
-export const STAMP_TITLE_MAX = 200;
-export const STAMP_POSTER_PATH_MAX = 2048;
+import { MAX_POSTER_PATH_LENGTH, MAX_TITLE_LENGTH, STAMP_REVIEW_MAX } from "./limits";
 
 function validateStampIdentity(movieId: number, movieTitle: string, posterPath: string) {
   if (!Number.isSafeInteger(movieId) || movieId <= 0) throw new ConvexError("Invalid movie ID");
-  if (!movieTitle.trim() || movieTitle.trim().length > STAMP_TITLE_MAX) throw new ConvexError("Movie title must be between 1 and 200 characters");
-  if (posterPath.length > STAMP_POSTER_PATH_MAX) throw new ConvexError("Poster path is too long");
+  if (!movieTitle.trim() || movieTitle.trim().length > MAX_TITLE_LENGTH) throw new ConvexError("Movie title must be between 1 and 200 characters");
+  if (posterPath.length > MAX_POSTER_PATH_LENGTH) throw new ConvexError("Poster path is too long");
 }
 
 // Publish a stamp. If a draft exists for this movie, it becomes the published stamp.

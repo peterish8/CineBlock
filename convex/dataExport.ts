@@ -1,8 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { MAX_BLOCKS_PER_USER, MAX_MOVIES_PER_BLOCK, MAX_BLOCK_TITLE_LENGTH, MAX_BLOCK_DESCRIPTION_LENGTH } from "./cineblocks";
-import { STAMP_REVIEW_MAX, STAMP_TITLE_MAX, STAMP_POSTER_PATH_MAX } from "./stamps";
+import { MAX_BLOCKS_PER_USER, MAX_MOVIES_PER_BLOCK, MAX_BLOCK_TITLE_LENGTH, MAX_BLOCK_DESCRIPTION_LENGTH, STAMP_REVIEW_MAX, normalizeTitleIdentity } from "./limits";
 
 // Export Query
 export const exportUserData = query({
@@ -53,9 +52,7 @@ export const exportUserData = query({
   },
 });
 
-// Shapes mirror exportUserData's output above (and the normal create mutations'
-// per-field limits in cineblocks.ts / stamps.ts). v.any() previously let an import
-// bypass every per-user limit the app's own create flows enforce.
+// Mirrors exportUserData above, so a CineBlock backup always round-trips.
 const libraryItemValidator = v.object({
   movieId: v.number(),
   movieTitle: v.string(),
@@ -104,14 +101,6 @@ const importPayloadValidator = v.object({
   blocks: v.optional(v.array(blockItemValidator)),
 });
 
-function isValidLibraryMovie(item: { movieId: number; movieTitle: string; posterPath?: string }) {
-  if (!Number.isSafeInteger(item.movieId) || item.movieId <= 0) return false;
-  const title = item.movieTitle.trim();
-  if (!title || title.length > STAMP_TITLE_MAX) return false;
-  if ((item.posterPath ?? "").length > STAMP_POSTER_PATH_MAX) return false;
-  return true;
-}
-
 // Import Mutation
 export const importUserData = mutation({
   args: {
@@ -132,127 +121,91 @@ export const importUserData = mutation({
     };
 
     // 1. Watched Movies
-    if (Array.isArray(p.watched)) {
-      for (const item of p.watched) {
-        if (!isValidLibraryMovie(item)) continue;
-        const existing = await ctx.db.query("watched")
-          .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", item.movieId))
-          .first();
-        if (!existing) {
-          await ctx.db.insert("watched", {
-            userId: internalId,
-            movieId: item.movieId,
-            movieTitle: item.movieTitle.trim(),
-            posterPath: item.posterPath || "",
-            genreIds: item.genreIds,
-            watchedAt: typeof item.watchedAt === "number" ? item.watchedAt : Date.now(),
-          });
-          stats.watchedAdded++;
-        }
+    for (const item of p.watched ?? []) {
+      const movie = normalizeTitleIdentity(item);
+      if (!movie) continue;
+      const existing = await ctx.db.query("watched")
+        .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", movie.movieId))
+        .first();
+      if (!existing) {
+        await ctx.db.insert("watched", { userId: internalId, ...movie, genreIds: item.genreIds, watchedAt: item.watchedAt ?? Date.now() });
+        stats.watchedAdded++;
       }
     }
 
     // 2. Liked Movies
-    if (Array.isArray(p.liked)) {
-      for (const item of p.liked) {
-        if (!isValidLibraryMovie(item)) continue;
-        const existing = await ctx.db.query("liked")
-          .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", item.movieId))
-          .first();
-        if (!existing) {
-          await ctx.db.insert("liked", {
-            userId: internalId,
-            movieId: item.movieId,
-            movieTitle: item.movieTitle.trim(),
-            posterPath: item.posterPath || "",
-            genreIds: item.genreIds,
-            likedAt: typeof item.likedAt === "number" ? item.likedAt : Date.now(),
-          });
-          stats.likedAdded++;
-        }
+    for (const item of p.liked ?? []) {
+      const movie = normalizeTitleIdentity(item);
+      if (!movie) continue;
+      const existing = await ctx.db.query("liked")
+        .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", movie.movieId))
+        .first();
+      if (!existing) {
+        await ctx.db.insert("liked", { userId: internalId, ...movie, genreIds: item.genreIds, likedAt: item.likedAt ?? Date.now() });
+        stats.likedAdded++;
       }
     }
 
     // 3. Watchlist
-    if (Array.isArray(p.watchlist)) {
-      for (const item of p.watchlist) {
-        if (!isValidLibraryMovie(item)) continue;
-        const existing = await ctx.db.query("watchlist")
-          .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", item.movieId))
-          .first();
-        if (!existing) {
-          await ctx.db.insert("watchlist", {
-            userId: internalId,
-            movieId: item.movieId,
-            movieTitle: item.movieTitle.trim(),
-            posterPath: item.posterPath || "",
-            genreIds: item.genreIds,
-            addedAt: typeof item.addedAt === "number" ? item.addedAt : Date.now(),
-          });
-          stats.watchlistAdded++;
-        }
+    for (const item of p.watchlist ?? []) {
+      const movie = normalizeTitleIdentity(item);
+      if (!movie) continue;
+      const existing = await ctx.db.query("watchlist")
+        .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", movie.movieId))
+        .first();
+      if (!existing) {
+        await ctx.db.insert("watchlist", { userId: internalId, ...movie, genreIds: item.genreIds, addedAt: item.addedAt ?? Date.now() });
+        stats.watchlistAdded++;
       }
     }
 
-    // 4. Stamps — same STAMP_REVIEW_MAX / title / poster-path limits as stamps.ts's createStamp.
-    if (Array.isArray(p.stamps)) {
-      for (const item of p.stamps) {
-        if (!isValidLibraryMovie(item)) continue;
-        const reviewText = item.reviewText.trim();
-        if (!reviewText || reviewText.length > STAMP_REVIEW_MAX) continue;
-        const existing = await ctx.db.query("stamps")
-          .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", item.movieId))
-          .first();
-        if (!existing) {
-          await ctx.db.insert("stamps", {
-            userId: internalId,
-            movieId: item.movieId,
-            movieTitle: item.movieTitle.trim(),
-            posterPath: item.posterPath || "",
-            reviewText,
-            isPublic: !!item.isPublic,
-            isDraft: !!item.isDraft,
-            createdAt: typeof item.createdAt === "number" ? item.createdAt : Date.now(),
-          });
-          stats.stampsAdded++;
-        }
-      }
-    }
-
-    // 5. Blocks (Playlists) — same MAX_BLOCKS_PER_USER / title / description /
-    // MAX_MOVIES_PER_BLOCK limits as cineblocks.ts's createBlock.
-    if (Array.isArray(p.blocks)) {
-      let blockCount = (await ctx.db.query("blocks").withIndex("by_userId", q => q.eq("userId", internalId)).collect()).length;
-      for (const item of p.blocks) {
-        if (blockCount >= MAX_BLOCKS_PER_USER) break;
-        const title = item.title.trim();
-        if (!title || title.length > MAX_BLOCK_TITLE_LENGTH) continue;
-        const description = item.description?.trim();
-        if (description && description.length > MAX_BLOCK_DESCRIPTION_LENGTH) continue;
-
-        const movies = (Array.isArray(item.movies) ? item.movies : [])
-          .filter(isValidLibraryMovie)
-          .slice(0, MAX_MOVIES_PER_BLOCK)
-          .map((movie) => ({
-            movieId: movie.movieId,
-            movieTitle: movie.movieTitle.trim(),
-            posterPath: movie.posterPath || "",
-            addedAt: typeof movie.addedAt === "number" ? movie.addedAt : Date.now(),
-          }));
-
-        await ctx.db.insert("blocks", {
+    // 4. Stamps
+    for (const item of p.stamps ?? []) {
+      const movie = normalizeTitleIdentity(item);
+      const reviewText = item.reviewText.trim();
+      if (!movie || !reviewText || reviewText.length > STAMP_REVIEW_MAX) continue;
+      const existing = await ctx.db.query("stamps")
+        .withIndex("by_userId_movieId", q => q.eq("userId", internalId).eq("movieId", movie.movieId))
+        .first();
+      if (!existing) {
+        await ctx.db.insert("stamps", {
           userId: internalId,
-          title,
-          description: description || undefined,
+          ...movie,
+          reviewText,
           isPublic: !!item.isPublic,
-          movieCount: movies.length,
-          movies,
-          createdAt: typeof item.createdAt === "number" ? item.createdAt : Date.now(),
-          updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : Date.now(),
+          isDraft: !!item.isDraft,
+          createdAt: item.createdAt ?? Date.now(),
         });
-        blockCount++;
-        stats.blocksAdded++;
+        stats.stampsAdded++;
       }
+    }
+
+    // 5. Blocks (Playlists)
+    let blockCount = (await ctx.db.query("blocks").withIndex("by_userId", q => q.eq("userId", internalId)).collect()).length;
+    for (const item of p.blocks ?? []) {
+      if (blockCount >= MAX_BLOCKS_PER_USER) break;
+      const title = item.title.trim();
+      const description = item.description?.trim() || undefined;
+      if (!title || title.length > MAX_BLOCK_TITLE_LENGTH) continue;
+      if (description && description.length > MAX_BLOCK_DESCRIPTION_LENGTH) continue;
+
+      const movies = (item.movies ?? []).flatMap((entry) => {
+        const movie = normalizeTitleIdentity(entry);
+        return movie ? [{ ...movie, addedAt: entry.addedAt ?? Date.now() }] : [];
+      }).slice(0, MAX_MOVIES_PER_BLOCK);
+
+      await ctx.db.insert("blocks", {
+        userId: internalId,
+        title,
+        description,
+        isPublic: !!item.isPublic,
+        movieCount: movies.length,
+        movies,
+        createdAt: item.createdAt ?? Date.now(),
+        updatedAt: item.updatedAt ?? Date.now(),
+      });
+      blockCount++;
+      stats.blocksAdded++;
     }
 
     // Update User Counts using standard query length for consistency

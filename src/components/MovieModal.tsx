@@ -433,6 +433,9 @@ export default function MovieModal({
                     <span className={`tabular-nums ${isGlass ? "text-xs font-semibold text-white tracking-wide" : "text-sm font-mono font-black text-brutal-yellow"}`}>{rating}</span>
                   </div>
                 )}
+                {movie.media_type === "tv" && (
+                  <span className="rounded-full border border-blue-300/30 bg-blue-400/15 px-2.5 py-1 text-xs font-semibold text-blue-100 backdrop-blur-xl">TV series</span>
+                )}
                 <div className={`flex items-center gap-2 px-2.5 py-1 ${isGlass ? "bg-white/10 backdrop-blur-xl border border-white/10 rounded-full" : "bg-black/60 border border-brutal-border backdrop-blur-sm"}`}>
                   <span className={isGlass ? "text-xs font-medium text-white/90" : "text-xs font-mono font-bold text-brutal-white"}>{year}</span>
                   {/* `runtime && …` rendered a literal 0 when TMDB has no runtime yet */}
@@ -469,11 +472,6 @@ export default function MovieModal({
               : "opacity 0.4s easeOut, transform 0.4s easeOut",
           }}>
             
-            {movie.media_type === "tv" && (
-              <div className="flex items-center gap-4 px-6 py-3 border-b-3 border-brutal-border bg-surface-2">
-                <div className="brutal-chip bg-brutal-cyan text-black px-2 py-0.5 text-[10px] uppercase font-black">TV SERIES</div>
-              </div>
-            )}
 
             {/* TWO-COLUMN GRID FOR LAPTOP VIEW */}
             <div className={isGlass ? "grid grid-cols-1 md:grid-cols-[1.2fr,1fr] border-b border-white/10 divide-y md:divide-y-0 md:divide-x divide-white/10" : "grid grid-cols-1 md:grid-cols-[1.2fr,1fr] border-b-3 border-brutal-border divide-y-3 md:divide-y-0 md:divide-x-3 divide-brutal-border"}>
@@ -481,7 +479,7 @@ export default function MovieModal({
               <div className="px-6 py-4 overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex flex-col gap-0.5">
-                    <h3 className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider uppercase" : "text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest"}>WHERE TO WATCH</h3>
+                    <h3 className="!text-sm font-medium text-slate-400">Where to watch</h3>
                     <div className={isGlass ? "flex sm:hidden gap-1.5 mt-1 bg-white/5 p-1 rounded-full items-center" : "flex sm:hidden gap-1.5 mt-1"}>
                       {(currentProviders?.flatrate?.length ?? 0) > 0 && (
                         <button onClick={() => setActiveCategory("flatrate")} className={isGlass ? `px-3 py-1 text-[10px] font-medium transition-all rounded-full ${activeCategory === 'flatrate' ? "bg-white/20 shadow-md text-white" : "text-white/50"}` : `text-[8px] font-mono font-black border px-1.5 py-0.5 rounded-full transition-all uppercase ${activeCategory === 'flatrate' ? "bg-brutal-lime text-black border-brutal-lime" : "text-brutal-lime border-brutal-lime/30"}`}>STREAM</button>
@@ -646,7 +644,7 @@ export default function MovieModal({
                 )}
                 {movie.overview && (
                   <div className="flex flex-col gap-1.5">
-                    <h3 className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-1 uppercase" : "text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest"}>SYNOPSIS</h3>
+                    <h3 className="mb-1 !text-sm font-medium text-slate-400">Synopsis</h3>
                     <p className={isGlass ? "text-white/80 text-[13px] leading-relaxed font-medium" : "text-brutal-white text-[12px] leading-relaxed opacity-90"}>{movie.overview}</p>
                   </div>
                 )}
@@ -679,7 +677,7 @@ export default function MovieModal({
                 )}
                 {movie.overview && (
                   <div className="flex flex-col gap-1.5">
-                    <h3 className={isGlass ? "text-[10px] font-sans font-medium text-slate-400 tracking-wider mb-1 uppercase" : "text-[9px] font-mono font-black text-brutal-dim uppercase tracking-widest"}>SYNOPSIS</h3>
+                    <h3 className="mb-1 !text-sm font-medium text-slate-400">Synopsis</h3>
                     <p className={isGlass ? "text-white/80 text-[13px] leading-relaxed font-medium" : "text-brutal-white text-[13px] leading-relaxed opacity-90"}>{movie.overview}</p>
                   </div>
                 )}

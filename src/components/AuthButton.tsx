@@ -1,60 +1,51 @@
 "use client";
 
 import { useConvexAuth, useQuery } from "convex/react";
-
 import { useState, useEffect, useRef } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { LogIn, User, Bookmark, ChevronDown } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { LogIn, User, Bookmark, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { api } from "../../convex/_generated/api";
-import { useThemeMode } from "@/hooks/useThemeMode";
+
+const SPRING = { type: "spring", stiffness: 380, damping: 32 } as const;
 
 export default function AuthButton() {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const theme = useThemeMode();
-  const isGlass = theme === "glass";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const transition = reduceMotion ? { duration: 0 } : SPRING;
 
-  const pendingInvites = useQuery(
-    api.blocks.getPendingInvitations,
-    isAuthenticated ? {} : "skip"
-  );
+  const pendingInvites = useQuery(api.blocks.getPendingInvitations, isAuthenticated ? {} : "skip");
   const inviteCount = pendingInvites?.length ?? 0;
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const onPointer = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
-  // Close on Escape
+  const [slowAuth, setSlowAuth] = useState(false);
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  const [showDebug, setShowDebug] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => { if (isLoading) setShowDebug(true); }, 4000);
+    const t = setTimeout(() => { if (isLoading) setSlowAuth(true); }, 4000);
     return () => clearTimeout(t);
   }, [isLoading]);
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
-        <div className="brutal-btn p-1.5 opacity-50">
-          <User className="w-4 h-4 animate-pulse" strokeWidth={2.5} />
-        </div>
-        {showDebug && (
-          <button onClick={() => window.location.reload()}
-            className="text-[9px] font-mono font-bold text-brutal-red underline decoration-2 underline-offset-2">
-            STUCK? RELOAD
+        <div className="h-10 w-20 animate-pulse rounded-xl bg-white/[0.06]" role="status" aria-label="Checking sign-in" />
+        {slowAuth && (
+          <button type="button" onClick={() => window.location.reload()} className="text-xs text-slate-400 underline-offset-4 hover:text-white hover:underline">
+            Reload
           </button>
         )}
       </div>
@@ -63,88 +54,75 @@ export default function AuthButton() {
 
   if (!isAuthenticated) {
     return (
-      <Link href="/sign-in"
-        className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest flex items-center gap-2 bg-surface border-brutal-border hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow">
-        <LogIn className="w-4 h-4" strokeWidth={2.5} />
-        <span className="hidden sm:inline-block">SIGN IN</span>
+      <Link
+        href="/sign-in"
+        className="flex min-h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm font-medium text-slate-200 transition-colors duration-150 hover:border-white/20 hover:text-white"
+      >
+        <LogIn className="h-4 w-4" strokeWidth={2} />
+        <span className="hidden sm:inline">Sign in</span>
       </Link>
     );
   }
 
-  const divider = (
-    <span className="w-px self-stretch" style={{ background: isGlass ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.15)" }} />
-  );
-
-  const itemClass = "flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono font-bold tracking-wider transition-colors duration-150 whitespace-nowrap text-white/70 hover:text-white";
+  const divider = <span aria-hidden="true" className="my-2 w-px bg-white/10" />;
+  const itemClass = "flex items-center gap-2 whitespace-nowrap px-3 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white";
 
   return (
     <div ref={ref} className="relative flex items-center">
-      {/* Expanding pill */}
+      {/* The menu opens sideways out of the account control; only the chevron flips. */}
       <motion.div
         layout
-        className="flex items-stretch overflow-hidden"
-        style={{
-          borderRadius: 10,
-          background: isGlass
-            ? "rgba(255,255,255,0.07)"
-            : "rgba(30,30,30,0.95)",
-          border: isGlass
-            ? "1px solid rgba(255,255,255,0.12)"
-            : "2px solid rgba(255,255,255,0.15)",
-        }}
-        transition={{ type: "spring", stiffness: 280, damping: 24 }}
+        transition={transition}
+        className="flex h-10 items-stretch overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]"
       >
-        {/* Expanded items — animate in from the right side leftward */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {open && (
             <motion.div
-              key="menu-items"
-              className="flex items-stretch"
+              key="account-items"
+              id="account-menu"
+              className="flex items-stretch overflow-hidden"
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "auto", opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 280, damping: 24 }}
-              style={{ overflow: "hidden" }}
+              transition={transition}
             >
               <Link href="/profile" onClick={() => setOpen(false)} className={itemClass}>
-                <User className="w-3.5 h-3.5" strokeWidth={2.5} />
-                PROFILE
+                <User className="h-4 w-4 text-slate-400" strokeWidth={2} />
+                Profile
+                {inviteCount > 0 && <span className="text-xs tabular-nums text-orange-300">{inviteCount} new</span>}
               </Link>
               {divider}
               <Link href="/watchlist" onClick={() => setOpen(false)} className={itemClass}>
-                <Bookmark className="w-3.5 h-3.5" strokeWidth={2.5} />
-                MY LISTS
+                <Bookmark className="h-4 w-4 text-slate-400" strokeWidth={2} />
+                My lists
               </Link>
               {divider}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Profile icon — always visible, links to profile */}
-        <Link href="/profile" className="flex items-center px-2.5 py-1.5 relative">
-          <User className="w-4 h-4 text-white/80" strokeWidth={2.5} />
+        <Link href="/profile" aria-label="Profile" className="relative flex items-center px-2.5 text-slate-200 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white">
+          <User className="h-4 w-4" strokeWidth={2} />
           {inviteCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-yellow-400 text-black text-[9px] font-black flex items-center justify-center">
+            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-orange-400 px-1 text-[10px] font-semibold tabular-nums text-[#020817]">
               {inviteCount > 9 ? "9+" : inviteCount}
             </span>
           )}
         </Link>
 
-        {/* Divider */}
         {divider}
 
-        {/* Chevron — toggles expand */}
         <button
+          type="button"
           onClick={() => setOpen((o) => !o)}
-          className="flex items-center px-2 py-1.5"
-          aria-label="Toggle profile menu"
+          aria-expanded={open}
+          aria-controls="account-menu"
+          aria-label={open ? "Hide account links" : "Show account links"}
+          className="flex items-center px-2 text-slate-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white"
         >
-          <motion.div
-            animate={{ rotate: open ? 180 : 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 22 }}
-          >
-            <ChevronDown className="w-3.5 h-3.5 text-white/60" strokeWidth={2.5} />
-          </motion.div>
+          <motion.span className="flex" animate={{ rotate: open ? 180 : 0 }} transition={transition}>
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+          </motion.span>
         </button>
       </motion.div>
     </div>

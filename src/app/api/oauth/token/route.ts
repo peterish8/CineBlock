@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
     const form = new URLSearchParams(body);
     const grantType = form.get("grant_type") ?? "";
     const clientId = form.get("client_id") ?? "";
-    const resource = form.get("resource") ?? "";
-    if (!clientId || !resource || clientId.length > 256 || resource.length > 2048) return oauthError(request, "client_id and resource are required.");
+    // resource is optional in OAuth (RFC 8707); clients often omit it when refreshing.
+    const resource = form.get("resource") || canonicalResource(request);
+    if (!clientId || clientId.length > 256 || resource.length > 2048) return oauthError(request, "client_id is required.");
     if (resource !== canonicalResource(request)) return NextResponse.json({ error: "invalid_target", error_description: "The token resource must be CineBlock's MCP endpoint." }, { status: 400, headers: headers(request) });
 
     if (grantType === "authorization_code") {

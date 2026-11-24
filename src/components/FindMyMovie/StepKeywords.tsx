@@ -1,5 +1,7 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 // TMDB keyword IDs for each vibe tag.
 // You can verify or add more at: https://www.themoviedb.org/keyword/{id}
 export const KEYWORD_CHIPS = [
@@ -36,61 +38,34 @@ export const KEYWORD_CHIPS = [
 interface StepKeywordsProps {
   value: number | null;
   onChange: (id: number | null) => void;
-  isGlass?: boolean;
 }
 
-export default function StepKeywords({ value, onChange, isGlass = false }: StepKeywordsProps) {
+export default function StepKeywords({ value, onChange }: StepKeywordsProps) {
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className={isGlass ? "font-display font-semibold text-[1.9rem] text-white tracking-[-0.03em] mb-1" : "font-display font-bold text-xl text-brutal-white uppercase tracking-tight mb-1"}>
-          {isGlass ? "Pick a story signal" : "Any specific vibe?"}
-        </h2>
-        <p className={isGlass ? "text-[0.95rem] text-slate-400 leading-relaxed max-w-md" : "font-mono text-xs text-brutal-muted"}>
-          {isGlass ? "Choose one strong narrative cue and we'll keep the search anchored to it." : "Pick one that excites you, or skip to cast a wider net."}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
+    <div>
+      <h2 className="font-display !text-lg font-semibold text-white">What kind of story?</h2>
+      <p className="mt-1 text-sm text-slate-400">Pick one, or skip to keep it open. Tap again to clear.</p>
+      <div className="mt-5 flex flex-wrap gap-2">
         {KEYWORD_CHIPS.map((chip) => {
           const selected = value === chip.id;
           return (
             <button
-              key={`${chip.id}-${chip.label}`}
+              key={chip.id}
               type="button"
               aria-pressed={selected}
               onClick={() => onChange(selected ? null : chip.id)}
-              className={isGlass
-                ? `px-3.5 py-2 rounded-[16px] text-[0.88rem] font-medium tracking-[0.01em] border transition-all duration-150 ${
-                    selected ? "text-white" : "text-slate-300 hover:text-white"
-                  }`
-                : `px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider border-2 transition-all duration-100 ${
-                    selected
-                      ? "bg-brutal-pink text-black border-brutal-pink shadow-[2px_2px_0px_#000]"
-                      : "bg-surface text-brutal-dim border-brutal-border hover:border-brutal-pink hover:text-brutal-pink"
-                  }`}
-              style={isGlass ? {
-                background: selected ? "linear-gradient(135deg, rgba(79,70,229,0.34), rgba(59,130,246,0.22))" : "rgba(255,255,255,0.045)",
-                borderColor: selected ? "rgba(129,140,248,0.35)" : "rgba(255,255,255,0.08)",
-                boxShadow: selected ? "0 12px 28px rgba(59,130,246,0.12), inset 0 1px 0 rgba(255,255,255,0.14)" : "inset 0 1px 0 rgba(255,255,255,0.04)",
-                backdropFilter: "blur(14px)",
-              } : undefined}
+              className={`flex min-h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.96] ${
+                selected
+                  ? "border-blue-400/60 bg-blue-400/20 text-white"
+                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+              }`}
             >
+              {selected && <Check className="h-3.5 w-3.5 text-blue-300" strokeWidth={3} />}
               {chip.label}
             </button>
           );
         })}
       </div>
-
-      {value && (
-        <button
-          type="button"
-          onClick={() => onChange(null)}
-          className={isGlass ? "self-start text-[0.82rem] font-medium tracking-[0.02em] text-slate-400 hover:text-white transition-colors" : "self-start font-mono text-[10px] uppercase tracking-wider text-brutal-dim underline hover:text-brutal-white transition-colors"}
-        >
-          Clear selection
-        </button>
-      )}
     </div>
   );
 }

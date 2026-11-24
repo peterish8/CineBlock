@@ -148,38 +148,42 @@ export default function StampPageClient() {
 
       <LayoutGroup id="published-stamps">
       <div className="relative z-10 mx-auto max-w-7xl">
-        <motion.header initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: "easeOut" }}>
-          <div className="flex items-center justify-between gap-2 border-b border-white/[0.08] pb-3 sm:flex-row sm:gap-4 sm:pb-4">
-            <Link href="/" aria-label="Back to CineBlock" className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-[10px] font-display font-semibold uppercase tracking-[0.16em] text-slate-300 transition-colors hover:border-blue-200/35 hover:bg-white/[0.09] hover:text-white sm:h-auto sm:w-auto sm:gap-2 sm:px-3.5 sm:py-2"><ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">Back to CineBlock</span></Link>
-            <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:w-auto sm:flex-none sm:gap-3">
-              <div className="flex min-w-0 flex-1 items-center justify-start gap-1 whitespace-nowrap text-[10px] font-display font-semibold uppercase tracking-[0.03em] text-slate-500 sm:flex-none sm:gap-2 sm:text-[9px] sm:tracking-[0.12em]" aria-label="Stamp summary">
-                <span><strong className="text-blue-100">{published.length}</strong><span> stamps</span></span>
-                <span className="text-slate-700">/</span>
-                <span><strong className="text-slate-200">{drafts.length}</strong><span> drafts</span></span>
-                <span className="text-slate-700">/</span>
-                <span><strong className="text-cyan-200">{unstampedWatchedCount}</strong><span className="sm:hidden"> to go</span><span className="hidden sm:inline"> to stamp</span></span>
-              </div>
-              <motion.button type="button" onClick={() => setComposerOpen(true)} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }} className="group inline-flex shrink-0 items-center gap-1 rounded-full border border-blue-200/30 bg-blue-300/10 px-2.5 py-2.5 text-[9px] font-display font-semibold uppercase tracking-[0.08em] text-blue-100 shadow-[0_0_28px_rgba(37,99,235,0.12)] transition-colors hover:border-cyan-200/55 hover:bg-blue-300/15 sm:gap-2 sm:px-3.5 sm:text-[10px] sm:tracking-[0.14em]">
-                <Plus className="h-3.5 w-3.5 transition-transform group-hover:rotate-90" /><span className="sm:hidden">Stamp</span><span className="hidden sm:inline">Stamp a film</span><ArrowRight className="hidden h-3.5 w-3.5 text-cyan-200 sm:block" />
-              </motion.button>
-            </div>
+        <motion.header initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/"
+              aria-label="Back to CineBlock"
+              className="flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm font-medium text-slate-300 transition-colors duration-150 hover:border-white/20 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setComposerOpen(true)}
+              className="group flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-blue-400/30 active:scale-[0.97]"
+              style={{ background: "rgba(96,165,250,0.20)", border: "1px solid rgba(96,165,250,0.45)" }}
+            >
+              <Plus className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90" />
+              Stamp a film
+            </button>
           </div>
-          <div className="flex items-center justify-between gap-4 py-6 sm:py-8">
-            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-              <motion.div
-                className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16"
-                animate={reduceMotion ? undefined : { rotate: [0, 2, 0, -2, 0], scale: [1, 1.035, 1] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              >
-                <Image src="/stamps/stamped-glass.png" alt="" fill sizes="64px" className="object-contain drop-shadow-[0_0_20px_rgba(59,130,246,0.32)]" unoptimized />
-              </motion.div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-display font-semibold uppercase tracking-[0.24em] text-cyan-200/70">Your cinema notebook</p>
-                <h1 className="mt-1 truncate font-display text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl">What stayed with you.</h1>
-                <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500 sm:text-sm">A private place for the feeling a film leaves behind.</p>
-              </div>
+
+          <div className="flex items-center gap-4 py-8 sm:gap-5 sm:py-10">
+            <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
+              <Image src="/stamps/stamped-glass.png" alt="" fill sizes="64px" className="object-contain" unoptimized />
             </div>
-            <Image src="/stamps/draft-glass.png" alt="" width={58} height={58} className="hidden shrink-0 opacity-80 drop-shadow-[0_0_18px_rgba(125,211,252,0.18)] sm:block" unoptimized />
+            <div className="min-w-0">
+              <h1 className="font-display !text-3xl font-semibold tracking-tight text-white sm:!text-4xl">Cinema notebook</h1>
+              <p className="mt-1 text-sm text-slate-400 sm:text-base">A private place for the feeling a film leaves behind.</p>
+              <p className="mt-2 text-sm tabular-nums text-slate-500" aria-label="Stamp summary">
+                <span className="text-white">{published.length}</span> stamped
+                <span className="mx-2 text-slate-700">·</span>
+                <span className="text-white">{drafts.length}</span> {drafts.length === 1 ? "draft" : "drafts"}
+                <span className="mx-2 text-slate-700">·</span>
+                <span className="text-white">{unstampedWatchedCount}</span> waiting
+              </p>
+            </div>
           </div>
         </motion.header>
 

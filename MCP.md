@@ -13,7 +13,7 @@ The server follows the 2026-07-28 MCP shape through `createMcpHandler`, with sta
 1. Sign in to CineBlock and open `/profile`.
 2. In **ChatGPT / MCP**, generate an MCP token and copy it immediately; CineBlock stores only a hash and cannot reveal it again after a page reload.
 3. Add a custom connector/server in ChatGPT using the MCP URL above. ChatGPT can discover CineBlock's OAuth metadata from the `401` challenge or the well-known metadata endpoints.
-4. Prefer OAuth when ChatGPT offers it: the flow opens CineBlock's consent page, uses S256 PKCE, and returns a short-lived access token plus rotating refresh token. The manual bearer-token option remains available for clients that do not support OAuth.
+4. Prefer OAuth when ChatGPT offers it: the flow opens CineBlock's consent page, uses S256 PKCE, and returns a one-day access token plus a rotating refresh token that stays valid for a year after its last use, so ChatGPT stays connected without signing in again. Revoking access in CineBlock takes effect immediately. The manual bearer-token option remains available for clients that do not support OAuth.
 5. Regenerating the manual token revokes the previous manual token and all OAuth sessions immediately.
 
 Opening `/api/mcp` directly in a browser is not a login screen; the expected `401` response is the protected-resource challenge that tells ChatGPT where to discover OAuth. In ChatGPT, create the custom app in Developer Mode, provide the MCP endpoint, and choose OAuth when prompted.

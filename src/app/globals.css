@@ -18,13 +18,10 @@
   --color-surface-2: #1E1E1E;
 }
 
-/* Shared keyboard-focus ring for the Glass theme. Any interactive element that
-   overrides focus styling (e.g. `focus:outline-none`) must still provide a
-   visible alternative — this is the default so most elements don't need to. */
+/* Default keyboard-focus ring; the outline follows each element's own corner radius. */
 body.theme-glass :is(a, button, input, select, textarea, [role="tab"], [role="button"], [tabindex]):focus-visible {
   outline: 2px solid #60A5FA;
   outline-offset: 2px;
-  border-radius: 6px;
 }
 
 body.theme-glass {

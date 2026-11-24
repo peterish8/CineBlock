@@ -247,8 +247,8 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
                     <LogoGlow
                       src={logoUrl(movie.logo_path, "large")}
                       alt={movie.title || movie.name || "Movie logo"}
-                      wrapClassName="mb-2 max-w-[200px] sm:max-w-xs md:max-w-sm lg:max-w-md"
-                      imgClassName="h-auto max-h-16 w-full object-contain object-left drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:max-h-24 md:max-h-32 lg:max-h-36"
+                      wrapClassName="mb-3 max-w-[200px] sm:max-w-[260px] md:max-w-xs lg:max-w-sm"
+                      imgClassName="h-auto max-h-14 w-full object-contain object-left drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:max-h-20 md:max-h-24 lg:max-h-28"
                     />
                   </motion.div>
                 ) : (
@@ -257,30 +257,29 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
                   </motion.h2>
                 )}
                 <motion.div variants={contentItem} className="mt-2 flex items-center gap-3 sm:gap-4">
-                  <span className="flex items-center gap-1" style={{ color: "#FCD34D" }}>
-                    <Star className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" strokeWidth={2.5} />
-                    <span className="font-mono text-xs font-bold sm:text-sm">{rating}</span>
-                  </span>
-                  <span className="font-mono text-xs font-bold text-[rgba(148,163,184,0.9)] sm:text-sm">{year}</span>
+                  {/* Unreleased titles have no votes yet; a 0.0 would read as a bad score. */}
+                  {(movie.vote_count ?? 0) > 0 && (
+                    <span className="flex items-center gap-1" style={{ color: "#FCD34D" }}>
+                      <Star className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" strokeWidth={2.5} />
+                      <span className="text-xs font-semibold tabular-nums sm:text-sm">{rating}</span>
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold tabular-nums text-[rgba(148,163,184,0.9)] sm:text-sm">{year}</span>
                 </motion.div>
                 {movie.overview && (
-                  <motion.p
-                    variants={contentItem}
-                    className="mt-2 hidden text-xs leading-relaxed text-[rgba(148,163,184,0.75)] sm:block sm:text-sm"
-                    style={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
-                  >
+                  <motion.p variants={contentItem} className="mt-2 max-w-md truncate text-sm text-slate-300/80 sm:max-w-lg" title={movie.overview}>
                     {movie.overview}
                   </motion.p>
                 )}
                 <motion.div variants={contentItem} className="mt-4 flex items-center gap-2 sm:mt-5 sm:gap-3">
                   <button
                     onClick={() => onMovieClick(movie)}
-                    className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all duration-200 active:scale-95 sm:px-5 sm:py-2.5 sm:text-sm"
+                    className="flex min-h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-blue-400/30 active:scale-[0.97] sm:px-5"
                     style={{
                       background: "rgba(96,165,250,0.20)",
                       border: "1px solid rgba(96,165,250,0.45)",
                       backdropFilter: "blur(12px)",
-                      boxShadow: "0 0 20px rgba(96,165,250,0.20), inset 0 1px 0 rgba(255,255,255,0.12)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)",
                     }}
                   >
                     <Play className="h-3.5 w-3.5 fill-current sm:h-4 sm:w-4" strokeWidth={2.5} />
@@ -289,52 +288,42 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
                   </button>
                   <button
                     onClick={() => toggleWatchlist(movie)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 active:scale-90 sm:h-10 sm:w-10"
-                    style={{
-                      background: saved ? "rgba(249,115,22,0.22)" : "rgba(255,255,255,0.08)",
-                      border: saved ? "1px solid rgba(249,115,22,0.50)" : "1px solid rgba(255,255,255,0.15)",
-                      backdropFilter: "blur(12px)",
-                      boxShadow: saved ? "0 0 16px rgba(249,115,22,0.25)" : "none",
-                    }}
+                    aria-label={saved ? "Remove from watchlist" : "Add to watchlist"}
+                    aria-pressed={saved}
+                    className={`group flex h-10 w-10 items-center justify-center rounded-xl border backdrop-blur-md transition-[transform,background-color,border-color] duration-150 active:scale-[0.94] ${
+                      saved
+                        ? "border-orange-400/50 bg-orange-500/20 hover:border-orange-300/70 hover:bg-orange-500/30"
+                        : "border-white/15 bg-white/[0.08] hover:border-white/30 hover:bg-white/[0.16]"
+                    }`}
                   >
-                    <Bookmark className="h-4 w-4 transition-all sm:h-[18px] sm:w-[18px]" style={{ color: saved ? "#FB923C" : "rgba(255,255,255,0.7)" }} fill={saved ? "currentColor" : "none"} strokeWidth={2.5} />
+                    <Bookmark className={`h-[18px] w-[18px] transition-colors duration-150 ${saved ? "text-orange-400" : "text-white/70 group-hover:text-white"}`} fill={saved ? "currentColor" : "none"} strokeWidth={2.5} />
                   </button>
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-display font-semibold uppercase tracking-[0.15em] sm:text-xs"
-                    style={{ background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.30)", color: "#93C5FD", backdropFilter: "blur(12px)" }}
-                  >
-                    <TrendingUp className="h-3 w-3" strokeWidth={2.5} />
-                    Trending
-                  </span>
                 </motion.div>
               </motion.div>
             </AnimatePresence>
           </div>
         </motion.div>
 
-        <button
-          onClick={goPrev}
-          className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-opacity duration-100 hover:opacity-100 active:opacity-25 sm:left-4 sm:h-12 sm:w-12"
-          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
-        >
-          <ChevronLeft className="h-4 w-4 text-white sm:h-5 sm:w-5" strokeWidth={2.5} />
-        </button>
-        <button
-          onClick={goNext}
-          className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl opacity-50 transition-opacity duration-100 hover:opacity-100 active:opacity-25 sm:right-4 sm:h-12 sm:w-12"
-          style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
-        >
-          <ChevronRight className="h-4 w-4 text-white sm:h-5 sm:w-5" strokeWidth={2.5} />
-        </button>
-
         <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden rounded-full bg-white/5 sm:hidden">
           <div key={current} className="h-full animate-progress rounded-full" style={{ animationDuration: "6s", background: "linear-gradient(90deg, #60A5FA, #F97316)" }} />
         </div>
-        <div className="absolute bottom-4 right-4 z-10 hidden items-center gap-1.5 sm:bottom-6 sm:right-6 sm:flex">
+        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5 sm:bottom-6 sm:right-6">
+          <button
+            type="button"
+            onClick={goPrev}
+            aria-label="Previous title"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 transition-[transform,background-color,color] duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+          >
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+          </button>
+          <div className="hidden items-center gap-1.5 sm:flex">
           {movies.map((_, i) => (
             <motion.button
               key={i}
               onClick={() => setCurrent(i)}
+              aria-label={`Show title ${i + 1}`}
+              aria-current={i === current}
               className="tap-target relative h-1.5 overflow-hidden rounded-full"
               animate={{
                 width: i === current ? 24 : 6,
@@ -355,6 +344,16 @@ export default function TrendingHero({ onMovieClick, preferredLanguage }: Trendi
               )}
             </motion.button>
           ))}
+          </div>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="Next title"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/60 transition-[transform,background-color,color] duration-150 hover:bg-white/10 hover:text-white active:scale-[0.94]"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+          >
+            <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
+          </button>
         </div>
       </div>
     </section>

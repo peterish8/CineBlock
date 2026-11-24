@@ -497,8 +497,8 @@ export default function BlocksPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="w-10 h-10 border-4 border-brutal-violet border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#020817" }}>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-400/30 border-t-blue-400" role="status" aria-label="Loading" />
       </div>
     );
   }

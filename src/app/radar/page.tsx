@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Radio, ChevronLeft, AlertCircle, Sparkles } from "lucide-react";
+import { useState, useCallback } from "react";
+import { AnimatePresence } from "framer-motion";
+import { ArrowLeft, CalendarX2, Radio } from "lucide-react";
+import ErrorState from "@/components/ErrorState";
 import Link from "next/link";
+import { useConvexAuth } from "convex/react";
 import { useRadar } from "@/hooks/useRadar";
 import ReleaseTimeline from "@/components/ReleaseTimeline";
 import MovieModal from "@/components/MovieModal";
@@ -28,158 +30,84 @@ function radarToTmdbMovie(item: RadarMovie): TMDBMovie {
   };
 }
 
+function TimelineSkeleton() {
+  return (
+    <div className="flex gap-5 overflow-hidden px-6 pt-4 lg:px-10" role="status" aria-label="Loading upcoming releases">
+      <div className="flex flex-col">
+        <div className="mb-4 h-8 w-48 animate-pulse rounded-lg bg-white/[0.06]" />
+        <div className="flex gap-5 border-t border-white/10 pt-4">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="w-[180px]">
+              <div className="mb-2 h-5 w-16 animate-pulse rounded bg-white/[0.06]" />
+              <div className="aspect-[2/3] animate-pulse rounded-xl bg-white/[0.05]" />
+              <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-white/[0.06]" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RadarPage() {
   const { movies, loading, error, isPersonalized } = useRadar();
+  const { isAuthenticated } = useConvexAuth();
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
-  const [isGlass, setIsGlass] = useState(false);
-
-  useEffect(() => {
-    const update = () => setIsGlass(document.body.classList.contains("theme-glass"));
-    const raf = requestAnimationFrame(update);
-    const observer = new MutationObserver(update);
-    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, []);
 
   const handleMovieClick = useCallback((item: RadarMovie) => {
     setSelectedMovie(radarToTmdbMovie(item));
   }, []);
 
-  if (error) {
-    return (
-      <div className={`min-h-screen flex flex-col items-center justify-center p-8 ${isGlass ? "bg-transparent" : "bg-bg"}`}>
-        <div className={isGlass
-          ? "max-w-md w-full rounded-2xl p-8 text-center border border-red-500/30 backdrop-blur-xl"
-          : "max-w-md w-full border-4 border-brutal-red bg-surface p-8 brutal-shadow text-center"
-        } style={isGlass ? { background: "rgba(30,5,5,0.7)" } : undefined}>
-          <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isGlass ? "text-red-400" : "text-brutal-red"}`} />
-          <h2 className={`font-display font-black uppercase text-2xl mb-2 ${isGlass ? "text-white tracking-tight" : "text-text italic"}`}>RADAR DOWN</h2>
-          <p className={`text-sm mb-6 tracking-widest uppercase ${isGlass ? "text-slate-400 font-sans" : "font-mono text-brutal-dim"}`}>UPSTREAM TMDB FAILURE</p>
-          <button onClick={() => window.location.reload()}
-            className={isGlass
-              ? "px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-sm bg-red-500/20 text-red-300 border border-red-500/40 hover:bg-red-500/30 transition-all"
-              : "brutal-btn px-6 py-3 bg-brutal-red text-black font-bold uppercase tracking-wider text-sm"
-            }>
-            RETRY CONNECTION
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <main className={`min-h-screen pt-20 md:pt-24 pb-20 ${isGlass ? "bg-transparent" : "bg-bg"}`}>
-      {/* Header Section */}
-      <div className="max-w-[1400px] mx-auto px-4 mb-10 md:mb-16">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-4">
-            <Link href="/" className={`inline-flex items-center gap-2 text-[10px] uppercase font-bold transition-colors ${isGlass ? "font-sans text-slate-500 hover:text-blue-300" : "font-mono text-brutal-dim hover:text-brutal-cyan"}`}>
-              <ChevronLeft className="w-3.5 h-3.5" />
-              {isGlass ? "Back" : "BACK TO MISSION CONTROL"}
-            </Link>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-4">
-                <h1 className={`font-display font-black uppercase tracking-tighter leading-[0.85] ${isGlass ? "text-4xl md:text-6xl text-white" : "text-5xl md:text-7xl text-text italic"}`}>
-                  RELEASE{" "}
-                  <span className={isGlass ? "text-blue-400" : "text-brutal-cyan"}>RADAR</span>
-                </h1>
-                {/* Live dot */}
-                <div className="relative mt-1">
-                  <div className={`w-3 h-3 rounded-full animate-ping absolute top-0 left-0 ${isGlass ? "bg-blue-400" : "bg-brutal-cyan"}`} />
-                  <div className={`w-3 h-3 rounded-full relative z-10 ${isGlass ? "bg-blue-400" : "bg-brutal-cyan"}`} />
-                </div>
-              </div>
-              <p className={`text-xs uppercase tracking-[0.18em] max-w-xl ${isGlass ? "font-sans text-slate-500" : "font-mono text-brutal-dim tracking-[0.2em]"}`}>
-                {isGlass
-                  ? "Tracking upcoming cinematic drops, sequels & genre surges"
-                  : "SCANNING THE HORIZON FOR UPCOMING CINEMATIC DROPS — TRACKING SEQUELS & GENRE SURGES."}
-              </p>
-            </div>
-          </div>
-
-          {/* "ALL UPCOMING" chip — MY RADAR tab removed (was a no-op stub) */}
-          <div className={isGlass
-            ? "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-display font-medium border"
-            : "flex items-center gap-2 px-4 py-2 border-4 border-brutal-border bg-surface"
-          } style={isGlass ? { background: "rgba(96,165,250,0.10)", borderColor: "rgba(96,165,250,0.25)", color: "#93C5FD" } : undefined}>
-            <Radio className="w-3.5 h-3.5" strokeWidth={2.5} />
-            <span className={isGlass ? "text-xs" : "font-mono text-[10px] font-black uppercase text-brutal-white"}>
-              ALL UPCOMING
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Timeline Section */}
-      <div className="w-full">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[500px] text-center px-4">
-            <div className="relative mb-10">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className={`w-24 h-24 rounded-full border-8 border-dashed ${isGlass ? "border-white/10 border-t-blue-400" : "border-brutal-border border-t-brutal-cyan"}`}
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Radio className={`w-10 h-10 animate-pulse ${isGlass ? "text-blue-400" : "text-brutal-cyan"}`} />
-              </div>
-              {isGlass && (
-                <div className="absolute inset-0 rounded-full bg-blue-400/10 blur-xl animate-pulse" />
-              )}
-            </div>
-            <h2 className={`font-display font-black uppercase mb-4 tracking-tighter leading-none ${isGlass ? "text-3xl md:text-5xl text-white" : "text-4xl md:text-7xl text-text italic"}`}>
-              INITIATING <span className={isGlass ? "text-blue-400" : "text-brutal-cyan"}>SCAN</span>
-            </h2>
-            <div className="flex flex-col gap-2 items-center">
-              <p className={`text-[10px] uppercase font-bold tracking-[0.5em] animate-pulse ${isGlass ? "font-sans text-slate-500" : "font-mono text-brutal-dim"}`}>
-                SYNCHRONIZING WITH SECTOR 7G...
-              </p>
-              <div className={`h-1 w-48 mx-auto relative overflow-hidden rounded-full ${isGlass ? "bg-white/10" : "bg-brutal-border"}`}>
-                <motion.div
-                  animate={{ x: [-200, 200] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                  className={`absolute inset-0 w-1/2 rounded-full ${isGlass ? "bg-blue-400" : "bg-brutal-cyan"}`}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <ReleaseTimeline movies={movies} onMovieClick={handleMovieClick} />
+    <main className="min-h-screen pb-20 pt-20 md:pt-24" style={{ background: "#020817" }}>
+      <header className="mx-auto mb-8 max-w-[1400px] px-4 md:mb-12 lg:px-10">
+        <Link
+          href="/"
+          aria-label="Back to home"
+          className="mb-5 flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+          style={{ border: "1px solid rgba(255,255,255,0.12)" }}
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={2.5} />
+        </Link>
+        <h1 className="font-display !text-4xl font-semibold tracking-tight text-white md:!text-5xl">Release Radar</h1>
+        <p className="mt-2 max-w-xl text-base text-slate-400">
+          {isPersonalized ? "Upcoming films, picked from what you like." : "Upcoming films, in release order."}
+        </p>
+        {!isPersonalized && !loading && (
+          <p className="mt-1 text-sm text-slate-500">
+            {isAuthenticated ? (
+              "Like a few films and this list will lean toward your taste."
+            ) : (
+              <>
+                <Link href="/sign-in?returnTo=/radar" className="text-blue-300 underline-offset-4 hover:underline">Sign in</Link>
+                {" "}and like a few films to tailor this list.
+              </>
+            )}
+          </p>
         )}
-      </div>
+      </header>
 
-      {/* Movie Modal */}
-      <AnimatePresence>
-        {selectedMovie && (
-          <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
-        )}
-      </AnimatePresence>
-
-      {/* Floating CTA for unpersonalized users */}
-      {!isPersonalized && !loading && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 w-full max-w-xs md:max-w-md px-4">
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className={isGlass
-              ? "rounded-2xl p-4 flex items-center gap-3 border backdrop-blur-xl"
-              : "bg-bg border-4 border-brutal-yellow p-4 shadow-[8px_8px_0px_0px_rgba(255,225,86,1)] flex items-center gap-4"
-            }
-            style={isGlass ? { background: "rgba(8,14,36,0.85)", borderColor: "rgba(96,165,250,0.35)" } : undefined}
-          >
-            <Sparkles className={`w-5 h-5 shrink-0 ${isGlass ? "text-blue-400" : "text-brutal-yellow"}`} />
-            <p className={`text-xs leading-relaxed ${isGlass ? "font-sans text-slate-300" : "font-display font-black uppercase tracking-tight text-white italic"}`}>
-              {isGlass
-                ? "Sign in & like films to personalize your radar."
-                : <>RADAR IS GENERIC — <span className="text-brutal-yellow underline">SIGN IN</span> & <span className="text-brutal-yellow underline">LIKE FILMS</span> TO PERSONALIZE THE SCAN.</>
-              }
-            </p>
-          </motion.div>
+      {error ? (
+        <ErrorState
+          icon={Radio}
+          title="Release Radar went quiet"
+          message="The movie database didn't answer. Check your connection and try again."
+          onRetry={() => window.location.reload()}
+        />
+      ) : loading ? (
+        <TimelineSkeleton />
+      ) : movies.length === 0 ? (
+        <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-4 py-16 text-center">
+          <CalendarX2 className="h-10 w-10 text-slate-500" strokeWidth={1.25} />
+          <p className="text-sm text-slate-400">No upcoming releases to show right now.</p>
         </div>
+      ) : (
+        <ReleaseTimeline movies={movies} onMovieClick={handleMovieClick} />
       )}
+
+      <AnimatePresence>
+        {selectedMovie && <MovieModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />}
+      </AnimatePresence>
     </main>
   );
 }

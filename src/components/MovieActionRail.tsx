@@ -59,9 +59,8 @@ export default function MovieActionRail({
     : glassInactiveStyle;
   const glassWatchedStyle = watched
     ? {
-        background: "linear-gradient(145deg, #6EE7B7 0%, #34D399 48%, #10B981 100%)",
-        borderColor: "rgba(167,243,208,0.82)",
-        boxShadow: "0 10px 24px rgba(16,185,129,0.34), inset 0 1px 0 rgba(255,255,255,0.52)",
+        background: "linear-gradient(135deg, rgba(52,211,153,0.28), rgba(5,150,105,0.14))",
+        boxShadow: "0 10px 24px rgba(52,211,153,0.18), inset 0 1px 0 rgba(255,255,255,0.12)",
         backdropFilter: "blur(16px)",
       }
     : glassInactiveStyle;
@@ -177,7 +176,7 @@ export default function MovieActionRail({
                 }
               }
             }}
-            className={`${glassBase} px-2 py-2 active:brightness-75 ${watched ? "text-emerald-950" : "text-white/50 hover:text-emerald-400"}`}
+            className={`${glassBase} px-2 py-2 active:brightness-75 ${watched ? "text-emerald-300" : "text-white/50 hover:text-emerald-400"}`}
             style={glassWatchedStyle}
             aria-label={watched ? "Mark as unwatched" : "Mark as watched"}
             aria-pressed={watched}

@@ -2,14 +2,14 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { MAX_BLOCKS_PER_USER, MAX_BLOCK_DESCRIPTION_LENGTH, MAX_BLOCK_TITLE_LENGTH, MAX_MOVIES_PER_BLOCK, MAX_POSTER_PATH_LENGTH, MAX_TITLE_LENGTH, STAMP_REVIEW_MAX } from "./limits";
 
-const MAX_BLOCKS_PER_USER = 15;
-const MAX_MOVIES_PER_BLOCK = 35;
-const STAMP_REVIEW_MAX = 1000;
-const MAX_TITLE_LENGTH = 200;
-const MAX_POSTER_PATH_LENGTH = 2048;
 const PLAYLIST_MIN_INTERVAL_MS = 4000;
 const STAMP_MIN_INTERVAL_MS = 2000;
+// Every MCP call re-checks its token in the database, so revoking one takes effect at once;
+// long lifetimes just keep ChatGPT connected. Each refresh restarts the refresh window.
+const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const MCP_ACCESS_TOKEN_REGEX = /^mcp_[0-9a-f]{64}$/;
 
 async function hashMcpToken(token: string) {
@@ -251,8 +251,8 @@ export const createPlaylist = mutation({
     const title = args.title.trim();
     const description = args.description?.trim() || undefined;
     if (!title) throw new ConvexError("Playlist title is required.");
-    if (title.length > 60) throw new ConvexError("Playlist title must be 60 characters or fewer.");
-    if (description && description.length > 280) throw new ConvexError("Description must be 280 characters or fewer.");
+    if (title.length > MAX_BLOCK_TITLE_LENGTH) throw new ConvexError(`Playlist title must be ${MAX_BLOCK_TITLE_LENGTH} characters or fewer.`);
+    if (description && description.length > MAX_BLOCK_DESCRIPTION_LENGTH) throw new ConvexError(`Description must be ${MAX_BLOCK_DESCRIPTION_LENGTH} characters or fewer.`);
     if (args.movies.length === 0) throw new ConvexError("Playlist must contain at least one title.");
     if (args.movies.length > MAX_MOVIES_PER_BLOCK) throw new ConvexError(`A playlist can contain at most ${MAX_MOVIES_PER_BLOCK} titles.`);
 
@@ -445,11 +445,11 @@ async function issueMcpTokens(ctx: MutationCtx, userId: Id<"users">, clientId: s
     resource,
     userId,
     scope,
-    accessExpiresAt: now + 60 * 60 * 1000,
-    refreshExpiresAt: now + 30 * 24 * 60 * 60 * 1000,
+    accessExpiresAt: now + ACCESS_TOKEN_TTL_MS,
+    refreshExpiresAt: now + REFRESH_TOKEN_TTL_MS,
     createdAt: now,
   });
-  return { accessToken, refreshToken, expiresIn: 3600, scope };
+  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL_MS / 1000, scope };
 }
 
 export const exchangeMcpAuthorizationCode = mutation({

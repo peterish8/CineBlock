@@ -3,23 +3,27 @@
 import Link from "next/link";
 import { ArrowLeft, Newspaper, RefreshCw } from "lucide-react";
 import NewsFeed from "@/components/NewsFeed";
-import { useMutation } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import { useThemeMode } from "@/hooks/useThemeMode";
+import { useToast } from "@/components/ToastProvider";
 
 export default function NewsPage() {
-  const invalidateToday = useMutation(api.news.invalidateToday);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const refreshToday = useAction(api.news.refreshToday);
+  const { pushToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const isGlass = useThemeMode() === "glass";
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await invalidateToday();
-    await new Promise((r) => setTimeout(r, 800));
-    setRefreshKey((k) => k + 1);
-    setRefreshing(false);
+    try {
+      await refreshToday();
+    } catch {
+      pushToast("error", "Couldn't refresh the news. Try again in a few minutes.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
@@ -67,6 +71,7 @@ export default function NewsPage() {
               }`}
               style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}
               title="Refresh news"
+              aria-label="Refresh news"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} strokeWidth={2.5} />
             </button>
@@ -84,7 +89,7 @@ export default function NewsPage() {
         <p className={`text-[10px] uppercase tracking-wider mb-4 ${isGlass ? "text-slate-500" : "text-brutal-dim font-mono"}`}>
           Latest from Variety · Deadline · Hollywood Reporter · Collider · Reddit
         </p>
-        <NewsFeed key={refreshKey} />
+        <NewsFeed />
       </div>
     </main>
   );

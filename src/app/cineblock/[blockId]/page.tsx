@@ -18,6 +18,7 @@ import {
   Plus, Loader2, Star, ChevronRight, User,
 } from "lucide-react";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { MAX_MOVIES_PER_BLOCK } from "../../../../convex/limits";
 import type { TMDBMovie } from "@/lib/types";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
@@ -385,9 +386,9 @@ function SearchPanel({
       {/* Capacity bar */}
       <div className="px-4 py-1.5 border-b border-brutal-border/40 bg-surface flex items-center gap-2 flex-shrink-0">
         <div className="flex-1 h-1 bg-surface-2 border border-brutal-border overflow-hidden">
-          <div className="h-full bg-brutal-violet transition-all duration-300" style={{ width: `${(movieCount / 50) * 100}%` }} />
+          <div className="h-full bg-brutal-violet transition-all duration-300" style={{ width: `${(movieCount / MAX_MOVIES_PER_BLOCK) * 100}%` }} />
         </div>
-        <span className="font-mono text-[9px] text-brutal-dim">{movieCount}/50</span>
+        <span className="font-mono text-[9px] text-brutal-dim">{movieCount}/{MAX_MOVIES_PER_BLOCK}</span>
         {isFull && <span className="font-mono text-[9px] text-red-400 font-bold">FULL</span>}
       </div>
 
@@ -567,7 +568,7 @@ export default function CineBlockViewPage() {
   const blockMovieIds = new Set(movies.map((m) => m.movieId));
   const stampedMovieIds = new Set((creatorStampsData ?? []).map((s) => s.movieId));
   const stampReviewMap = new Map((creatorStampsData ?? []).map((s) => [s.movieId, s.reviewText]));
-  const isFull = movies.length >= 50;
+  const isFull = movies.length >= MAX_MOVIES_PER_BLOCK;
   const progressPct = Math.round(progress.percentage);
 
   const handleCopyLink = async () => {
@@ -731,7 +732,7 @@ export default function CineBlockViewPage() {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className={`font-bold text-base sm:text-xl tracking-tight truncate ${isGlass ? "text-white" : "font-display text-brutal-white uppercase"}`}>{block.title}</h1>
-            <p className={`text-[10px] uppercase tracking-wider ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>by @{block.ownerName} · {movies.length} / 50 movies</p>
+            <p className={`text-[10px] uppercase tracking-wider ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>by @{block.ownerName} · {movies.length}/{MAX_MOVIES_PER_BLOCK} titles</p>
           </div>
           <div className="flex items-center gap-2">
             {isOwner && (
