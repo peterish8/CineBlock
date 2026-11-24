@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, ArrowLeft, Bookmark, Star, Loader2, Info, X, Tv2 } from "lucide-react";
+import { Sparkles, ArrowLeft, Bookmark, Star, Loader2, Info, X, Tv2, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import { useThemeMode } from "@/hooks/useThemeMode";
@@ -397,8 +397,8 @@ function RecommendationsContent() {
           </div>
         ) : (
           <>
-            <p className={`text-[10px] uppercase tracking-wider mb-4 ${isGlass ? "text-slate-500" : "text-brutal-dim font-mono"}`}>
-              🔥 {movies.length} curated picks — scroll for more
+            <p className={`flex items-center gap-1.5 text-[10px] uppercase tracking-wider mb-4 ${isGlass ? "text-slate-500" : "text-brutal-dim font-mono"}`}>
+              <Flame className="w-3 h-3" strokeWidth={2.5} /> {movies.length} curated picks — scroll for more
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">

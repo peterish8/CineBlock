@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, AlertCircle, Film } from "lucide-react";
+import { ChevronRight, AlertCircle, Film, Radar } from "lucide-react";
 import { useRadar } from "@/hooks/useRadar";
 import { posterUrl } from "@/lib/constants";
 import RadarSkeleton from "./RadarSkeleton";
@@ -24,8 +24,8 @@ export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
       <section className="py-8 border-b-4 border-brutal-border bg-bg/50">
         <div className="flex items-center justify-between px-4 mb-6">
           <div className="flex items-center gap-3 border-l-4 border-brutal-cyan pl-3">
-            <h2 className="font-display text-xl font-black uppercase tracking-wider text-text italic">
-              YOUR RADAR <span className="not-italic">📡</span>
+            <h2 className="flex items-center gap-2 font-display text-xl font-black uppercase tracking-wider text-text italic">
+              YOUR RADAR <Radar className="w-4 h-4 not-italic" strokeWidth={2.5} />
             </h2>
           </div>
         </div>
@@ -73,8 +73,8 @@ export default function RadarShelf({ onMovieClick }: RadarShelfProps) {
       <div className="flex items-center justify-between px-4 mb-6">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3 border-l-4 border-brutal-cyan pl-3">
-            <h2 className="font-display text-xl font-black uppercase tracking-wider text-text italic">
-              YOUR RADAR <span className="not-italic">📡</span>
+            <h2 className="flex items-center gap-2 font-display text-xl font-black uppercase tracking-wider text-text italic">
+              YOUR RADAR <Radar className="w-4 h-4 not-italic" strokeWidth={2.5} />
             </h2>
             <div className={`px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter ${
               isPersonalized ? "bg-brutal-cyan text-black" : "bg-surface border-2 border-brutal-border text-brutal-dim"

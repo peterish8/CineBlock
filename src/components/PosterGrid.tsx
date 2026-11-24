@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { TMDBMovie, TMDBDiscoverResponse } from "@/lib/types";
 import PosterCard from "./PosterCard";
 import SkeletonCard from "./SkeletonCard";
-import { Loader2, Film, SearchX, Clapperboard, Ghost, Sparkles } from "lucide-react";
+import { Loader2, Film, SearchX, Clapperboard, Ghost } from "lucide-react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as [number, number, number, number];
@@ -201,9 +201,6 @@ export default function PosterGrid({
           >
             {/* Cinema reel SVG + orbital rings */}
             <div className="relative flex h-40 w-40 items-center justify-center">
-              {/* Outer glow pulse */}
-              <div className="absolute inset-0 rounded-full animate-pulse" style={{ background: "radial-gradient(circle, rgba(96,165,250,0.18) 0%, transparent 70%)", filter: "blur(20px)", animationDuration: "2.5s" }} />
-
               {/* Slow outer ring */}
               <motion.div
                 animate={{ rotate: 360 }}
@@ -220,53 +217,10 @@ export default function PosterGrid({
                 style={{ border: "1.5px dashed rgba(249,115,22,0.30)" }}
               />
 
-              {/* Orbital dot — blue */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 3.5, ease: "linear" }}
-                className="absolute inset-0"
-              >
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 h-2 w-2 rounded-full bg-blue-400" style={{ boxShadow: "0 0 8px rgba(96,165,250,0.8)" }} />
-              </motion.div>
-
-              {/* Orbital dot — orange */}
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ repeat: Infinity, duration: 5, ease: "linear" }}
-                className="absolute inset-[18px]"
-              >
-                <div className="absolute bottom-0 right-2 h-1.5 w-1.5 rounded-full bg-orange-400" style={{ boxShadow: "0 0 6px rgba(249,115,22,0.8)" }} />
-              </motion.div>
-
               {/* Center film icon */}
-              <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: "rgba(8,15,40,0.80)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 0 30px rgba(96,165,250,0.20), inset 0 1px 0 rgba(255,255,255,0.10)" }}>
-                <motion.div
-                  animate={{ scale: [1, 1.08, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                >
-                  <Film className="h-7 w-7 text-blue-300" strokeWidth={1.5} />
-                </motion.div>
+              <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: "rgba(8,15,40,0.80)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                <Film className="h-7 w-7 text-blue-300" strokeWidth={1.5} />
               </div>
-
-              {/* Floating clapperboard */}
-              <motion.div
-                animate={{ y: [-5, 5, -5], rotate: [-10, 10, -10], opacity: [0.6, 1, 0.6] }}
-                transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-                className="absolute -right-3 -bottom-1 z-20"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "rgba(8,15,40,0.90)", border: "1px solid rgba(249,115,22,0.40)", boxShadow: "0 0 14px rgba(249,115,22,0.30)" }}>
-                  <Clapperboard className="h-4.5 w-4.5 text-orange-400" strokeWidth={1.5} />
-                </div>
-              </motion.div>
-
-              {/* Floating sparkle */}
-              <motion.div
-                animate={{ y: [4, -4, 4], x: [-3, 3, -3], opacity: [0.4, 0.9, 0.4] }}
-                transition={{ repeat: Infinity, duration: 2.8, ease: "easeInOut", delay: 0.6 }}
-                className="absolute -left-2 top-3 z-20"
-              >
-                <Sparkles className="h-4 w-4 text-blue-400/70" strokeWidth={1.5} />
-              </motion.div>
             </div>
 
             {/* Cycling text */}

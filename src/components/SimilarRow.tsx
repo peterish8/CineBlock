@@ -84,7 +84,7 @@ export default function SimilarRow({ seed, mediaType, onMovieClick }: SimilarRow
               <button
                 key={movie.id}
                 onClick={() => onMovieClick(movie)}
-                className="w-[100px] shrink-0 group text-left focus:outline-none"
+                className="w-[100px] shrink-0 group text-left"
               >
                 <div
                   className={`aspect-[2/3] relative overflow-hidden transition-all ${

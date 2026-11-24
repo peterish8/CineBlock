@@ -413,20 +413,20 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   </div>
 
                   {[
-                    { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover",  iconColor: "#F472B6", glow: "rgba(244,114,182,0.25)" },
-                    { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks", iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
-                    { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits",   iconColor: "#A3E635", glow: "rgba(163,230,53,0.25)" },
-                    { href: "/collections",     icon: Box,        label: "Franchise Vault", sub: "Series & universes", iconColor: "#A78BFA", glow: "rgba(167,139,250,0.25)" },
-                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
+                    { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover" },
+                    { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks" },
+                    { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits" },
+                    { href: "/collections",     icon: Box,        label: "Franchise Vault", sub: "Series & universes" },
+                  ].map(({ href, icon: Icon, label, sub }) => (
                     <Link
                       key={href}
                       href={href}
                       onClick={() => setBrowseOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150"
                       style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.background = `${iconColor}18`;
-                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
+                        e.currentTarget.style.background = "rgba(96,165,250,0.12)";
+                        e.currentTarget.style.borderLeft = "2px solid #60A5FA";
                         e.currentTarget.style.paddingLeft = "10px";
                       }}
                       onMouseLeave={e => {
@@ -435,8 +435,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                         e.currentTarget.style.paddingLeft = "12px";
                       }}
                     >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
-                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-150" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                        <Icon className="w-[18px] h-[18px] text-slate-400 transition-colors duration-150 group-hover:text-[#60A5FA]" strokeWidth={2} />
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
@@ -454,19 +454,19 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                   </div>
 
                   {[
-                    { href: "/cineblocks", icon: LayoutGrid, label: "CineBlocks",   sub: "Curated lists",     iconColor: "#22D3EE", glow: "rgba(34,211,238,0.25)" },
-                    { href: "/blocks",     icon: Users,      label: "Watch Blocks", sub: "Group watchlists",  iconColor: "#F87171", glow: "rgba(248,113,113,0.25)" },
-                    { href: "/news",       icon: Newspaper,  label: "Film News",    sub: "Latest updates",    iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
-                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
+                    { href: "/cineblocks", icon: LayoutGrid, label: "CineBlocks",   sub: "Curated lists" },
+                    { href: "/blocks",     icon: Users,      label: "Watch Blocks", sub: "Group watchlists" },
+                    { href: "/news",       icon: Newspaper,  label: "Film News",    sub: "Latest updates" },
+                  ].map(({ href, icon: Icon, label, sub }) => (
                     <Link
                       key={href}
                       href={href}
                       onClick={() => setBrowseOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150"
                       style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.background = `${iconColor}18`;
-                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
+                        e.currentTarget.style.background = "rgba(96,165,250,0.12)";
+                        e.currentTarget.style.borderLeft = "2px solid #60A5FA";
                         e.currentTarget.style.paddingLeft = "10px";
                       }}
                       onMouseLeave={e => {
@@ -475,8 +475,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                         e.currentTarget.style.paddingLeft = "12px";
                       }}
                     >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
-                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-150" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                        <Icon className="w-[18px] h-[18px] text-slate-400 transition-colors duration-150 group-hover:text-[#60A5FA]" strokeWidth={2} />
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
@@ -495,8 +495,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left w-full"
                     style={{ color: "rgba(255,255,255,0.85)" }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(255,225,86,0.12)";
-                      e.currentTarget.style.borderLeft = "2px solid #FFE156";
+                      e.currentTarget.style.background = "rgba(96,165,250,0.12)";
+                      e.currentTarget.style.borderLeft = "2px solid #60A5FA";
                       e.currentTarget.style.paddingLeft = "10px";
                     }}
                     onMouseLeave={e => {
@@ -505,8 +505,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                       e.currentTarget.style.paddingLeft = "12px";
                     }}
                   >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,225,86,0.15)", border: "1px solid rgba(255,225,86,0.4)", boxShadow: "0 0 12px rgba(255,225,86,0.2)" }}>
-                      <CheckCircle className="w-[18px] h-[18px] text-yellow-300" strokeWidth={2} />
+                    <div className="group w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-150" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                      <CheckCircle className="w-[18px] h-[18px] text-slate-400" strokeWidth={2} />
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-[13px] font-semibold leading-tight text-white">Stamp a Film</span>
@@ -521,8 +521,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
                     style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(34,211,238,0.12)";
-                      e.currentTarget.style.borderLeft = "2px solid #22D3EE";
+                      e.currentTarget.style.background = "rgba(96,165,250,0.12)";
+                      e.currentTarget.style.borderLeft = "2px solid #60A5FA";
                       e.currentTarget.style.paddingLeft = "10px";
                     }}
                     onMouseLeave={e => {
@@ -531,13 +531,13 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
                       e.currentTarget.style.paddingLeft = "12px";
                     }}
                   >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative" style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.4)", boxShadow: "0 0 12px rgba(34,211,238,0.25)" }}>
-                      <Radio className="w-[18px] h-[18px] text-cyan-400" strokeWidth={2} />
-                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(34,211,238,1)" }} />
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative transition-colors duration-150" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                      <Radio className="w-[18px] h-[18px] text-slate-400" strokeWidth={2} />
+                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.8)" }} />
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-[13px] font-semibold leading-tight text-white">Release Radar</span>
-                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(34,211,238,0.7)" }}>Live updates</span>
+                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Live updates</span>
                     </div>
                   </Link>
                 </div>
@@ -616,7 +616,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               <button
                 onClick={fireLeftReactor}
                 title="Clear all filters"
-                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                aria-label="Clear all filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
                 style={{ width: 40, height: 40 }}
               >
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -792,7 +793,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               <button
                 onClick={fireRightReactor}
                 title="Randomize filters"
-                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                aria-label="Randomize filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
                 style={{ width: 40, height: 40 }}
               >
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -1197,7 +1199,7 @@ function FilterSelect({
           ref={buttonRef}
           type="button"
           onClick={handleToggle}
-          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-xs rounded-xl transition-all duration-200 focus:outline-none"
+          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-xs rounded-xl transition-all duration-200"
           style={{
             background: value ? "rgba(96,165,250,0.12)" : "rgba(255,255,255,0.06)",
             border: value ? "1px solid rgba(96,165,250,0.38)" : "1px solid rgba(255,255,255,0.10)",

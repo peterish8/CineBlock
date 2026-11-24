@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useState } from "react";
 import {
   ArrowLeft, Users, Copy, Check, Crown, Popcorn, LogOut, Loader2,
-  Flame, Star, Shield, UserMinus,
+  Flame, Star, Shield, UserMinus, Lock,
 } from "lucide-react";
 import { posterUrl } from "@/lib/constants";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -442,7 +442,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
 
             {/* Privacy note — hidden on mobile, shown on sidebar */}
             <div className="hidden md:flex items-start gap-3 px-3 py-3 bg-surface border-2 border-brutal-border">
-              <span className="text-base shrink-0">🔒</span>
+              <Lock className="w-4 h-4 shrink-0 text-brutal-dim" strokeWidth={2.5} />
               <p className="text-brutal-dim text-[10px] font-mono leading-relaxed">
                 If <span className="text-brutal-white font-bold">you have</span> a matched movie, you see who else wants to watch. Otherwise only the count is shown.
               </p>
@@ -454,7 +454,7 @@ function BlockContent({ blockId }: { blockId: Id<"rooms"> }) {
 
             {/* Privacy note — mobile only */}
             <div className="flex md:hidden items-start gap-3 px-4 py-3 bg-surface border-2 border-brutal-border">
-              <span className="text-base shrink-0">🔒</span>
+              <Lock className="w-4 h-4 shrink-0 text-brutal-dim" strokeWidth={2.5} />
               <p className="text-brutal-dim text-xs font-mono leading-relaxed">
                 If <span className="text-brutal-white font-bold">you have</span> a matched movie, you see <span className="text-brutal-white font-bold">who else</span> wants to watch it. Otherwise only the count is shown.
               </p>

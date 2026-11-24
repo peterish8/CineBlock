@@ -49,6 +49,16 @@ function validateActionId(actionId: string) {
   }
 }
 
+// Only the trusted /api/mcp route handler knows this secret, so these mutations
+// cannot be invoked directly by an external Convex client holding just a user
+// access token — they must go through the route's preview -> confirm flow.
+function requireInternalSecret(internalSecret: string) {
+  const expected = process.env.INTERNAL_API_SECRET;
+  if (!expected || internalSecret !== expected) {
+    throw new ConvexError("This operation must go through the CineBlock MCP route.");
+  }
+}
+
 const movieValidator = v.object({
   movieId: v.number(),
   movieTitle: v.string(),
@@ -215,6 +225,7 @@ export const getStampStatus = query({
 export const createPlaylist = mutation({
   args: {
     token: v.string(),
+    internalSecret: v.string(),
     actionId: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
@@ -222,6 +233,7 @@ export const createPlaylist = mutation({
     movies: v.array(movieValidator),
   },
   handler: async (ctx, args) => {
+    requireInternalSecret(args.internalSecret);
     const user = await getUserByToken(ctx, args.token);
     if (!user) throw new ConvexError("Invalid MCP token");
     validateActionId(args.actionId);
@@ -282,6 +294,7 @@ export const createPlaylist = mutation({
 export const createStamp = mutation({
   args: {
     token: v.string(),
+    internalSecret: v.string(),
     actionId: v.string(),
     movieId: v.number(),
     mediaType: v.optional(v.union(v.literal("movie"), v.literal("tv"))),
@@ -291,6 +304,7 @@ export const createStamp = mutation({
     isPublic: v.boolean(),
   },
   handler: async (ctx, args) => {
+    requireInternalSecret(args.internalSecret);
     const user = await getUserByToken(ctx, args.token);
     if (!user) throw new ConvexError("Invalid MCP token");
     validateActionId(args.actionId);

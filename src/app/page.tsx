@@ -20,6 +20,7 @@ import { useThemeMode } from "@/hooks/useThemeMode";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 import Attribution from "@/components/Attribution";
+import { useToast } from "@/components/ToastProvider";
 
 const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
 
@@ -41,6 +42,7 @@ function HomeContent() {
   const { liked, watchlist, watched } = useMovieLists();
   const likedCount = liked.length;
   const isGlass = useThemeMode() === "glass";
+  const { pushToast } = useToast();
 
   // Snapshot watched IDs once when the list first loads — cards only disappear after refresh.
   const [watchedIds, setWatchedIds] = useState<Set<number>>(() => new Set());
@@ -107,6 +109,7 @@ function HomeContent() {
         }
       } catch (e) {
         console.error("Failed to load shared media", e);
+        pushToast("error", "Couldn't load the shared title. Please try the link again.");
       }
     };
 
@@ -117,6 +120,8 @@ function HomeContent() {
       loadSharedMedia(tvId, "tv");
       window.history.replaceState({}, '', '/');
     }
+    // Intentionally run once on mount only — pushToast is stable (see ToastProvider).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Push a URL-based slug when opening a movie modal so:
@@ -193,18 +198,20 @@ function HomeContent() {
       // Pick a random page from top 50 popular pages
       const randomPage = Math.floor(Math.random() * 50) + 1;
       const res = await fetch(`/api/movies?action=discover&page=${randomPage}&sort=popularity.desc`);
-      if (res.ok) {
-        const data = await res.json();
-        const movies = data.results;
-        if (movies?.length > 0) {
-          const randomMovie = movies[Math.floor(Math.random() * movies.length)];
-          openMovie(randomMovie);
-        }
+      if (!res.ok) throw new Error(`Discover fetch failed with status ${res.status}`);
+      const data = await res.json();
+      const movies = data.results;
+      if (movies?.length > 0) {
+        const randomMovie = movies[Math.floor(Math.random() * movies.length)];
+        openMovie(randomMovie);
+      } else {
+        pushToast("info", "No surprise found right now. Try again in a moment.");
       }
     } catch (e) {
       console.error("Surprise me failed", e);
+      pushToast("error", "Couldn't fetch a surprise title. Please try again.");
     }
-  }, [openMovie]);
+  }, [openMovie, pushToast]);
 
   return (
     <main suppressHydrationWarning className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
@@ -246,32 +253,50 @@ function HomeContent() {
       {/* Media type tabs */}
       <div className="w-full">
         <div className="flex items-center">
-          <div className="h-[3px] flex-1 bg-brutal-border" />
-          <div className="flex items-center gap-0 mx-3">
+          <div className={isGlass ? "h-px flex-1" : "h-[3px] flex-1 bg-brutal-border"} style={isGlass ? { background: "rgba(255,255,255,0.08)" } : undefined} />
+          <div role="tablist" aria-label="Media type" className={`flex items-center gap-0 mx-3 ${isGlass ? "gap-1.5" : ""}`}>
             <button
+              type="button"
+              role="tab"
+              aria-selected={mediaTab === "movies"}
               onClick={() => setMediaTab("movies")}
-              className={`brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
-                mediaTab === "movies"
-                  ? "!bg-brutal-yellow !text-black !border-brutal-yellow"
-                  : ""
-              }`}
+              className={isGlass
+                ? `flex items-center gap-2 px-4 py-2 text-[11px] font-display font-semibold rounded-xl transition-all duration-200 ${
+                    mediaTab === "movies" ? "text-white" : "text-slate-400 hover:text-white"
+                  }`
+                : `brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
+                    mediaTab === "movies" ? "!bg-brutal-yellow !text-black !border-brutal-yellow" : ""
+                  }`}
+              style={isGlass ? (mediaTab === "movies"
+                ? { background: "rgba(96,165,250,0.18)", border: "1px solid rgba(96,165,250,0.45)", boxShadow: "0 0 16px rgba(96,165,250,0.15)" }
+                : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }
+              ) : undefined}
             >
               <Film className="w-3.5 h-3.5" strokeWidth={2.5} />
-              MOVIES
+              {isGlass ? "Movies" : "MOVIES"}
             </button>
             <button
+              type="button"
+              role="tab"
+              aria-selected={mediaTab === "tv"}
               onClick={() => setMediaTab("tv")}
-              className={`brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
-                mediaTab === "tv"
-                  ? "!bg-brutal-cyan !text-black !border-brutal-cyan"
-                  : ""
-              }`}
+              className={isGlass
+                ? `flex items-center gap-2 px-4 py-2 text-[11px] font-display font-semibold rounded-xl transition-all duration-200 ${
+                    mediaTab === "tv" ? "text-white" : "text-slate-400 hover:text-white"
+                  }`
+                : `brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
+                    mediaTab === "tv" ? "!bg-brutal-cyan !text-black !border-brutal-cyan" : ""
+                  }`}
+              style={isGlass ? (mediaTab === "tv"
+                ? { background: "rgba(96,165,250,0.18)", border: "1px solid rgba(96,165,250,0.45)", boxShadow: "0 0 16px rgba(96,165,250,0.15)" }
+                : { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }
+              ) : undefined}
             >
               <Tv className="w-3.5 h-3.5" strokeWidth={2.5} />
-              TV SHOWS
+              {isGlass ? "TV Shows" : "TV SHOWS"}
             </button>
           </div>
-          <div className="h-[3px] flex-1 bg-brutal-border" />
+          <div className={isGlass ? "h-px flex-1" : "h-[3px] flex-1 bg-brutal-border"} style={isGlass ? { background: "rgba(255,255,255,0.08)" } : undefined} />
         </div>
       </div>
 

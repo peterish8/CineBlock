@@ -13,6 +13,7 @@ import { useThemeMode } from "@/hooks/useThemeMode";
 import { getThemeDisplayName } from "@/lib/themeConfig";
 import IntegrationAccessModal from "@/components/IntegrationAccessModal";
 import TerminalAccessCard from "@/components/TerminalAccessCard";
+import { useToast } from "@/components/ToastProvider";
 
 type ImportDataPreview = {
   watched?: unknown[];
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   const convex = useConvex();
   const { signOut } = useAuthActions();
   const router = useRouter();
+  const { pushToast } = useToast();
 
   const theme = useThemeMode();
   const isGlass = theme === "glass";
@@ -150,6 +152,9 @@ export default function ProfilePage() {
       const token = await generateMcpToken();
       setMcpTokenValue(token);
       setMcpTokenVisible(true);
+    } catch (err) {
+      console.error(err);
+      pushToast("error", "Failed to generate MCP token. Please try again.");
     } finally {
       setGeneratingMcpToken(false);
     }
@@ -160,6 +165,9 @@ export default function ProfilePage() {
     void navigator.clipboard.writeText(mcpTokenValue).then(() => {
       setCopiedMcpToken(true);
       setTimeout(() => setCopiedMcpToken(false), 2000);
+    }).catch((err) => {
+      console.error(err);
+      pushToast("error", "Couldn't copy the token. Please copy it manually.");
     });
   };
 
@@ -228,7 +236,10 @@ export default function ProfilePage() {
     setIsImporting(true);
     setImportError("");
     try {
-      const stats = await importUserData({ payload: importDataPreview });
+      // The backup file's exact shape is validated server-side by importUserData's
+      // typed Convex validator; this file's own ImportDataPreview type only needs to
+      // be loose enough to preview a user-supplied JSON file before that happens.
+      const stats = await importUserData({ payload: importDataPreview as Parameters<typeof importUserData>[0]["payload"] });
       alert(`Import completed successfully!\n\nAdded:\n${stats.watchedAdded} Watched Movies\n${stats.likedAdded} Liked Movies\n${stats.watchlistAdded} Watchlist Movies\n${stats.blocksAdded} CineBlocks\n${stats.stampsAdded} Stamps`);
       setShowImportModal(false);
       setImportDataPreview(null);
@@ -428,6 +439,7 @@ export default function ProfilePage() {
                         : "brutal-btn p-1.5 hover:!border-brutal-yellow hover:!text-brutal-yellow"}
                       style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
                       title="Edit name"
+                      aria-label="Edit name"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={2.5} />
                     </button>
@@ -463,7 +475,7 @@ export default function ProfilePage() {
                   <span className="font-display font-semibold text-[10px] tracking-widest uppercase" style={{ color: glassColor }}>{label}</span>
                 </div>
                 <div className="px-4 py-5 text-center">
-                  <span className={`font-display font-black text-2xl sm:text-4xl ${glassText}`} style={{ textShadow: `0 0 20px currentColor` }}>{value}</span>
+                  <span className={`font-display font-black text-2xl sm:text-4xl tabular-nums ${glassText}`}>{value}</span>
                   <p className="text-slate-500 text-[10px] font-mono mt-1">{value === 1 ? "movie" : "movies"}</p>
                 </div>
               </div>
@@ -474,7 +486,7 @@ export default function ProfilePage() {
                   <span className="font-mono font-black text-[10px] text-black tracking-widest">{label}</span>
                 </div>
                 <div className="px-4 py-4 text-center">
-                  <span className={`font-display font-black text-2xl sm:text-4xl text-brutal-${brutalColor}`}>{value}</span>
+                  <span className={`font-display font-black text-2xl sm:text-4xl tabular-nums text-brutal-${brutalColor}`}>{value}</span>
                   <p className="text-brutal-dim text-[10px] font-mono mt-1">{value === 1 ? "movie" : "movies"}</p>
                 </div>
               </div>
@@ -490,9 +502,9 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2">
             {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(96,165,250,0.9), rgba(139,92,246,0.6))" }} />}
             <h2 className={isGlass
-              ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]"
+              ? "text-xs text-slate-400"
               : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}>
-              Account Details
+              Account details
             </h2>
           </div>
 
@@ -503,9 +515,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
-                <User className={`w-4 h-4 shrink-0 ${isGlass ? "text-blue-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
+                <User className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
                 <div>
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Display Name</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Display Name</p>
                   <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{displayName}</p>
                 </div>
               </div>
@@ -529,9 +541,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <AtSign className={`w-4 h-4 shrink-0 ${isGlass ? "text-emerald-400" : "text-brutal-lime"}`} strokeWidth={2.5} />
+                <AtSign className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-lime"}`} strokeWidth={2.5} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Username</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Username</p>
                   {editingUsername ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`font-mono text-sm ${isGlass ? "text-slate-400" : "text-brutal-dim"}`}>@</span>
@@ -585,10 +597,10 @@ export default function ProfilePage() {
                 style={isGlass ? glassRow : undefined}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Link2 className={`w-4 h-4 shrink-0 ${isGlass ? "text-violet-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
+                  <Link2 className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
                   <div className="min-w-0">
-                    <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Your Public Profile</p>
-                    <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>moviex.app/u/{user.username}</p>
+                    <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Your Public Profile</p>
+                    <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>{typeof window !== "undefined" ? window.location.host : "www.cineblock.in"}/u/{user.username}</p>
                   </div>
                 </div>
                 <button
@@ -596,6 +608,9 @@ export default function ProfilePage() {
                     void navigator.clipboard.writeText(`${window.location.origin}/u/${user.username}`).then(() => {
                       setCopiedProfileLink(true);
                       setTimeout(() => setCopiedProfileLink(false), 2000);
+                    }).catch((err) => {
+                      console.error(err);
+                      pushToast("error", "Couldn't copy the link. Please copy it manually.");
                     });
                   }}
                   className={isGlass
@@ -614,9 +629,9 @@ export default function ProfilePage() {
               className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
-              <Mail className={`w-4 h-4 shrink-0 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
+              <Mail className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
               <div className="min-w-0">
-                <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Email</p>
+                <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Email</p>
                 <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>{user?.email || "Not provided"}</p>
               </div>
             </div>
@@ -626,9 +641,9 @@ export default function ProfilePage() {
               className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
-              <Calendar className={`w-4 h-4 shrink-0 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`} strokeWidth={2.5} />
+              <Calendar className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-pink"}`} strokeWidth={2.5} />
               <div>
-                <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Member Since</p>
+                <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Member Since</p>
                 <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{memberSince}</p>
               </div>
             </div>
@@ -639,9 +654,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
-                <Palette className={`w-4 h-4 shrink-0 ${isGlass ? "text-violet-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
+                <Palette className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
                 <div>
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Theme</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Theme</p>
                   <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{getThemeDisplayName("glass")}</p>
                 </div>
               </div>
@@ -663,9 +678,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
-                <Globe className={`w-4 h-4 shrink-0 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
+                <Globe className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Preferred Languages (Max 5)</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Preferred Languages (Max 5)</p>
                   <p className={`text-[10px] font-mono mt-0.5 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Home page feeds will be curated for your selected languages.</p>
                 </div>
               </div>
@@ -821,7 +836,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2">
             {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(34,211,238,0.9), rgba(52,211,153,0.6))" }} />}
             <Download className={`w-4 h-4 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
-            <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Data &amp; Privacy</h2>
+            <h2 className={`flex-1 ${isGlass ? "text-xs text-slate-400" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Data &amp; Privacy</h2>
           </div>
           <p className={`text-[11px] font-mono ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>
             Securely backup your library offline, or migrate your profile to a secondary node via raw JSON payloads.

@@ -145,7 +145,7 @@ export default function SwipeSummaryScreen({ engine }: { engine: CineSwipeEngine
         action: s.action,
       }));
       await recordSwipeBatch({ swipes: payload });
-      pushToast("success", "Session saved! 🍿");
+      pushToast("success", "Session saved!");
       router.push("/");
     } catch (e: unknown) {
       pushToast("error", e instanceof Error ? e.message : "Failed to save session");
@@ -507,12 +507,12 @@ export default function SwipeSummaryScreen({ engine }: { engine: CineSwipeEngine
               ? {
                   display: "flex",
                   background: isCommiting
-                    ? "rgba(236,72,153,0.15)"
-                    : "linear-gradient(135deg, rgba(236,72,153,0.90) 0%, rgba(168,85,247,0.85) 50%, rgba(96,165,250,0.80) 100%)",
-                  border: "1px solid rgba(236,72,153,0.60)",
+                    ? "rgba(249,115,22,0.15)"
+                    : "linear-gradient(135deg, rgba(249,115,22,0.90) 0%, rgba(251,146,60,0.85) 50%, rgba(96,165,250,0.80) 100%)",
+                  border: "1px solid rgba(249,115,22,0.60)",
                   boxShadow: isCommiting
                     ? "none"
-                    : "0 0 32px rgba(236,72,153,0.45), 0 0 64px rgba(168,85,247,0.25), 0 8px 24px rgba(0,0,0,0.5)",
+                    : "0 0 32px rgba(249,115,22,0.45), 0 0 64px rgba(251,146,60,0.25), 0 8px 24px rgba(0,0,0,0.5)",
                   color: "#fff",
                 }
               : undefined

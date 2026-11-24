@@ -14,7 +14,7 @@ import SelectionBar from "@/components/SelectionBar";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 function WatchedContent() {
-  const { watched } = useMovieLists();
+  const { watched, listsReady } = useMovieLists();
   const isGlass = useThemeMode() === "glass";
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
   const [filteredMovies, setFilteredMovies] = useState<TMDBMovie[]>(watched);
@@ -72,6 +72,7 @@ function WatchedContent() {
           <div className="flex items-center gap-4">
             <Link
               href="/"
+              aria-label="Back to home"
               className={isGlass ? "flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-white/10" : "brutal-btn p-2.5"}
               style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}
             >
@@ -111,7 +112,19 @@ function WatchedContent() {
       </div>
 
       <div className="flex-1 max-w-[1600px] mx-auto w-full pt-2 pb-8 relative z-10">
-        {watched.length === 0 ? (
+        {!listsReady ? (
+          <div className="px-4 sm:px-6 pt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`aspect-[2/3] w-full ${isGlass ? "rounded-xl animate-pulse" : "brutal-shimmer"}`}
+                  style={isGlass ? { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" } : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        ) : watched.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center px-4">
             <div
               className={isGlass ? "p-8 max-w-md w-full rounded-2xl" : "brutal-card p-8 max-w-md w-full"}
@@ -145,9 +158,16 @@ function WatchedContent() {
           <>
             <ListFilterBar movies={watched} onFiltered={handleFiltered} />
             <div className="px-4 sm:px-6">
-              <p className={`text-[10px] uppercase tracking-wider mb-4 ${isGlass ? "text-slate-500" : "text-brutal-dim font-mono"}`}>
+              <p className={`mb-4 ${isGlass ? "text-xs text-slate-400" : "text-[10px] uppercase tracking-wider text-brutal-dim font-mono"}`}>
                 {watched.length} movies watched — your personal history
               </p>
+              {filteredMovies.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                  <p className={`text-sm ${isGlass ? "text-slate-400" : "text-brutal-muted font-mono"}`}>
+                    No movies match the current filters.
+                  </p>
+                </div>
+              ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {filteredMovies.map((movie, i) => {
                   const title = movie.title || movie.name || "";
@@ -209,6 +229,7 @@ function WatchedContent() {
                   );
                 })}
               </div>
+              )}
             </div>
           </>
         )}

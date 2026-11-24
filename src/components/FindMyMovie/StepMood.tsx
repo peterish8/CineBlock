@@ -1,18 +1,20 @@
 "use client";
 
+import { Brain, Drama, Ghost, Laugh, Flame, Heart, Rocket } from "lucide-react";
+
 interface StepMoodProps {
   value: string;
   onChange: (mood: string) => void;
 }
 
 const MOODS = [
-  { id: "brain-off", emoji: "🧠", label: "Turn My Brain Off", desc: "Easy, fun, no thinking needed" },
-  { id: "feel-something", emoji: "🥺", label: "Feel Something", desc: "Emotional, moving, meaningful" },
-  { id: "get-scared", emoji: "😱", label: "Scare Me", desc: "Horror, tension, edge of your seat" },
-  { id: "laugh", emoji: "😂", label: "Make Me Laugh", desc: "Comedy, light-hearted, fun" },
-  { id: "inspired", emoji: "💪", label: "Inspire Me", desc: "Real stories, triumph, motivation" },
-  { id: "love", emoji: "💕", label: "Fall In Love", desc: "Romance, chemistry, warmth" },
-  { id: "adventure", emoji: "🚀", label: "Take Me Somewhere", desc: "Fantasy, sci-fi, epic worlds" },
+  { id: "brain-off", icon: Brain, label: "Turn My Brain Off", desc: "Easy, fun, no thinking needed" },
+  { id: "feel-something", icon: Drama, label: "Feel Something", desc: "Emotional, moving, meaningful" },
+  { id: "get-scared", icon: Ghost, label: "Scare Me", desc: "Horror, tension, edge of your seat" },
+  { id: "laugh", icon: Laugh, label: "Make Me Laugh", desc: "Comedy, light-hearted, fun" },
+  { id: "inspired", icon: Flame, label: "Inspire Me", desc: "Real stories, triumph, motivation" },
+  { id: "love", icon: Heart, label: "Fall In Love", desc: "Romance, chemistry, warmth" },
+  { id: "adventure", icon: Rocket, label: "Take Me Somewhere", desc: "Fantasy, sci-fi, epic worlds" },
 ];
 
 export default function StepMood({ value, onChange }: StepMoodProps) {
@@ -33,7 +35,7 @@ export default function StepMood({ value, onChange }: StepMoodProps) {
                 : "brutal-card hover:!border-brutal-yellow"
             }`}
           >
-            <span className="text-2xl block mb-1">{mood.emoji}</span>
+            <mood.icon className="w-6 h-6 mb-1" strokeWidth={2} />
             <span className="font-display font-bold text-sm uppercase block leading-tight">
               {mood.label}
             </span>

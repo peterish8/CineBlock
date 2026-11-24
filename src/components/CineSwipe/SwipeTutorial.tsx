@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ArrowRight, ArrowUp, ArrowDown,
-  Heart, Undo2, Keyboard,
+  Heart, Undo2, Keyboard, Play,
 } from "lucide-react";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
@@ -62,9 +62,9 @@ const gestures = [
     label: "FAVOURITE",
     desc: "Double-tap",
     key: "Space",
-    glassColor: "text-pink-400",
-    glassBorder: "rgba(236,72,153,0.45)",
-    glassGlow: "rgba(236,72,153,0.12)",
+    glassColor: "text-orange-400",
+    glassBorder: "rgba(249,115,22,0.45)",
+    glassGlow: "rgba(249,115,22,0.12)",
     brutalColor: "text-brutal-red",
     brutalBorder: "border-brutal-red",
     isTap: true,
@@ -77,7 +77,7 @@ const keybinds = [
   { keys: ["→"], label: "Add to Watchlist", color: "rgba(52,211,153,0.9)" },
   { keys: ["↓"], label: "Mark as Watched", color: "rgba(34,211,238,0.9)" },
   { keys: ["↑"], label: "Add to CineBlock", color: "rgba(139,92,246,0.9)" },
-  { keys: ["Space"], label: "Favourite ♥", color: "rgba(236,72,153,0.9)" },
+  { keys: ["Space"], label: "Favourite ♥", color: "rgba(249,115,22,0.9)" },
   { keys: ["Z", "⌫"], label: "Undo last swipe", color: "rgba(248,196,113,0.9)" },
 ];
 
@@ -258,9 +258,9 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               style={
                 isGlass
                   ? {
-                      background: "rgba(236,72,153,0.18)",
-                      border: "1px solid rgba(236,72,153,0.45)",
-                      color: "#F472B6",
+                      background: "rgba(249,115,22,0.18)",
+                      border: "1px solid rgba(249,115,22,0.45)",
+                      color: "#FDBA74",
                     }
                   : undefined
               }
@@ -279,7 +279,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="h-1.5 w-6 rounded-full cursor-pointer transition-transform"
-                style={{ background: "rgba(236,72,153,0.8)" }}
+                style={{ background: "rgba(249,115,22,0.8)" }}
                 onClick={() => { setDirection(-1); setSlide(1); }}
               />
               <motion.button
@@ -367,7 +367,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               >
                 <Undo2 className={`h-3.5 w-3.5 shrink-0 ${isGlass ? "text-amber-300" : "text-brutal-dim"}`} strokeWidth={2.5} />
                 <p className={`text-[10px] leading-relaxed ${isGlass ? "text-slate-500" : "font-mono text-brutal-dim"}`}>
-                  Nothing saves until you press <strong className={isGlass ? "text-pink-300" : ""}>Done</strong>. Undo anytime with <strong className={isGlass ? "text-amber-300" : ""}>Z</strong>.
+                  Nothing saves until you press <strong className={isGlass ? "text-orange-300" : ""}>Done</strong>. Undo anytime with <strong className={isGlass ? "text-amber-300" : ""}>Z</strong>.
                 </p>
               </motion.div>
             </div>
@@ -384,7 +384,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
 
             <motion.button
               onClick={onDismiss}
-              className={`mt-5 w-full flex h-13 items-center justify-center text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${
+              className={`mt-5 w-full flex h-13 items-center justify-center gap-2 text-sm font-black uppercase tracking-widest transition-all active:scale-[0.98] ${
                 isGlass
                   ? "rounded-xl"
                   : "brutal-btn border-2 border-brutal-pink bg-brutal-pink text-black font-mono hover:bg-white hover:text-brutal-pink"
@@ -392,10 +392,10 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               style={
                 isGlass
                   ? {
-                      background: "linear-gradient(135deg, rgba(236,72,153,0.85), rgba(168,85,247,0.80))",
-                      border: "1px solid rgba(236,72,153,0.55)",
+                      background: "linear-gradient(135deg, rgba(249,115,22,0.85), rgba(96,165,250,0.80))",
+                      border: "1px solid rgba(249,115,22,0.55)",
                       color: "#fff",
-                      boxShadow: "0 0 24px rgba(236,72,153,0.35), 0 4px 16px rgba(0,0,0,0.4)",
+                      boxShadow: "0 0 24px rgba(249,115,22,0.35), 0 4px 16px rgba(0,0,0,0.4)",
                       height: "52px",
                     }
                   : undefined
@@ -405,7 +405,8 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               transition={{ delay: 0.45 }}
               whileTap={{ scale: 0.97 }}
             >
-              Let&apos;s Go 🍿
+              <Play className="h-4 w-4" strokeWidth={2.5} fill="currentColor" />
+              Let&apos;s Go
             </motion.button>
 
             {/* Step indicator */}
@@ -420,7 +421,7 @@ export default function SwipeTutorial({ onDismiss }: SwipeTutorialProps) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 className="h-1.5 w-6 rounded-full cursor-pointer transition-transform"
-                style={{ background: "rgba(236,72,153,0.8)" }}
+                style={{ background: "rgba(249,115,22,0.8)" }}
                 onClick={() => { setDirection(1); setSlide(2); }}
               />
             </div>

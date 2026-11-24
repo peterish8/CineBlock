@@ -1,4 +1,4 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../../../../convex/_generated/api";
@@ -203,19 +203,40 @@ async function posterContent(posterUrl: string | null): Promise<ContentBlock | n
   }
 }
 
-function encodeConfirmation(token: string, kind: "playlist" | "stamp", data: unknown): string {
-  const payload = Buffer.from(JSON.stringify({ kind, data: { actionId: randomUUID(), ...(data as object) }, expiresAt: Date.now() + CONFIRMATION_TTL_MS })).toString("base64url");
-  const signature = createHmac("sha256", token).update(payload).digest("base64url");
+function getInternalSecret(): string {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) throw new Error("INTERNAL_API_SECRET is not configured on the server.");
+  return secret;
+}
+
+function hashContent(data: unknown): string {
+  return createHash("sha256").update(JSON.stringify(data)).digest("base64url");
+}
+
+// Confirmation handles are signed with a server-only secret (never the caller's bearer
+// token) and bound to the authenticated Convex user ID plus a hash of the previewed
+// content, so a client holding only its own access token cannot forge one, and
+// refreshing the OAuth token between preview and save does not invalidate it.
+function encodeConfirmation(userId: string, kind: "playlist" | "stamp", data: Record<string, unknown>): string {
+  const contentHash = hashContent(data);
+  const payload = Buffer.from(JSON.stringify({
+    kind,
+    userId,
+    contentHash,
+    data: { actionId: randomUUID(), ...data },
+    expiresAt: Date.now() + CONFIRMATION_TTL_MS,
+  })).toString("base64url");
+  const signature = createHmac("sha256", getInternalSecret()).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
 
-function decodeConfirmation<T>(token: string, confirmationToken: string, kind: "playlist" | "stamp"): T {
+function decodeConfirmation<T extends Record<string, unknown>>(userId: string, confirmationToken: string, kind: "playlist" | "stamp"): T {
   const [payload, signature] = confirmationToken.split(".");
   if (!payload || !signature || payload.length > 20000) throw new Error("Confirmation expired or invalid. Please preview again.");
-  const expected = createHmac("sha256", token).update(payload).digest();
+  const expected = createHmac("sha256", getInternalSecret()).update(payload).digest();
   const received = Buffer.from(signature, "base64url");
   if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error("Confirmation expired or invalid. Please preview again.");
-  let decoded: { kind?: string; data?: T; expiresAt?: number };
+  let decoded: { kind?: string; userId?: string; contentHash?: string; data?: T & { actionId?: string }; expiresAt?: number };
   try {
     decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as typeof decoded;
   } catch {
@@ -224,13 +245,16 @@ function decodeConfirmation<T>(token: string, confirmationToken: string, kind: "
   const expiresAt = decoded.expiresAt;
   if (
     decoded.kind !== kind ||
+    decoded.userId !== userId ||
     typeof expiresAt !== "number" ||
     !Number.isSafeInteger(expiresAt) ||
     expiresAt <= Date.now() ||
     !decoded.data ||
     typeof decoded.data !== "object"
   ) throw new Error("Confirmation expired or invalid. Please preview again.");
-  return decoded.data;
+  const { actionId, ...content } = decoded.data;
+  if (!actionId || hashContent(content) !== decoded.contentHash) throw new Error("Confirmation expired or invalid. Please preview again.");
+  return decoded.data as T;
 }
 
 function textResult(text: string, images: Array<ContentBlock | null> = [], structuredContent?: Record<string, unknown>) {
@@ -318,6 +342,18 @@ const SERVER_INSTRUCTIONS = [
 const mcpHandler = createMcpHandler(({ requestInfo }) => {
   const token = requestInfo ? extractToken(requestInfo) : null;
   const baseUrl = getBaseUrl(requestInfo);
+  let userIdPromise: Promise<string | null> | null = null;
+  // Resolve the stable Convex user ID once per request, for binding confirmation
+  // tokens to the authenticated user (not the possibly-rotating bearer token).
+  function getUserId(): Promise<string | null> {
+    if (!token) return Promise.resolve(null);
+    if (!userIdPromise) {
+      userIdPromise = convex.query(api.users.pingMcpToken, { token })
+        .then((result) => (result.ok && typeof result.userId === "string" ? result.userId : null))
+        .catch(() => null);
+    }
+    return userIdPromise;
+  }
   const server = new McpServer({
     name: "cineblock-mcp",
     title: "CineBlock",
@@ -450,8 +486,10 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         const selected = movieIds?.length ? movieIds.map((id) => byId.get(id)).filter((item): item is NonNullable<typeof item> => !!item) : Array.from(byId.values());
         if (!selected.length) return errorResult(new Error("The preview contains no titles. Check the requested source or movie IDs."));
         if (selected.length > 35) return errorResult(new Error("The preview contains more than CineBlock's 35-title limit. Narrow the source or movie IDs."));
+        const userId = await getUserId();
+        if (!userId) return errorResult(new Error("Could not resolve the authenticated user. Please reconnect and try again."));
         const previewData = { title: title.trim(), description: description?.trim() || undefined, isPublic, movies: selected };
-        const confirmationToken = encodeConfirmation(token!, "playlist", previewData);
+        const confirmationToken = encodeConfirmation(userId, "playlist", previewData);
         return textResult(
           `PLAYLIST PREVIEW — ${escapeMarkdown(previewData.title)}\nVisibility: ${isPublic ? "public" : "private"}\nTitles: ${selected.length}\nSources: ${selectedSources.join(", ")}\n\n${selected.map((item, index) => `${index + 1}. ${escapeMarkdown(item.movieTitle)} · TMDB ${item.movieId}\n   ${toPosterUrl(item.posterPath) ?? "No poster available"}`).join("\n")}\n\nNothing has been saved. Call create_playlist with confirmationToken only after the user approves this exact preview.\nconfirmationToken: ${confirmationToken}`,
           [],
@@ -481,8 +519,18 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ confirmationToken }) => {
       try {
-        const data = decodeConfirmation<{ actionId: string; title: string; description?: string; isPublic: boolean; movies: Array<{ movieId: number; movieTitle: string; posterPath: string }> }>(token!, confirmationToken, "playlist");
-        const result = await convex.mutation(api.mcp.createPlaylist, { token: token!, ...data });
+        const userId = await getUserId();
+        if (!userId) return errorResult(new Error("Could not resolve the authenticated user. Please reconnect and try again."));
+        const data = decodeConfirmation<{ actionId: string; title: string; description?: string; isPublic: boolean; movies: Array<{ movieId: number; movieTitle: string; posterPath: string }> }>(userId, confirmationToken, "playlist");
+        const result = await convex.mutation(api.mcp.createPlaylist, {
+          token: token!,
+          internalSecret: getInternalSecret(),
+          actionId: data.actionId,
+          title: data.title,
+          description: data.description,
+          isPublic: data.isPublic,
+          movies: data.movies,
+        });
         const link = `${baseUrl}/cineblock/${result.blockId}`;
         return textResult(
           `Playlist saved: ${data.title}\n${result.movieCount} titles\nVisibility: ${result.isPublic ? "public" : "private"}\nShare link: ${link}${result.isPublic ? "" : " (private — only you can open it while signed in)"}`,
@@ -559,8 +607,12 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     async ({ tmdbId, mediaType, reviewText, isPublic }) => {
       try {
         const title = await getTitle(tmdbId, mediaType);
+        const userId = await getUserId();
+        if (!userId) return errorResult(new Error("Could not resolve the authenticated user. Please reconnect and try again."));
+        // posterUrl/year ride along only for display in the preview and the approval
+        // card; they are never passed to the createStamp mutation (see save_stamp).
         const data = { movieId: title.id, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic, mediaType, posterUrl: title.posterUrl, year: title.year };
-        const confirmationToken = encodeConfirmation(token!, "stamp", data);
+        const confirmationToken = encodeConfirmation(userId, "stamp", data);
         return textResult(
           `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/${STAMP_TEXT_MAX}\n- **Poster:** ${title.posterUrl ?? "No poster available"}\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
           [],
@@ -599,8 +651,22 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ confirmationToken }) => {
       try {
-        const data = decodeConfirmation<{ actionId: string; movieId: number; mediaType?: "movie" | "tv"; movieTitle: string; posterPath: string; reviewText: string; isPublic: boolean }>(token!, confirmationToken, "stamp");
-        const result = await convex.mutation(api.mcp.createStamp, { token: token!, ...data });
+        const userId = await getUserId();
+        if (!userId) return errorResult(new Error("Could not resolve the authenticated user. Please reconnect and try again."));
+        const data = decodeConfirmation<{ actionId: string; movieId: number; mediaType?: "movie" | "tv"; movieTitle: string; posterPath: string; reviewText: string; isPublic: boolean }>(userId, confirmationToken, "stamp");
+        // Only pass the fields createStamp's validator accepts — posterUrl/year from
+        // the preview are display-only and are never forwarded to the mutation.
+        const result = await convex.mutation(api.mcp.createStamp, {
+          token: token!,
+          internalSecret: getInternalSecret(),
+          actionId: data.actionId,
+          movieId: data.movieId,
+          mediaType: data.mediaType,
+          movieTitle: data.movieTitle,
+          posterPath: data.posterPath,
+          reviewText: data.reviewText,
+          isPublic: data.isPublic,
+        });
         const link = `${baseUrl}/profile`;
         return textResult(
           `Stamp saved for ${data.movieTitle}.\nVisibility: ${result.isPublic ? "public" : "private"}\nProfile link: ${link}`,

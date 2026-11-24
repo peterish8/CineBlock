@@ -57,7 +57,9 @@ function SignInContent() {
     setError("");
     setLoading(true);
     try {
-      await signIn("google");
+      // returnTo is already validated above to be a same-origin relative path
+      // (starts with "/", never "//"), which is what Convex Auth's redirectTo expects.
+      await signIn("google", { redirectTo: returnTo });
     } catch (err: unknown) {
       setError(extractAuthErrorMessage(err));
     } finally {
@@ -81,43 +83,46 @@ function SignInContent() {
             <ArrowLeft className="h-3.5 w-3.5 text-slate-500 transition group-hover:-translate-x-0.5" />
           </Link>
           <div className="hidden items-center gap-2 rounded-full border border-cyan-200/10 bg-cyan-100/[0.04] px-3 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-100/65 sm:flex">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_12px_3px_rgba(103,232,249,0.6)]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_3px_rgba(103,232,249,0.6)]" />
             Secure connection
           </div>
         </header>
 
         <div className="grid flex-1 items-center gap-12 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:py-16">
           <section className="auth-reveal max-w-xl" aria-labelledby="auth-title">
-            <div className="mb-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-orange-200/65" style={{ animationDelay: "80ms" }}>
-              <span className="h-px w-10 bg-gradient-to-r from-orange-300/80 to-transparent" />
-              CineBlock MCP
-            </div>
+            {/* MCP/ChatGPT pitch is only relevant when arriving via the OAuth-for-MCP
+                connection flow (returnTo=/oauth/authorize...). Plain sign-in never shows it. */}
+            {isOAuthConnection && (
+              <div className="mb-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.28em] text-orange-200/65" style={{ animationDelay: "80ms" }}>
+                <span className="h-px w-10 bg-gradient-to-r from-orange-300/80 to-transparent" />
+                CineBlock MCP
+              </div>
+            )}
             <h1 id="auth-title" className="auth-reveal font-display text-5xl font-semibold leading-[0.96] tracking-[-0.06em] text-white sm:text-6xl lg:text-[5.25rem]" style={{ animationDelay: "160ms" }}>
               Your cinema,
-              <span className="block bg-gradient-to-r from-cyan-200 via-blue-300 to-orange-200 bg-clip-text pb-2 text-transparent">in the conversation.</span>
+              <span className="block pb-2 text-white">in the conversation.</span>
             </h1>
             <p className="auth-reveal mt-7 max-w-md text-base leading-7 text-slate-300/75 sm:text-lg" style={{ animationDelay: "240ms" }}>
               {isOAuthConnection ? "Sign in once to link your CineBlock library with ChatGPT. You stay in control of every playlist and stamp." : "Sign in to keep your watchlist, memories, and movie nights together."}
             </p>
 
-            <div className="auth-reveal relative mt-12 h-40 max-w-md" style={{ animationDelay: "320ms" }} aria-hidden="true">
-              <div className="auth-signal-line absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-cyan-300/0 via-cyan-200/45 to-orange-200/0" />
-              <div className="absolute left-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2">
-                <div className="auth-node flex h-16 w-16 items-center justify-center rounded-[22px] border border-cyan-200/20 bg-[#07132d]/80 shadow-[0_0_35px_rgba(96,165,250,0.2),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
-                  <Image src="/brand/cineblock-icon-256.png" alt="" width={42} height={42} className="object-contain" unoptimized />
+            {isOAuthConnection && (
+              <div className="auth-reveal relative mt-12 h-40 max-w-md" style={{ animationDelay: "320ms" }} aria-hidden="true">
+                <div className="auth-signal-line absolute left-8 right-8 top-1/2 h-px bg-gradient-to-r from-cyan-300/0 via-cyan-200/45 to-orange-200/0" />
+                <div className="absolute left-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2">
+                  <div className="auth-node flex h-16 w-16 items-center justify-center rounded-[22px] border border-cyan-200/20 bg-[#07132d]/80 shadow-[0_0_35px_rgba(96,165,250,0.2),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
+                    <Image src="/brand/cineblock-icon-256.png" alt="" width={42} height={42} className="object-contain" unoptimized />
+                  </div>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-100/55">CineBlock</span>
                 </div>
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-100/55">CineBlock</span>
-              </div>
-              <div className="absolute right-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2">
-                <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-orange-200/20 bg-white/[0.07] text-orange-100 shadow-[0_0_35px_rgba(249,115,22,0.16),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
-                  <Link2 className="h-7 w-7" strokeWidth={1.5} />
+                <div className="absolute right-0 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-orange-200/20 bg-white/[0.07] text-orange-100 shadow-[0_0_35px_rgba(249,115,22,0.16),inset_0_1px_0_rgba(255,255,255,0.14)] backdrop-blur-xl">
+                    <Link2 className="h-7 w-7" strokeWidth={1.5} />
+                  </div>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-orange-100/55">ChatGPT</span>
                 </div>
-                <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-orange-100/55">ChatGPT</span>
               </div>
-              <div className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#07132d] text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.25)]">
-                <Sparkles className="h-4 w-4" />
-              </div>
-            </div>
+            )}
 
             <div className="auth-reveal grid max-w-md grid-cols-3 gap-2 border-t border-white/10 pt-5" style={{ animationDelay: "400ms" }}>
               {[{ icon: Film, label: "Library" }, { icon: Sparkles, label: "Stamps" }, { icon: ShieldCheck, label: "Private" }].map(({ icon: Icon, label }) => (
@@ -135,7 +140,9 @@ function SignInContent() {
                 <div className="mb-8 flex items-start justify-between gap-4">
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-cyan-200/65">Account link</p>
-                    <h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em] text-white">{isOAuthConnection ? "Connect your taste." : "Welcome back."}</h2>
+                    {/* No reliable signal yet for new vs. returning user before Google
+                        completes sign-in, so this stays neutral rather than assuming either. */}
+                    <h2 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em] text-white">{isOAuthConnection ? "Connect your taste." : "Sign in to CineBlock."}</h2>
                   </div>
                   <div className="rounded-2xl border border-orange-200/15 bg-orange-100/[0.06] p-3 text-orange-100/80">
                     <Link2 className="h-5 w-5" strokeWidth={1.6} />
@@ -158,7 +165,14 @@ function SignInContent() {
                   className="group flex w-full items-center justify-between rounded-2xl border border-cyan-200/30 bg-gradient-to-r from-cyan-200 to-blue-300 px-4 py-3.5 text-sm font-semibold text-[#06112c] shadow-[0_10px_30px_rgba(96,165,250,0.18)] transition duration-300 hover:-translate-y-0.5 hover:border-white/70 hover:shadow-[0_14px_38px_rgba(96,165,250,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/70 font-google text-xl font-extrabold leading-none">G</span>
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white">
+                      <svg viewBox="0 0 48 48" className="h-4.5 w-4.5" aria-hidden="true">
+                        <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z" />
+                        <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.32-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z" />
+                        <path fill="#FBBC05" d="M11.68 28.18A13.93 13.93 0 0 1 10.89 24c0-1.45.25-2.86.7-4.18v-5.7H4.34A21.93 21.93 0 0 0 2 24c0 3.55.85 6.91 2.34 9.88l7.34-5.7z" />
+                        <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.34 5.7c1.74-5.2 6.59-9.07 12.32-9.07z" />
+                      </svg>
+                    </span>
                     {loading || isLoading ? "Connecting…" : "Continue with Google"}
                   </span>
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -177,7 +191,12 @@ function SignInContent() {
                   ))}
                 </div>
 
-                <p className="mt-6 text-center text-[10px] leading-4 text-slate-500">By continuing, you agree to sign in with your Google account.</p>
+                <p className="mt-6 text-center text-[10px] leading-4 text-slate-500">
+                  By continuing, you agree to sign in with your Google account and to CineBlock&apos;s{" "}
+                  <Link href="/terms" className="underline decoration-dotted hover:text-slate-300">Terms</Link>
+                  {" "}and{" "}
+                  <Link href="/privacy" className="underline decoration-dotted hover:text-slate-300">Privacy Policy</Link>.
+                </p>
 
                 {IS_DEV && (
                   <div className="mt-6 border-t border-dashed border-white/10 pt-5">

@@ -3,9 +3,9 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError } from "convex/values";
 
-const STAMP_REVIEW_MAX = 1000;
-const STAMP_TITLE_MAX = 200;
-const STAMP_POSTER_PATH_MAX = 2048;
+export const STAMP_REVIEW_MAX = 1000;
+export const STAMP_TITLE_MAX = 200;
+export const STAMP_POSTER_PATH_MAX = 2048;
 
 function validateStampIdentity(movieId: number, movieTitle: string, posterPath: string) {
   if (!Number.isSafeInteger(movieId) || movieId <= 0) throw new ConvexError("Invalid movie ID");

@@ -829,8 +829,9 @@ export default function CineBlockViewPage() {
                 </div>
               </div>
               {progress.watched === progress.total && progress.total > 0 && (
-                <p className={`font-bold text-xs text-center animate-fade-in ${isGlass ? "text-cyan-400" : "font-display uppercase tracking-widest text-brutal-cyan"}`}>
-                  🎬 {isGlass ? "Block complete — you've seen them all!" : "BLOCK COMPLETE — YOU'VE SEEN THEM ALL!"}
+                <p className={`flex items-center justify-center gap-1.5 font-bold text-xs text-center animate-fade-in ${isGlass ? "text-cyan-400" : "font-display uppercase tracking-widest text-brutal-cyan"}`}>
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                  {isGlass ? "Block complete — you've seen them all!" : "BLOCK COMPLETE — YOU'VE SEEN THEM ALL!"}
                 </p>
               )}
             </div>
@@ -862,7 +863,7 @@ export default function CineBlockViewPage() {
 
           {/* Drop zone indicator */}
           {isOwner && dragOver && (
-            <div className="border-3 border-dashed border-brutal-violet bg-brutal-violet/10 p-4 text-center font-display font-bold text-sm uppercase tracking-wider text-brutal-violet animate-pulse">
+            <div className="border-3 border-dashed border-brutal-violet bg-brutal-violet/10 p-4 text-center font-display font-bold text-sm uppercase tracking-wider text-brutal-violet">
               Drop to add to block
             </div>
           )}
@@ -903,7 +904,7 @@ export default function CineBlockViewPage() {
                       >
                         <button
                           onClick={() => void handleMovieClick(movie)}
-                          className="absolute inset-0 focus:outline-none"
+                          className="absolute inset-0"
                           aria-label={`View ${movie.movieTitle}`}
                         >
                           {movie.posterPath ? (

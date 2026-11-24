@@ -321,7 +321,7 @@ export default function MovieModal({
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-[calc(100%-1.5rem)] sm:w-full mx-auto sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar outline-none focus:outline-none focus-visible:outline-none ${
+        className={`relative w-[calc(100%-1.5rem)] sm:w-full mx-auto sm:max-w-6xl sm:mx-4 max-h-[92svh] sm:max-h-[85vh] overflow-y-auto overflow-x-hidden overscroll-contain no-scrollbar ${
           isGlass
             ? "bg-[rgba(4,12,36,0.70)] backdrop-blur-[48px] saturate-[1.6] border border-white/[0.10] rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.10)]"
             : "bg-bg border-3 border-brutal-border shadow-brutal-lg rounded-2xl sm:rounded-none"

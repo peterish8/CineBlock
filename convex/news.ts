@@ -1,6 +1,7 @@
-import { query, mutation, action, internalMutation, internalAction } from "./_generated/server";
-import { v } from "convex/values";
+import { query, mutation, internalMutation, internalAction } from "./_generated/server";
+import { v, ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const storeNewsFeed = internalMutation({
   args: {
@@ -47,6 +48,9 @@ const articleValidator = v.object({
 export const storeToday = mutation({
   args: { articles: v.array(articleValidator) },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
+    if (args.articles.length > 100) throw new ConvexError("Too many articles.");
     const today = new Date().toISOString().split("T")[0];
     const existing = await ctx.db
       .query("news_feed")
@@ -64,6 +68,8 @@ export const storeToday = mutation({
 // Deletes today's cache so the next load fetches fresh articles
 export const invalidateToday = mutation({
   handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new ConvexError("Not authenticated");
     const today = new Date().toISOString().split("T")[0];
     const existing = await ctx.db
       .query("news_feed")
@@ -101,7 +107,9 @@ export const fetchAndStore = internalAction({
   },
 });
 
-export const triggerFetch = action({
+// Nothing in the app calls this directly (the daily cron calls fetchAndStore
+// itself); kept internal-only so it can't be triggered by an unauthenticated caller.
+export const triggerFetch = internalAction({
   handler: async (ctx) => {
     await ctx.runAction(internal.news.fetchAndStore, {});
   },

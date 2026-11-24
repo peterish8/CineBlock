@@ -1,15 +1,17 @@
 "use client";
 
+import { Droplet, Zap, PawPrint, HeartCrack, Check } from "lucide-react";
+
 interface StepDealbreakersProps {
   value: string[];
   onChange: (dealbreakers: string[]) => void;
 }
 
 const OPTIONS = [
-  { id: "gore", label: "Extreme Gore", emoji: "🩸" },
-  { id: "jumpscares", label: "Jumpscares", emoji: "😨" },
-  { id: "animal-death", label: "Animal Death", emoji: "🐾" },
-  { id: "sad-ending", label: "Sad Ending", emoji: "💔" },
+  { id: "gore", label: "Extreme Gore", icon: Droplet },
+  { id: "jumpscares", label: "Jumpscares", icon: Zap },
+  { id: "animal-death", label: "Animal Death", icon: PawPrint },
+  { id: "sad-ending", label: "Sad Ending", icon: HeartCrack },
 ];
 
 export default function StepDealbreakers({ value, onChange }: StepDealbreakersProps) {
@@ -43,7 +45,7 @@ export default function StepDealbreakers({ value, onChange }: StepDealbreakersPr
                   : "brutal-card hover:!border-brutal-red"
               }`}
             >
-              <span className="text-2xl block mb-1">{opt.emoji}</span>
+              <opt.icon className="w-6 h-6 mb-1" strokeWidth={2} />
               <span className="font-display font-bold text-xs uppercase block leading-tight">
                 {opt.label}
               </span>
@@ -53,13 +55,14 @@ export default function StepDealbreakers({ value, onChange }: StepDealbreakersPr
       </div>
       <button
         onClick={clearAll}
-        className={`w-full p-3 text-center font-mono font-bold text-xs uppercase transition-all duration-100 ${
+        className={`w-full p-3 flex items-center justify-center gap-2 text-center font-mono font-bold text-xs uppercase transition-all duration-100 ${
           noneSelected
             ? "bg-brutal-lime text-black border-brutal-lime shadow-none"
             : "brutal-btn hover:!border-brutal-lime hover:!text-brutal-lime"
         }`}
       >
-        ✌️ NONE OF THESE — I&apos;M GOOD
+        <Check className="w-3.5 h-3.5" strokeWidth={3} />
+        NONE OF THESE — I&apos;M GOOD
       </button>
     </div>
   );
