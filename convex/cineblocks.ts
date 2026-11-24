@@ -2,9 +2,8 @@ import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id } from "./_generated/dataModel";
+import { MAX_BLOCKS_PER_USER, MAX_MOVIES_PER_BLOCK, MAX_BLOCK_TITLE_LENGTH, MAX_BLOCK_DESCRIPTION_LENGTH } from "./limits";
 
-const MAX_BLOCKS_PER_USER = 15;
-const MAX_MOVIES_PER_BLOCK = 35;
 const CREATE_BLOCK_MIN_INTERVAL_MS = 4000;
 const ADD_MOVIE_MIN_INTERVAL_MS = 500;
 const TOGGLE_SAVE_MIN_INTERVAL_MS = 500;
@@ -70,11 +69,11 @@ export const createBlock = mutation({
     if (!normalizedTitle) {
       throw new ConvexError("Block title is required.");
     }
-    if (normalizedTitle.length > 60) {
-      throw new ConvexError("Block title must be 60 characters or fewer.");
+    if (normalizedTitle.length > MAX_BLOCK_TITLE_LENGTH) {
+      throw new ConvexError(`Block title must be ${MAX_BLOCK_TITLE_LENGTH} characters or fewer.`);
     }
-    if (normalizedDescription && normalizedDescription.length > 280) {
-      throw new ConvexError("Description must be 280 characters or fewer.");
+    if (normalizedDescription && normalizedDescription.length > MAX_BLOCK_DESCRIPTION_LENGTH) {
+      throw new ConvexError(`Description must be ${MAX_BLOCK_DESCRIPTION_LENGTH} characters or fewer.`);
     }
 
     const userBlocks = await ctx.db

@@ -291,7 +291,7 @@ export default function StampModal({ isOpen, onClose, movie }: StampModalProps) 
                 rows={8}
                 className={`w-full resize-none overflow-hidden p-3 pb-8 text-sm leading-relaxed placeholder-slate-500 ${
                   isGlass
-                    ? "rounded-xl text-white bg-transparent focus:outline-none"
+                    ? "rounded-xl text-white bg-transparent"
                     : "border-4 border-brutal-border bg-surface font-mono text-text placeholder-text-muted focus:border-brutal-yellow focus:outline-none"
                 }`}
                 style={isGlass ? {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy, LogIn, RefreshCw, ShieldCheck, X } from "lucide-react";
 
 type HealthState = "idle" | "checking" | "healthy" | "unavailable";
@@ -42,6 +42,8 @@ export default function IntegrationAccessModal({
   onGenerateMcpToken,
 }: IntegrationAccessModalProps) {
   const [mcpHealth, setMcpHealth] = useState<HealthState>("idle");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
   const checkHealth = async () => {
     setMcpHealth("checking");
@@ -81,15 +83,51 @@ export default function IntegrationAccessModal({
   useEffect(() => {
     if (!open) return;
     void checkHealth();
+
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+
+    const getFocusable = () =>
+      dialogRef.current
+        ? Array.from(
+            dialogRef.current.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )
+          ).filter((el) => el.offsetParent !== null)
+        : [];
+
+    // Focus the first interactive element when the modal opens.
+    const focusTimer = window.setTimeout(() => {
+      const focusable = getFocusable();
+      (focusable[0] ?? dialogRef.current)?.focus();
+    }, 0);
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key === "Tab") {
+        const focusable = getFocusable();
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.clearTimeout(focusTimer);
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused.current?.focus();
     };
     // Health should refresh each time the modal is opened, not on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,7 +165,7 @@ export default function IntegrationAccessModal({
       style={{ background: isGlass ? "rgba(1,4,16,0.82)" : "rgba(0,0,0,0.78)", backdropFilter: isGlass ? "blur(14px) saturate(150%)" : undefined }}
       onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <div className="relative flex max-h-[min(880px,calc(100dvh-1.5rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[24px]" style={isGlass ? glassPanel : undefined}>
+      <div ref={dialogRef} tabIndex={-1} className="relative flex max-h-[min(880px,calc(100dvh-1.5rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[24px]" style={isGlass ? glassPanel : undefined}>
         {isGlass && <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-blue-400 via-cyan-300 to-orange-300 opacity-90" />}
         <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] px-5 py-5 sm:px-7">
           <div>
@@ -176,9 +214,13 @@ export default function IntegrationAccessModal({
               <div className="space-y-2">
                 <p className={isGlass ? "text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-slate-400" : "text-[10px] font-mono font-bold uppercase"}>Manual fallback token</p>
                 <div className="flex items-center gap-2 rounded-xl p-3 font-mono text-xs" style={tokenSurface}>
-                  <span className={`min-w-0 flex-1 truncate text-slate-300 ${mcpTokenVisible && mcpTokenValue ? "select-all" : "blur-sm select-none"}`}>{mcpTokenValue ?? "Token stored securely — regenerate to reveal it once"}</span>
-                  {mcpTokenValue && <button type="button" onClick={onToggleMcpToken} className="shrink-0 rounded-full px-2 py-1 text-[9px] font-display font-semibold text-slate-300" style={surface}>{mcpTokenVisible ? "HIDE" : "SHOW"}</button>}
-                  {mcpTokenValue && <button type="button" onClick={onCopyMcpToken} className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[9px] font-display font-semibold text-cyan-200" style={isGlass ? { background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.25)" } : undefined}>{copiedMcpToken ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copiedMcpToken ? "COPIED" : "COPY"}</button>}
+                  {mcpTokenValue ? (
+                    <span className={`min-w-0 flex-1 truncate text-slate-300 ${mcpTokenVisible ? "select-all" : "blur-sm select-none"}`}>{mcpTokenValue}</span>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-slate-400">Token stored securely — regenerate to reveal it once</span>
+                  )}
+                  {mcpTokenValue && <button type="button" onClick={onToggleMcpToken} className="flex shrink-0 items-center justify-center rounded-full px-2.5 py-1 min-h-9 text-[9px] font-display font-semibold text-slate-300" style={surface}>{mcpTokenVisible ? "HIDE" : "SHOW"}</button>}
+                  {mcpTokenValue && <button type="button" onClick={onCopyMcpToken} className="flex shrink-0 min-h-9 items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-display font-semibold text-cyan-200" style={isGlass ? { background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.25)" } : undefined}>{copiedMcpToken ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}{copiedMcpToken ? "COPIED" : "COPY"}</button>}
                 </div>
                 <button type="button" onClick={onGenerateMcpToken} disabled={generatingMcpToken} className="text-[10px] font-display font-semibold uppercase tracking-[0.1em] text-slate-400 transition hover:text-cyan-300 disabled:opacity-50">{generatingMcpToken ? "REGENERATING…" : "↻ Regenerate and revoke old MCP token"}</button>
               </div>

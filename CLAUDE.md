@@ -76,6 +76,7 @@ Recognized configuration includes:
 - `JWT_PRIVATE_KEY` and `JWKS` — Convex Auth signing key pair, one pair per Convex deployment.
 - `INTERNAL_API_SECRET` — shared secret between Convex and the Next.js app; the two values must match.
 - `MCP_ALLOWED_ORIGIN` — exact browser-origin allowlist for MCP CORS.
+- `ENABLE_PASSWORD_AUTH` — Convex-only; `true` turns on the unverified test-account sign-in. The sync script sets it on dev; leave it unset on production.
 - `CONVEX_DEPLOY_KEY` — production/CI-only deploy credential; keep it scoped to the environment that deploys Convex.
 
 Convex lives in its own project with separate dev and prod deployments. `node scripts/sync-convex-env.mjs` copies backend secrets from `.env.local` onto the linked dev deployment (`--prod` for production) without printing them. Google sign-in returns to `https://<deployment>.convex.site/api/auth/callback/google`, so each deployment's callback must be an authorised redirect URI on the Google OAuth client; check this whenever a deployment changes. Trim copied secrets: a stray newline in a client ID breaks Google sign-in with "OAuth client was not found".

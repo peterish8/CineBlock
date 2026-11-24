@@ -65,12 +65,8 @@ if (fileChanged) {
 const target = PROD ? ["--prod"] : [];
 const missing = [];
 let failed = false;
-for (const name of SECRETS) {
-  const value = env.get(name);
-  if (!value) {
-    missing.push(name);
-    continue;
-  }
+
+function setConvexEnv(name, value) {
   // No shell is involved; `--` stops values that start with "-" being read as flags.
   const result = spawnSync(process.execPath, [CLI, "env", "set", ...target, name, "--", value], {
     cwd: ROOT,
@@ -83,6 +79,15 @@ for (const name of SECRETS) {
     console.error(`Convex: could not set ${name}`);
   }
 }
+
+for (const name of SECRETS) {
+  const value = env.get(name);
+  if (value) setConvexEnv(name, value);
+  else missing.push(name);
+}
+
+// The unverified test-account sign-in (convex/auth.ts) is for local development only.
+if (!PROD) setConvexEnv("ENABLE_PASSWORD_AUTH", "true");
 
 if (missing.length > 0) {
   console.log(`\nNot in .env.local, so not copied: ${missing.join(", ")}`);

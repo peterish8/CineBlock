@@ -1,14 +1,16 @@
 "use client";
 
+import { Coffee, Scale, Flame } from "lucide-react";
+
 interface StepIntensityProps {
   value: string;
   onChange: (intensity: string) => void;
 }
 
 const LEVELS = [
-  { id: "light", label: "Chill", desc: "Easy watch, feel-good energy", emoji: "😌" },
-  { id: "moderate", label: "Balanced", desc: "Good story, some weight", emoji: "🎭" },
-  { id: "intense", label: "Heavy", desc: "Critically acclaimed, demands attention", emoji: "🔥" },
+  { id: "light", label: "Chill", desc: "Easy watch, feel-good energy", icon: Coffee },
+  { id: "moderate", label: "Balanced", desc: "Good story, some weight", icon: Scale },
+  { id: "intense", label: "Heavy", desc: "Critically acclaimed, demands attention", icon: Flame },
 ];
 
 export default function StepIntensity({ value, onChange }: StepIntensityProps) {
@@ -29,7 +31,7 @@ export default function StepIntensity({ value, onChange }: StepIntensityProps) {
                 : "brutal-card hover:!border-brutal-cyan"
             }`}
           >
-            <span className="text-3xl">{level.emoji}</span>
+            <level.icon className="w-7 h-7 shrink-0" strokeWidth={2} />
             <div>
               <span className="font-display font-bold text-sm uppercase block leading-tight">
                 {level.label}

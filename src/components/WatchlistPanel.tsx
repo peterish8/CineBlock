@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Bookmark, CheckCheck, CheckCircle, Film, Heart, Star, Trash2, X } from "lucide-react";
 import { useMovieLists } from "@/hooks/useMovieLists";
-import { useThemeMode } from "@/hooks/useThemeMode";
 import { lockPageScroll } from "@/lib/scrollLock";
 import { TMDBMovie } from "@/lib/types";
 import { posterUrl } from "@/lib/constants";
-import Image from "next/image";
-import { Heart, Bookmark, CheckCircle, Trash2, Star, X, CheckCheck, ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 interface WatchlistPanelProps {
   isOpen: boolean;
@@ -18,15 +18,18 @@ interface WatchlistPanelProps {
 
 type TabId = "liked" | "queue" | "watched";
 
+const TABS = [
+  { id: "liked", label: "Liked", href: "/liked", icon: Heart, empty: "Nothing liked yet", hint: "Tap the heart on any poster." },
+  { id: "queue", label: "Watchlist", href: "/watchlist", icon: Bookmark, empty: "Your watchlist is empty", hint: "Tap the bookmark on any poster." },
+  { id: "watched", label: "Watched", href: "/watched", icon: CheckCheck, empty: "Nothing watched yet", hint: "Mark a film as watched from its card." },
+] as const;
+
 export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: WatchlistPanelProps) {
   const { liked, toggleLiked, watchlist, toggleWatchlist, moveToWatched, watched } = useMovieLists();
-  const theme = useThemeMode();
-  const isGlass = theme === "glass";
-
+  const reduceMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
   const [closing, setClosing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>("liked");
-  const [hoveredTab, setHoveredTab] = useState<TabId | null>(null);
 
   useLayoutEffect(() => {
     if (!mounted) return;
@@ -38,241 +41,152 @@ export default function WatchlistPanel({ isOpen, onClose, onMovieClick }: Watchl
       queueMicrotask(() => {
         setMounted(true);
         setClosing(false);
-        if (liked.length > 0) setActiveTab("liked");
-        else if (watchlist.length > 0) setActiveTab("queue");
-        else setActiveTab("watched");
+        setActiveTab(liked.length > 0 ? "liked" : watchlist.length > 0 ? "queue" : "watched");
       });
     } else if (mounted) {
       queueMicrotask(() => setClosing(true));
       const t = setTimeout(() => { setMounted(false); setClosing(false); }, 280);
       return () => clearTimeout(t);
     }
-  }, [isOpen, liked.length, mounted, watchlist.length, watched.length]);
+    // Only re-pick the starting tab when the panel opens, not on every list change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mounted, onClose]);
 
   if (!mounted) return null;
 
-  const tabs: { id: TabId; label: string; href: string; icon: React.ElementType; count: number; activeColor: string; chipColor: string }[] = [
-    { id: "liked",   label: "LIKED",   href: "/liked",      icon: Heart,      count: liked.length,     activeColor: isGlass ? "text-rose-400"    : "text-[var(--theme-primary)]", chipColor: isGlass ? "rgba(244,63,94,0.18)"   : "" },
-    { id: "queue",   label: "QUEUE",   href: "/watchlist",  icon: Bookmark,   count: watchlist.length, activeColor: isGlass ? "text-blue-400"    : "text-brutal-lime",            chipColor: isGlass ? "rgba(96,165,250,0.18)"  : "" },
-    { id: "watched", label: "WATCHED", href: "/watched",    icon: CheckCheck, count: watched.length,   activeColor: isGlass ? "text-emerald-400" : "text-brutal-cyan",            chipColor: isGlass ? "rgba(52,211,153,0.18)"  : "" },
-  ];
-
-  const activeList: TMDBMovie[] = activeTab === "liked" ? liked : activeTab === "queue" ? watchlist : watched;
-
-  function MovieRow({ movie, actions }: { movie: TMDBMovie; actions: React.ReactNode }) {
-    const year = (movie.release_date || movie.first_air_date || "").split("-")[0] || "—";
-    const rawRating = movie.vote_average;
-    const rating = rawRating && rawRating > 0 ? rawRating.toFixed(1) : null;
-    const title = movie.title || movie.name || "";
-
-    return (
-      <div
-        role="button"
-        tabIndex={0}
-        className={`flex gap-3 px-4 py-3 cursor-pointer group transition-colors duration-150 ${isGlass ? "hover:bg-white/5" : "hover:bg-surface"}`}
-        onClick={() => onMovieClick(movie)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMovieClick(movie); } }}
-      >
-        <div className={`w-12 h-[68px] flex-shrink-0 overflow-hidden ${isGlass ? "rounded-lg" : "border-2 border-brutal-border bg-surface-2"}`}>
-          {movie.poster_path ? (
-            <Image src={posterUrl(movie.poster_path, "small")} alt={title} width={48} height={68} className="object-cover w-full h-full" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-brutal-dim text-[8px] font-mono">N/A</div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <p className={`text-sm font-bold truncate leading-tight ${isGlass ? "text-white/90" : "text-brutal-white font-display uppercase"}`}>{title}</p>
-          <div className="flex items-center gap-2.5 mt-1">
-            {rating ? (
-              <span className="flex items-center gap-1 text-amber-400">
-                <Star className="w-3 h-3 fill-current" />
-                <span className="text-[10px] font-mono font-bold">{rating}</span>
-              </span>
-            ) : (
-              <span className="text-[10px] font-mono text-white/20">—</span>
-            )}
-            <span className={`text-[10px] font-mono font-bold ${isGlass ? "text-white/30" : "text-brutal-dim"}`}>{year}</span>
-          </div>
-        </div>
-        {actions}
-      </div>
-    );
-  }
-
-  const divider = isGlass ? "1px solid rgba(255,255,255,0.07)" : undefined;
+  const lists: Record<TabId, TMDBMovie[]> = { liked, queue: watchlist, watched };
+  const tab = TABS.find((t) => t.id === activeTab)!;
+  const activeList = lists[activeTab];
+  const actionClass = "flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors duration-150";
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      aria-label="Close"
-      className="fixed inset-0 z-[90] flex justify-end"
-      onClick={onClose}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose(); } }}
-    >
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[90] flex justify-end">
       <div
-        className={`absolute inset-0 transition-opacity duration-280 ${closing ? "opacity-0" : "opacity-100"}`}
-        style={{ background: isGlass ? "rgba(0,0,0,0.55)" : "rgba(0,0,0,0.7)" }}
+        aria-hidden="true"
+        onClick={onClose}
+        className={`absolute inset-0 transition-opacity duration-300 ${closing ? "opacity-0" : "opacity-100"}`}
+        style={{ background: "rgba(2,8,23,0.45)", backdropFilter: "blur(8px) saturate(120%)", WebkitBackdropFilter: "blur(8px) saturate(120%)" }}
       />
 
-      {/* Panel */}
-      <div
-        className={`relative w-full sm:max-w-md h-full flex flex-col ${closing ? "slide-to-right" : "slide-from-right"} ${isGlass ? "" : "bg-bg sm:border-l-3 border-brutal-border"}`}
-        style={isGlass ? {
-          background: "rgba(4, 10, 30, 0.98)",
-          backdropFilter: "blur(48px) saturate(200%)",
-          WebkitBackdropFilter: "blur(48px) saturate(200%)",
-          borderLeft: "1px solid rgba(255,255,255,0.10)",
-          boxShadow: "-32px 0 80px rgba(0,0,0,0.8)",
-        } : undefined}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="lists-title"
+        className={`relative flex h-full w-full flex-col overflow-hidden sm:my-3 sm:mr-3 sm:h-[calc(100%-1.5rem)] sm:max-w-md sm:rounded-[28px] ${closing ? "slide-to-right" : "slide-from-right"}`}
+        style={{ background: "rgba(6,12,32,0.97)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
       >
-        {/* Top accent */}
-        {isGlass && <div style={{ height: "2px", background: "linear-gradient(90deg, transparent, rgba(96,165,250,0.6), rgba(52,211,153,0.4), transparent)", flexShrink: 0 }} />}
-
-        {/* Header */}
-        <div
-          className={`sticky top-0 z-10 px-5 py-4 flex items-center justify-between flex-shrink-0 ${isGlass ? "" : "bg-bg border-b-3 border-brutal-border"}`}
-          style={isGlass ? { background: "rgba(4,10,30,1)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", borderBottom: divider } : undefined}
-        >
-          <div className="flex items-center gap-3">
-            <Bookmark className={`w-5 h-5 ${isGlass ? "text-emerald-400" : "text-brutal-lime"}`} fill="currentColor" strokeWidth={2.5} />
-            <h2 className={`font-bold text-lg uppercase tracking-tight ${isGlass ? "text-white" : "text-brutal-white font-display"}`}>LISTS</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${isGlass ? "text-white/50 hover:text-white/90" : "brutal-btn p-2"}`}
-            style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
-          >
-            <X className="w-4 h-4" strokeWidth={2.5} />
+        <header className="flex shrink-0 items-center justify-between px-5 pb-3 pt-5">
+          <h2 id="lists-title" className="font-display !text-xl font-semibold text-white">My lists</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="-mr-1 flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-colors duration-150 hover:bg-white/10 hover:text-white">
+            <X className="h-5 w-5" strokeWidth={2} />
           </button>
-        </div>
+        </header>
 
-        {/* Tabs — click to switch content, hover shows → to full page */}
-        <div
-          className={`flex flex-shrink-0 ${isGlass ? "" : "border-b-3 border-brutal-border"}`}
-          style={isGlass ? { borderBottom: divider } : undefined}
-        >
-          {tabs.map(({ id, label, href, icon: Icon, count, activeColor, chipColor }, i) => {
-            const isActive = activeTab === id;
-            const isHovered = hoveredTab === id;
-            return (
-              <div
-                key={id}
-                className="flex-1 relative"
-                style={i < 2 && isGlass ? { borderRight: divider } : i < 2 ? { borderRight: "3px solid var(--color-brutal-border)" } : undefined}
-                onMouseEnter={() => setHoveredTab(id)}
-                onMouseLeave={() => setHoveredTab(null)}
-              >
-                {/* Tab button — switches content */}
+        <div className="shrink-0 px-5 pb-3">
+          <div role="tablist" aria-label="Lists" className="flex rounded-full border border-white/[0.09] bg-white/[0.04] p-1">
+            {TABS.map(({ id, label, icon: Icon }) => {
+              const selected = id === activeTab;
+              return (
                 <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
                   onClick={() => setActiveTab(id)}
-                  className={`w-full flex items-center justify-center gap-1.5 py-3 text-[10px] font-mono font-bold transition-all duration-150 ${
-                    isActive ? activeColor : isGlass ? "text-white/35 hover:text-white/60" : "text-brutal-dim hover:text-brutal-white"
-                  }`}
-                  style={isActive && isGlass ? { background: chipColor } : undefined}
+                  className={`relative flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-medium transition-colors duration-150 ${selected ? "text-white" : "text-slate-400 hover:text-slate-200"}`}
                 >
-                  <Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
-                  {label}
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all ${
-                      isActive
-                        ? isGlass ? `${activeColor} bg-white/8` : "brutal-chip text-inherit border-current text-[8px] px-1"
-                        : "text-white/25 bg-white/4"
-                    }`}
-                    style={isActive && isGlass ? { border: "1px solid currentColor", opacity: 0.7 } : isGlass ? { border: "1px solid rgba(255,255,255,0.12)" } : undefined}
-                  >
-                    {count}
-                  </span>
+                  {selected && (
+                    <motion.span
+                      layoutId="lists-tab-thumb"
+                      aria-hidden="true"
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: "rgba(96,165,250,0.18)", boxShadow: "inset 0 0 0 1px rgba(96,165,250,0.40)" }}
+                      transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.35, bounce: 0 }}
+                    />
+                  )}
+                  <Icon className="relative h-4 w-4" strokeWidth={2} />
+                  <span className="relative">{label}</span>
+                  <span className={`relative text-xs tabular-nums ${selected ? "text-blue-200" : "text-slate-500"}`}>{lists[id].length}</span>
                 </button>
-
-                {/* Hover arrow — navigate to full page */}
-                {isHovered && (
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 rounded-full transition-all ${activeColor} opacity-70 hover:opacity-100`}
-                    style={isGlass ? { background: chipColor, border: "1px solid currentColor" } : undefined}
-                    title={`Go to ${label} page`}
-                  >
-                    <ArrowRight className="w-3 h-3" strokeWidth={2.5} />
-                  </Link>
-                )}
-
-                {/* Active indicator bar */}
-                {isActive && (
-                  <div
-                    className={`absolute bottom-0 left-0 right-0 h-[2px] ${isGlass ? "" : "bg-current"}`}
-                    style={isGlass ? { background: `${activeColor.includes("rose") ? "rgba(244,63,94,0.8)" : activeColor.includes("blue") ? "rgba(96,165,250,0.8)" : "rgba(52,211,153,0.8)"}` } : undefined}
-                  />
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Active list content */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-3">
           {activeList.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-24 px-6 text-center">
-              {activeTab === "liked" && <Heart className={`w-12 h-12 mb-4 ${isGlass ? "text-white/15" : "text-brutal-dim"}`} strokeWidth={1.5} />}
-              {activeTab === "queue" && <Bookmark className={`w-12 h-12 mb-4 ${isGlass ? "text-white/15" : "text-brutal-dim"}`} strokeWidth={1.5} />}
-              {activeTab === "watched" && <CheckCheck className={`w-12 h-12 mb-4 ${isGlass ? "text-white/15" : "text-brutal-dim"}`} strokeWidth={1.5} />}
-              <p className={`font-bold uppercase text-sm ${isGlass ? "text-white/25" : "text-brutal-muted font-display"}`}>
-                {activeTab === "liked" ? "No liked movies yet" : activeTab === "queue" ? "Queue is empty" : "Nothing watched yet"}
-              </p>
-              <p className={`text-xs font-mono mt-2 ${isGlass ? "text-white/15" : "text-brutal-dim"}`}>
-                Use the icons on any poster
-              </p>
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 pb-16 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                <tab.icon className="h-6 w-6 text-slate-500" strokeWidth={1.75} />
+              </span>
+              <p className="font-display text-base font-semibold text-white">{tab.empty}</p>
+              <p className="text-sm text-slate-400">{tab.hint}</p>
             </div>
           ) : (
-            <div>
-              {activeList.map((movie: TMDBMovie, idx: number) => {
-                const isLast = idx === activeList.length - 1;
+            <ul className="flex flex-col gap-1 pb-3">
+              {activeList.map((movie) => {
+                const title = movie.title || movie.name || "Untitled";
+                const year = (movie.release_date || movie.first_air_date || "").slice(0, 4);
+                const rating = movie.vote_average > 0 ? movie.vote_average.toFixed(1) : null;
                 return (
-                  <div key={movie.id} style={!isLast ? { borderBottom: divider ?? "2px solid var(--color-brutal-border)" } : undefined}>
-                    <MovieRow
-                      movie={movie}
-                      actions={
-                        activeTab === "liked" ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggleLiked(movie); }}
-                            className={`self-center p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100 ${isGlass ? "text-white/30 hover:text-rose-400 hover:bg-rose-400/10" : "text-brutal-dim hover:text-brutal-red"}`}
-                          >
-                            <Trash2 className="w-4 h-4" strokeWidth={2.5} />
-                          </button>
-                        ) : activeTab === "queue" ? (
-                          <div className="flex flex-col gap-1 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); moveToWatched(movie); }}
-                              className={`p-1.5 rounded-full transition-colors ${isGlass ? "text-white/30 hover:text-emerald-400 hover:bg-emerald-400/10" : "text-brutal-dim hover:text-brutal-cyan"}`}
-                              title="Mark as watched"
-                            >
-                              <CheckCircle className="w-4 h-4" strokeWidth={2.5} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); toggleWatchlist(movie); }}
-                              className={`p-1.5 rounded-full transition-colors ${isGlass ? "text-white/30 hover:text-rose-400 hover:bg-rose-400/10" : "text-brutal-dim hover:text-brutal-red"}`}
-                            >
-                              <Trash2 className="w-4 h-4" strokeWidth={2.5} />
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="self-center ml-1">
-                            <CheckCircle className={`w-4 h-4 ${isGlass ? "text-emerald-400" : "text-brutal-cyan fill-brutal-cyan"}`} strokeWidth={2} />
-                          </span>
-                        )
-                      }
-                    />
-                  </div>
+                  <li key={movie.id} className="group relative flex items-center gap-3 rounded-2xl p-2 transition-colors duration-150 hover:bg-white/[0.05] focus-within:bg-white/[0.05]">
+                    <span className="relative block h-[72px] w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+                      {movie.poster_path ? (
+                        <Image src={posterUrl(movie.poster_path, "small")} alt="" fill className="object-cover" sizes="48px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center"><Film className="h-4 w-4 text-slate-600" /></span>
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <button type="button" onClick={() => onMovieClick(movie)} className="block w-full truncate text-left font-display text-base font-semibold text-white after:absolute after:inset-0 after:rounded-2xl after:content-['']">
+                        {title}
+                      </button>
+                      {(year || rating) && (
+                        <span className="mt-1 flex items-center gap-2 text-sm tabular-nums text-slate-400">
+                          {rating && <span className="flex items-center gap-1 text-amber-300"><Star className="h-3 w-3 fill-current" />{rating}</span>}
+                          {year && <span>{year}</span>}
+                        </span>
+                      )}
+                    </span>
+                    <span className="relative z-10 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                      {activeTab === "queue" && (
+                        <button type="button" onClick={() => moveToWatched(movie)} aria-label={`Mark ${title} as watched`} title="Mark as watched" className={`${actionClass} hover:bg-emerald-400/10 hover:text-emerald-300`}>
+                          <CheckCircle className="h-4 w-4" strokeWidth={2} />
+                        </button>
+                      )}
+                      {activeTab !== "watched" && (
+                        <button
+                          type="button"
+                          onClick={() => (activeTab === "liked" ? toggleLiked(movie) : toggleWatchlist(movie))}
+                          aria-label={`Remove ${title} from ${tab.label.toLowerCase()}`}
+                          title="Remove"
+                          className={`${actionClass} hover:bg-rose-400/10 hover:text-rose-300`}
+                        >
+                          <Trash2 className="h-4 w-4" strokeWidth={2} />
+                        </button>
+                      )}
+                    </span>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
-      </div>
+
+        <footer className="shrink-0 border-t border-white/[0.08] px-5 py-3">
+          <Link href={tab.href} onClick={onClose} className="group flex min-h-10 items-center justify-between rounded-xl px-3 text-sm font-medium text-slate-300 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white">
+            See all {tab.label.toLowerCase()}
+            <ArrowRight className="h-4 w-4 text-slate-500 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-white" />
+          </Link>
+        </footer>
+      </aside>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, X, FolderPlus } from "lucide-react";
 import { Id } from "../../convex/_generated/dataModel";
+import { MAX_BLOCKS_PER_USER, MAX_MOVIES_PER_BLOCK } from "../../convex/limits";
 import { posterUrl } from "@/lib/constants";
 import { useBlocks } from "@/hooks/useBlocks";
 
@@ -173,7 +174,7 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
             </div>
           ) : (
             myBlocks.map((block) => {
-              const isFull = block.movieCount >= 50;
+              const isFull = block.movieCount >= MAX_MOVIES_PER_BLOCK;
               const isAddingHere = addingToBlockId === block._id;
 
               return (
@@ -192,7 +193,7 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
                       {block.title}
                     </span>
                     <span className="font-inter text-xs uppercase tracking-wider text-text-muted">
-                      {block.movieCount} / 50 Movies
+                      {block.movieCount} / {MAX_MOVIES_PER_BLOCK} Movies
                     </span>
                   </div>
 
@@ -210,9 +211,9 @@ export default function AddToBlockModal({ isOpen, onClose, movie }: AddToBlockMo
         </div>
 
         <div className="border-t-4 border-brutal-border bg-surface-2 p-4">
-          {myBlocks && myBlocks.length >= 20 ? (
+          {myBlocks && myBlocks.length >= MAX_BLOCKS_PER_USER ? (
             <div className="text-center font-outfit text-sm uppercase text-text-muted">
-              Maximum 20 CineBlocks reached.
+              Maximum {MAX_BLOCKS_PER_USER} CineBlocks reached.
             </div>
           ) : (
             <form onSubmit={handleCreate} className="flex flex-col gap-2">

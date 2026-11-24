@@ -8,8 +8,9 @@ import { Bookmark, Check, CircleCheck, Heart, Link as LinkIcon, MoreHorizontal, 
  * Movie sheet action bar — one glass pill so the icons stay legible over any backdrop.
  *
  * Storyboard (open):
- *   0ms    ⋯ rotates 90°, pill grows to fit (spring, no bounce)
- *   0ms    nearest action appears; each further one +30ms (scale .6 → 1, fade)
+ *   0ms    ⋯ rotates 90°, the actions strip widens from 0 to its natural width (spring, no bounce)
+ *   0ms    nearest action fades/slides in; each further one +30ms
+ *   Width is animated directly rather than with layout animation, which scales and squashes the round icons.
  * Toggle on:  icon swaps in from scale .3 with a small spring bounce (physical, playful)
  *             Like also throws a one-shot ring (secondary action, ~400ms)
  * Toggle off: icon swaps back with no bounce — undoing shouldn't celebrate
@@ -42,6 +43,8 @@ export default function MovieActionBar(props: MovieActionBarProps) {
   const reduce = useReducedMotion() ?? false;
   const [share, setShare] = useState<{ state: ShareState; at: number }>({ state: "idle", at: 0 });
   const [likeBurst, setLikeBurst] = useState(0);
+  // The strip clips only while its width animates, so hover labels below the icons aren't cut off once open.
+  const [stripSettled, setStripSettled] = useState(false);
 
   // Feedback clears itself; copying again restarts the clock
   useEffect(() => {
@@ -112,34 +115,38 @@ export default function MovieActionBar(props: MovieActionBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <motion.div
-        layout
-        transition={reduce ? { duration: 0 } : SPRING}
+      <div
         className="flex items-center rounded-full border border-white/10 bg-[#020817]/60 p-1 shadow-[0_8px_24px_rgba(2,8,23,0.45)] backdrop-blur-md"
         role="toolbar"
         aria-label="Film actions"
       >
-        <AnimatePresence initial={false} mode="popLayout">
-          {open &&
-            actions.map((a, i) => (
-              <motion.div
-                key={a.key}
-                layout
-                initial={{ opacity: 0, scale: reduce ? 1 : 0.6 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  transition: reduce ? { duration: 0 } : { ...SPRING, delay: (actions.length - 1 - i) * STAGGER_S },
-                }}
-                exit={{ opacity: 0, scale: reduce ? 1 : 0.6, transition: reduce ? { duration: 0 } : EXIT }}
-              >
-                <ActionButton spec={a} reduce={reduce} />
-              </motion.div>
-            ))}
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div
+              key="actions"
+              className="flex items-center"
+              style={{ overflow: stripSettled ? "visible" : "hidden" }}
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: "auto", opacity: 1 }}
+              exit={{ width: 0, opacity: 0, transition: reduce ? { duration: 0 } : { ...SPRING, duration: 0.25 } }}
+              transition={reduce ? { duration: 0 } : SPRING}
+              onAnimationStart={() => setStripSettled(false)}
+              onAnimationComplete={() => setStripSettled(open)}
+            >
+              {actions.map((a, i) => (
+                <motion.div
+                  key={a.key}
+                  initial={{ opacity: 0, x: reduce ? 0 : 10 }}
+                  animate={{ opacity: 1, x: 0, transition: reduce ? { duration: 0 } : { ...SPRING, delay: (actions.length - 1 - i) * STAGGER_S } }}
+                >
+                  <ActionButton spec={a} reduce={reduce} />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </AnimatePresence>
 
         <motion.button
-          layout
           type="button"
           onClick={(e) => { e.stopPropagation(); onOpenChange(!open); }}
           aria-expanded={open}
@@ -151,7 +158,7 @@ export default function MovieActionBar(props: MovieActionBarProps) {
             <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={2.5} aria-hidden />
           </motion.span>
         </motion.button>
-      </motion.div>
+      </div>
 
       <motion.button
         type="button"

@@ -338,7 +338,7 @@ function BlocksContent() {
               <Link href="/" className={isGlass ? "flex items-center justify-center w-9 h-9 rounded-xl transition-colors hover:bg-white/10" : "brutal-btn p-2.5"} style={isGlass ? { border: "1px solid rgba(255,255,255,0.12)", color: "rgba(148,163,184,0.8)" } : undefined}>
                 <ArrowLeft className="w-4 h-4" strokeWidth={isGlass ? 2 : 3} />
               </Link>
-              <Layers className={`w-5 h-5 ${isGlass ? "" : "text-brutal-violet"}`} style={isGlass ? { color: "#A78BFA" } : undefined} strokeWidth={2.5} />
+              <Layers className={`w-5 h-5 ${isGlass ? "" : "text-brutal-violet"}`} style={isGlass ? { color: "#60A5FA" } : undefined} strokeWidth={2.5} />
               <h1 className={`font-display font-bold text-xl sm:text-2xl uppercase tracking-tight ${isGlass ? "text-white" : "text-brutal-white"}`}>
                 Watch Blocks
               </h1>
@@ -415,16 +415,16 @@ function BlocksContent() {
           )}
 
           {/* Explainer */}
-          <div className={isGlass ? "p-4 mb-6" : "brutal-card p-4 mb-6 border-brutal-violet bg-surface"} style={isGlass ? { ...glassCard, borderColor: "rgba(167,139,250,0.25)" } : undefined}>
+          <div className={isGlass ? "p-4 mb-6" : "brutal-card p-4 mb-6 border-brutal-violet bg-surface"} style={isGlass ? { ...glassCard, borderColor: "rgba(96,165,250,0.25)" } : undefined}>
             <p className={`text-xs leading-relaxed ${isGlass ? "text-slate-400" : "text-brutal-dim font-mono"}`}>
-              <span className={`font-bold ${isGlass ? "text-violet-300" : "text-brutal-violet font-black"}`}>Watch Blocks</span> let you discover which movies you and your friends all want to watch — without anyone seeing each other&apos;s full list.{" "}
+              <span className={`font-bold ${isGlass ? "text-blue-300" : "text-brutal-violet font-black"}`}>Watch Blocks</span> let you discover which movies you and your friends all want to watch — without anyone seeing each other&apos;s full list.{" "}
               <span className={isGlass ? "text-white font-medium" : "text-brutal-white font-bold"}>Only matches are shown.</span>
             </p>
           </div>
 
           {rooms === undefined ? (
             <div className="flex justify-center py-24">
-              <div className={`w-8 h-8 border-4 animate-spin ${isGlass ? "border-violet-400/40 border-t-violet-400 rounded-full" : "border-brutal-violet border-t-transparent"}`} />
+              <div className={`w-8 h-8 border-4 animate-spin ${isGlass ? "border-blue-400/40 border-t-blue-400 rounded-full" : "border-brutal-violet border-t-transparent"}`} />
             </div>
           ) : rooms.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
@@ -450,7 +450,7 @@ function BlocksContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {rooms.map((room) => (
                   <div key={room!._id} className={isGlass ? "overflow-hidden" : "brutal-card p-0 overflow-hidden group"} style={isGlass ? glassCard : undefined}>
-                    <div className="h-1" style={isGlass ? { background: "linear-gradient(90deg, #A78BFA, #7C3AED)" } : { height: 6, background: "var(--brutal-violet)" }} />
+                    <div className="h-1" style={isGlass ? { background: "linear-gradient(90deg, #60A5FA, #F97316)" } : { height: 6, background: "var(--brutal-violet)" }} />
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-2 mb-4">
                         <div className="flex-1 min-w-0">
@@ -472,7 +472,7 @@ function BlocksContent() {
                           )}
                         </div>
                       </div>
-                      <Link href={`/blocks/${room!._id}`} className={`w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.98] ${isGlass ? "" : "brutal-btn font-mono font-black tracking-widest hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"}`} style={isGlass ? { background: "rgba(167,139,250,0.12)", border: "1px solid rgba(167,139,250,0.28)", color: "#C4B5FD" } : undefined}>
+                      <Link href={`/blocks/${room!._id}`} className={`w-full py-2.5 text-xs font-semibold flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.98] ${isGlass ? "" : "brutal-btn font-mono font-black tracking-widest hover:!bg-brutal-violet hover:!text-black hover:!border-brutal-violet"}`} style={isGlass ? { background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.28)", color: "#93C5FD" } : undefined}>
                         {isGlass ? "View Matches" : "VIEW MATCHES"}
                         <ChevronRight className="w-3.5 h-3.5" strokeWidth={isGlass ? 2 : 3} />
                       </Link>
@@ -497,8 +497,8 @@ export default function BlocksPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg">
-        <div className="w-10 h-10 border-4 border-brutal-violet border-t-transparent animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#020817" }}>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-400/30 border-t-blue-400" role="status" aria-label="Loading" />
       </div>
     );
   }

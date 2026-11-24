@@ -32,6 +32,7 @@ export function useCineSwipeEngine() {
   const [deck, setDeck] = useState<TMDBMovie[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   // Tutorial shows every time the deck mounts
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
 
@@ -72,7 +73,7 @@ export function useCineSwipeEngine() {
         }
 
         const res = await fetch(`/api/movies?${params.toString()}`);
-        if (!res.ok) return [];
+        if (!res.ok) throw new Error(`Movie fetch failed with status ${res.status}`);
         const data = await res.json();
         const results: TMDBMovie[] = data.results ?? [];
 
@@ -80,8 +81,9 @@ export function useCineSwipeEngine() {
         return results.filter(
           (m) => m.poster_path && !seenIds.current.has(m.id)
         );
-      } catch {
-        return [];
+      } catch (err) {
+        console.error("CineSwipe fetchBatch failed:", err);
+        throw err;
       }
     },
     []
@@ -100,7 +102,7 @@ export function useCineSwipeEngine() {
       if (positives.length > 0) {
         // Priority: liked > watched > watchlist (the user requested this hierarchy)
         const seedMovie = positives.shift()!;
-        movies = await fetchBatch("recommendations", seedMovie.id);
+        movies = await fetchBatch("recommendations", seedMovie.id).catch(() => []);
       }
 
       // Fallback / supplement with discover if recs were sparse
@@ -115,7 +117,7 @@ export function useCineSwipeEngine() {
 
       // Still sparse? Try trending
       if (movies.length < 5) {
-        const trending = await fetchBatch("trending");
+        const trending = await fetchBatch("trending").catch(() => []);
         const existingIds = new Set(movies.map((m) => m.id));
         for (const m of trending) {
           if (!existingIds.has(m.id)) movies.push(m);
@@ -128,7 +130,11 @@ export function useCineSwipeEngine() {
         seenIds.current.add(m.id);
       }
 
+      setFetchError(false);
       setDeck((prev) => [...prev, ...batch]);
+    } catch (err) {
+      console.error("CineSwipe fillDeck failed:", err);
+      setFetchError(true);
     } finally {
       isFetching.current = false;
     }
@@ -221,6 +227,12 @@ export function useCineSwipeEngine() {
     seenIds.current.add(movie.id);
   }, [deck]);
 
+  // ── Retry after a fetch error ──
+  const retryFillDeck = useCallback(() => {
+    setFetchError(false);
+    void fillDeck();
+  }, [fillDeck]);
+
   // ── Undo handler ──
   const undoLastSwipe = useCallback(() => {
     setSessionSwipes((prev) => {
@@ -243,6 +255,8 @@ export function useCineSwipeEngine() {
     todayLimit: swipeState?.limit ?? 250,
     isLimitReached: todayCount >= (swipeState?.limit ?? 250),
     isLoading,
+    fetchError,
+    retryFillDeck,
     onSwipe,
     onDoubleTap,
     undoLastSwipe,

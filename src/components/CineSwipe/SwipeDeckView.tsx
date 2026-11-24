@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogIn, Flame, ChevronLeft } from "lucide-react";
+import ErrorState from "@/components/ErrorState";
 import { useCineSwipeEngine } from "@/hooks/useCineSwipeEngine";
 import SwipeCard from "./SwipeCard";
 import SwipeTutorial from "./SwipeTutorial";
@@ -66,9 +67,9 @@ export default function SwipeDeckView() {
       >
         <BackButton isGlass={isGlass} />
         {isGlass && (
-          <div className="pointer-events-none fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square w-[60vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(236,72,153,0.30) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
+          <div className="pointer-events-none fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 aspect-square w-[60vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.30) 0%, transparent 70%)", filter: "blur(100px)", zIndex: 0 }} />
         )}
-        <Flame className={`h-16 w-16 relative z-10 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`} strokeWidth={1.5} />
+        <Flame className={`h-16 w-16 relative z-10 ${isGlass ? "text-orange-400" : "text-brutal-pink"}`} strokeWidth={1.5} />
         <h1 className={`text-3xl font-black uppercase tracking-wider relative z-10 ${isGlass ? "text-white" : "font-outfit"}`}>
           CineSwipe
         </h1>
@@ -82,7 +83,7 @@ export default function SwipeDeckView() {
               ? "rounded-xl"
               : "brutal-btn border-2 border-brutal-pink bg-brutal-pink text-black hover:bg-white hover:text-brutal-pink font-mono"
           }`}
-          style={isGlass ? { background: "rgba(236,72,153,0.18)", border: "1px solid rgba(236,72,153,0.45)", color: "#F472B6" } : undefined}
+          style={isGlass ? { background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.45)", color: "#FDBA74" } : undefined}
         >
           <LogIn className="h-4 w-4" strokeWidth={2.5} />
           Sign In to CineSwipe
@@ -147,8 +148,20 @@ function AuthenticatedSwipeDeck() {
     );
   }
 
-  // Empty deck
+  // Empty deck — distinguish a real fetch failure from genuinely running out of movies.
   if (!engine.currentMovie) {
+    if (engine.fetchError) {
+      return (
+        <div className="flex min-h-[80vh] flex-col items-center justify-center gap-4 px-4 text-center" style={{ background: "#020817" }}>
+          <BackButton isGlass />
+          <ErrorState
+            title="The projector jammed"
+            message="We couldn't load more movies. Check your connection and try again."
+            onRetry={engine.retryFillDeck}
+          />
+        </div>
+      );
+    }
     return (
       <div
         className="flex min-h-[80vh] flex-col items-center justify-center gap-4 px-4 text-center"
@@ -174,7 +187,7 @@ function AuthenticatedSwipeDeck() {
       <div className="flex w-full max-w-[340px] md:max-w-[600px] lg:max-w-[1000px] items-center gap-2 shrink-0 pt-4 lg:pt-0">
         <BackButton isGlass={isGlass} />
         <Flame
-          className={`h-5 w-5 shrink-0 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`}
+          className={`h-5 w-5 shrink-0 ${isGlass ? "text-orange-400" : "text-brutal-pink"}`}
           strokeWidth={2.5}
         />
         <div
@@ -185,7 +198,7 @@ function AuthenticatedSwipeDeck() {
             className={`absolute inset-y-0 left-0 transition-all duration-300 ease-out ${isGlass ? "rounded-full" : "bg-brutal-pink"}`}
             style={{
               width: `${(engine.todayCount / engine.todayLimit) * 100}%`,
-              ...(isGlass ? { background: "linear-gradient(90deg, #EC4899, #F472B6)" } : {}),
+              ...(isGlass ? { background: "linear-gradient(90deg, #F97316, #FB923C)" } : {}),
             }}
           />
         </div>
@@ -250,8 +263,8 @@ function AuthenticatedSwipeDeck() {
           { label: "SKIP",      brutalColor: "text-brutal-dim",    glassColor: "text-slate-500",   key: "←" },
           { label: "WATCHED",   brutalColor: "text-brutal-cyan",   glassColor: "text-cyan-400",    key: "↓" },
           { label: "WATCHLIST", brutalColor: "text-brutal-lime",   glassColor: "text-emerald-400", key: "→" },
-          { label: "BLOCK",     brutalColor: "text-brutal-violet", glassColor: "text-violet-400",  key: "↑" },
-          { label: "FAVOURITE", brutalColor: "text-brutal-red",    glassColor: "text-pink-400",    key: "Space", deskOnly: true },
+          { label: "BLOCK",     brutalColor: "text-brutal-violet", glassColor: "text-blue-400",    key: "↑" },
+          { label: "FAVOURITE", brutalColor: "text-brutal-red",    glassColor: "text-orange-400",    key: "Space", deskOnly: true },
         ].map((hint) => (
           <div key={hint.label} className={`flex flex-col items-center gap-0.5 lg:gap-2 py-1 ${hint.deskOnly ? "hidden lg:flex" : "flex"}`}>
             <span className={`text-[10px] lg:text-sm font-black lg:px-4 lg:py-1 lg:rounded-md lg:bg-white/5 ${isGlass ? hint.glassColor : `font-mono ${hint.brutalColor}`}`}>
@@ -293,7 +306,7 @@ function AuthenticatedSwipeDeck() {
               : "brutal-btn border-2 border-brutal-pink bg-brutal-pink text-black font-mono hover:bg-white hover:text-brutal-pink disabled:border-brutal-border disabled:bg-surface disabled:text-text-muted text-base"
           }`}
           style={isGlass && engine.sessionSwipes.length > 0
-            ? { background: "rgba(236,72,153,0.18)", border: "1px solid rgba(236,72,153,0.45)", color: "#F472B6", boxShadow: "0 0 20px rgba(236,72,153,0.2)" }
+            ? { background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.45)", color: "#FDBA74", boxShadow: "0 0 20px rgba(249,115,22,0.2)" }
             : isGlass
             ? { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(148,163,184,0.4)" }
             : undefined

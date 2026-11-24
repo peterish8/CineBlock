@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { AnimatePresence } from "framer-motion";
-import { Bookmark, Sparkles, Film, Tv } from "lucide-react";
-import Link from "next/link";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Bookmark, Film, Tv } from "lucide-react";
 import CommandHub from "@/components/CommandHub";
 import PosterGrid from "@/components/PosterGrid";
 import TVGrid from "@/components/TVGrid";
@@ -16,12 +15,20 @@ import { useMovieLists } from "@/hooks/useMovieLists";
 import { usePreferredLanguage } from "@/hooks/usePreferredLanguage";
 import { useRegion, REGION_TO_LANGUAGE } from "@/hooks/useRegion";
 import { usePersonalizedRecs } from "@/hooks/usePersonalizedRecs";
-import { useThemeMode } from "@/hooks/useThemeMode";
 import { TMDBMovie, TMDBTVShow } from "@/lib/types";
 import { toMovieSlug } from "@/lib/slugify";
 import Attribution from "@/components/Attribution";
+import { useToast } from "@/components/ToastProvider";
 
 const TV_FIRST_GENRES = new Set(["9901", "9902", "9903"]); // K-Drama, C-Drama, Anime
+
+const MEDIA_TABS = [
+  { id: "movies", label: "Movies", Icon: Film },
+  { id: "tv", label: "TV shows", Icon: Tv },
+] as const;
+
+const FAB_CLASS = "flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-white/90 transition-colors duration-200 hover:bg-white/15";
+const FAB_STYLE = { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" };
 
 function HomeContent() {
   const [filters, setFilters] = useState({
@@ -39,8 +46,8 @@ function HomeContent() {
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [mediaTab, setMediaTab] = useState<"movies" | "tv">("movies");
   const { liked, watchlist, watched } = useMovieLists();
-  const likedCount = liked.length;
-  const isGlass = useThemeMode() === "glass";
+  const { pushToast } = useToast();
+  const reduceMotion = useReducedMotion();
 
   // Snapshot watched IDs once when the list first loads — cards only disappear after refresh.
   const [watchedIds, setWatchedIds] = useState<Set<number>>(() => new Set());
@@ -107,6 +114,7 @@ function HomeContent() {
         }
       } catch (e) {
         console.error("Failed to load shared media", e);
+        pushToast("error", "Couldn't load the shared title. Please try the link again.");
       }
     };
 
@@ -117,7 +125,7 @@ function HomeContent() {
       loadSharedMedia(tvId, "tv");
       window.history.replaceState({}, '', '/');
     }
-  }, []);
+  }, [pushToast]);
 
   // Push a URL-based slug when opening a movie modal so:
   // 1. The URL is shareable (e.g. cineblock.in/movie/the-dark-knight-155)
@@ -193,18 +201,20 @@ function HomeContent() {
       // Pick a random page from top 50 popular pages
       const randomPage = Math.floor(Math.random() * 50) + 1;
       const res = await fetch(`/api/movies?action=discover&page=${randomPage}&sort=popularity.desc`);
-      if (res.ok) {
-        const data = await res.json();
-        const movies = data.results;
-        if (movies?.length > 0) {
-          const randomMovie = movies[Math.floor(Math.random() * movies.length)];
-          openMovie(randomMovie);
-        }
+      if (!res.ok) throw new Error(`Discover fetch failed with status ${res.status}`);
+      const data = await res.json();
+      const movies = data.results;
+      if (movies?.length > 0) {
+        const randomMovie = movies[Math.floor(Math.random() * movies.length)];
+        openMovie(randomMovie);
+      } else {
+        pushToast("info", "No surprise found right now. Try again in a moment.");
       }
     } catch (e) {
       console.error("Surprise me failed", e);
+      pushToast("error", "Couldn't fetch a surprise title. Please try again.");
     }
-  }, [openMovie]);
+  }, [openMovie, pushToast]);
 
   return (
     <main suppressHydrationWarning className="min-h-screen flex flex-col bg-bg pb-16 lg:pb-0">
@@ -215,64 +225,63 @@ function HomeContent() {
       <CommandHub onFilterChange={handleFilterChange} onSurpriseMe={handleSurpriseMe} />
 
       {/* Bottom FABs */}
-      <div className="fixed bottom-6 right-4 z-[80] hidden lg:flex flex-col sm:flex-row items-end sm:items-center gap-2">
-        {likedCount > 0 && (
-          <Link suppressHydrationWarning
-            href="/recommendations"
-            className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-yellow hover:!text-black hover:!border-brutal-yellow"}
-            style={isGlass ? { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" } : undefined}
-          >
-            <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-            <span className="font-mono font-bold text-xs">FOR YOU</span>
-          </Link>
-        )}
-        <button suppressHydrationWarning
-          onClick={() => setWatchlistOpen(true)}
-          className={isGlass ? "flex items-center gap-2 px-3 py-2.5 rounded-xl text-white/90 text-xs font-mono font-bold transition-all duration-200 hover:bg-white/15 active:scale-95" : "brutal-btn px-3 py-2.5 flex items-center gap-2 bg-surface hover:!bg-brutal-lime hover:!text-black hover:!border-brutal-lime active:scale-95"}
-          style={isGlass ? { background: "rgba(255,255,255,0.05)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.18)", boxShadow: "0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)" } : undefined}
-          id="watchlist-fab"
-        >
-          <Bookmark className="w-4 h-4" fill={(watchlist.length + liked.length + watched.length) > 0 ? "currentColor" : "none"} strokeWidth={2.5} />
-          <span className="font-mono font-bold text-xs">MY LISTS</span>
+      <div className="fixed bottom-6 right-4 z-[80] hidden lg:flex">
+        <button suppressHydrationWarning type="button" onClick={() => setWatchlistOpen(true)} className={`${FAB_CLASS} active:scale-95`} style={FAB_STYLE} id="watchlist-fab">
+          <Bookmark className="w-4 h-4" fill={(watchlist.length + liked.length + watched.length) > 0 ? "currentColor" : "none"} strokeWidth={2} />
+          My lists
           {(watchlist.length + liked.length) > 0 && (
-            <span className="brutal-chip text-brutal-lime border-brutal-lime text-[10px] px-1.5 py-0">
+            <span className="rounded-md px-1.5 text-[11px] tabular-nums text-blue-200" style={{ background: "rgba(96,165,250,0.16)" }}>
               {watchlist.length + liked.length}
             </span>
           )}
         </button>
       </div>
 
-
       {/* Media type tabs */}
-      <div className="w-full">
-        <div className="flex items-center">
-          <div className="h-[3px] flex-1 bg-brutal-border" />
-          <div className="flex items-center gap-0 mx-3">
-            <button
-              onClick={() => setMediaTab("movies")}
-              className={`brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
-                mediaTab === "movies"
-                  ? "!bg-brutal-yellow !text-black !border-brutal-yellow"
-                  : ""
-              }`}
-            >
-              <Film className="w-3.5 h-3.5" strokeWidth={2.5} />
-              MOVIES
-            </button>
-            <button
-              onClick={() => setMediaTab("tv")}
-              className={`brutal-btn px-4 py-2 flex items-center gap-2 text-[10px] font-mono font-bold ${
-                mediaTab === "tv"
-                  ? "!bg-brutal-cyan !text-black !border-brutal-cyan"
-                  : ""
-              }`}
-            >
-              <Tv className="w-3.5 h-3.5" strokeWidth={2.5} />
-              TV SHOWS
-            </button>
-          </div>
-          <div className="h-[3px] flex-1 bg-brutal-border" />
+      <div className="mx-auto flex w-full max-w-[1600px] items-center gap-4 px-3 pt-4 sm:px-4 lg:px-6">
+        <span aria-hidden="true" className="h-px flex-1 bg-white/[0.08]" />
+        <div
+          role="tablist"
+          aria-label="Media type"
+          className="flex rounded-full p-1"
+          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.09)" }}
+          onKeyDown={(event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const next = mediaTab === "movies" ? "tv" : "movies";
+            setMediaTab(next);
+            event.currentTarget.querySelector<HTMLElement>(`[data-tab="${next}"]`)?.focus();
+          }}
+        >
+          {MEDIA_TABS.map(({ id, label, Icon }) => {
+            const selected = mediaTab === id;
+            return (
+              <button
+                key={id}
+                data-tab={id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setMediaTab(id)}
+                className={`relative flex min-h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors duration-150 ${selected ? "text-white" : "text-slate-400 hover:text-slate-200"}`}
+              >
+                {selected && (
+                  <motion.span
+                    layoutId="media-tab-thumb"
+                    aria-hidden="true"
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: "rgba(96,165,250,0.18)", boxShadow: "inset 0 0 0 1px rgba(96,165,250,0.40)" }}
+                    transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.35, bounce: 0 }}
+                  />
+                )}
+                <Icon className="relative h-4 w-4" strokeWidth={2} />
+                <span className="relative">{label}</span>
+              </button>
+            );
+          })}
         </div>
+        <span aria-hidden="true" className="h-px flex-1 bg-white/[0.08]" />
       </div>
 
       {/* Content Grid */}

@@ -12,6 +12,7 @@ import {
   ArrowLeft, User, LayoutGrid, Stamp, Copy, Check, Globe,
 } from "lucide-react";
 import type { Id } from "../../../../convex/_generated/dataModel";
+import { MAX_MOVIES_PER_BLOCK } from "../../../../convex/limits";
 import { useThemeMode } from "@/hooks/useThemeMode";
 
 export default function PublicProfilePage() {
@@ -243,7 +244,7 @@ export default function PublicProfilePage() {
                       {block.title}
                     </h3>
                     <p className={`text-[10px] font-bold ${isGlass ? "text-slate-600" : "font-mono text-brutal-dim uppercase"}`}>
-                      {isGlass ? `${block.movieCount} / 50 movies` : `${block.movieCount} / 50 MOVIES`}
+                      {block.movieCount}/{MAX_MOVIES_PER_BLOCK} titles
                     </p>
                   </div>
                 </Link>

@@ -1,8 +1,9 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { ConvexHttpClient } from "convex/browser";
+import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { api } from "../../../../convex/_generated/api";
-import { createMcpHandler, McpServer, type ContentBlock } from "@modelcontextprotocol/server";
+import { createMcpHandler, McpServer, type AuthInfo, type ContentBlock } from "@modelcontextprotocol/server";
 import * as z from "zod/v4";
 import { isMcpTransportAllowed, mcpCorsHeaders, publicMcpCorsHeaders } from "@/lib/mcpCors";
 import { CINEBLOCK_MCP_ICON, CONFIRMATION_CARD_URI, registerMcpAppResources, STAMP_INTERVIEW_URI, STAMP_TEXT_MAX, TITLE_CAROUSEL_URI } from "@/lib/mcpAppResources";
@@ -203,34 +204,42 @@ async function posterContent(posterUrl: string | null): Promise<ContentBlock | n
   }
 }
 
-function encodeConfirmation(token: string, kind: "playlist" | "stamp", data: unknown): string {
-  const payload = Buffer.from(JSON.stringify({ kind, data: { actionId: randomUUID(), ...(data as object) }, expiresAt: Date.now() + CONFIRMATION_TTL_MS })).toString("base64url");
-  const signature = createHmac("sha256", token).update(payload).digest("base64url");
+function getInternalSecret(): string {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) throw new Error("INTERNAL_API_SECRET is not configured on the server.");
+  return secret;
+}
+
+// A draft is exactly what the matching Convex mutation saves, minus the fields the route adds
+// itself, so the preview cannot sign a field the mutation would reject.
+type DraftOf<Args> = Omit<Args, "token" | "internalSecret" | "actionId">;
+type Drafts = {
+  playlist: DraftOf<FunctionArgs<typeof api.mcp.createPlaylist>>;
+  stamp: DraftOf<FunctionArgs<typeof api.mcp.createStamp>>;
+};
+type ConfirmationPayload<K extends keyof Drafts> = { kind: K; userId: string; actionId: string; draft: Drafts[K]; expiresAt: number };
+
+const INVALID_CONFIRMATION = "Confirmation expired or invalid. Please preview again.";
+
+// Signed with a server-only secret and bound to the user, not the bearer token, so a client
+// cannot forge one and an OAuth refresh between preview and save does not invalidate it.
+function encodeConfirmation<K extends keyof Drafts>(userId: string, kind: K, draft: Drafts[K]): string {
+  const body: ConfirmationPayload<K> = { kind, userId, actionId: randomUUID(), draft, expiresAt: Date.now() + CONFIRMATION_TTL_MS };
+  const payload = Buffer.from(JSON.stringify(body)).toString("base64url");
+  const signature = createHmac("sha256", getInternalSecret()).update(payload).digest("base64url");
   return `${payload}.${signature}`;
 }
 
-function decodeConfirmation<T>(token: string, confirmationToken: string, kind: "playlist" | "stamp"): T {
+function decodeConfirmation<K extends keyof Drafts>(userId: string, confirmationToken: string, kind: K): Drafts[K] & { actionId: string } {
   const [payload, signature] = confirmationToken.split(".");
-  if (!payload || !signature || payload.length > 20000) throw new Error("Confirmation expired or invalid. Please preview again.");
-  const expected = createHmac("sha256", token).update(payload).digest();
+  if (!payload || !signature || payload.length > 20000) throw new Error(INVALID_CONFIRMATION);
+  const expected = createHmac("sha256", getInternalSecret()).update(payload).digest();
   const received = Buffer.from(signature, "base64url");
-  if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error("Confirmation expired or invalid. Please preview again.");
-  let decoded: { kind?: string; data?: T; expiresAt?: number };
-  try {
-    decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as typeof decoded;
-  } catch {
-    throw new Error("Confirmation expired or invalid. Please preview again.");
-  }
-  const expiresAt = decoded.expiresAt;
-  if (
-    decoded.kind !== kind ||
-    typeof expiresAt !== "number" ||
-    !Number.isSafeInteger(expiresAt) ||
-    expiresAt <= Date.now() ||
-    !decoded.data ||
-    typeof decoded.data !== "object"
-  ) throw new Error("Confirmation expired or invalid. Please preview again.");
-  return decoded.data;
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) throw new Error(INVALID_CONFIRMATION);
+  // The signature proves this server wrote the payload, so its shape is trusted from here on.
+  const body = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as ConfirmationPayload<K>;
+  if (body.kind !== kind || body.userId !== userId || body.expiresAt <= Date.now()) throw new Error(INVALID_CONFIRMATION);
+  return { ...body.draft, actionId: body.actionId };
 }
 
 function textResult(text: string, images: Array<ContentBlock | null> = [], structuredContent?: Record<string, unknown>) {
@@ -315,8 +324,16 @@ const SERVER_INSTRUCTIONS = [
   "Writes always take two separate calls: a preview (preview_stamp / preview_playlist) the user sees, then save_stamp / create_playlist with the exact confirmationToken from that preview, only after the user explicitly approves. Never skip the preview, never alter the text between preview and save, and never call the save tool if the approval card already reports it was saved.",
 ].join(" ");
 
-const mcpHandler = createMcpHandler(({ requestInfo }) => {
-  const token = requestInfo ? extractToken(requestInfo) : null;
+// handle() verifies the bearer token before any request reaches the MCP server and passes the
+// result in as authInfo, so every tool runs with a known token and user.
+function verifiedSession(authInfo: AuthInfo | undefined) {
+  const userId = authInfo?.extra?.userId;
+  if (!authInfo || typeof userId !== "string") throw new Error("MCP request reached the server without verified auth.");
+  return { token: authInfo.token, userId };
+}
+
+const mcpHandler = createMcpHandler(({ requestInfo, authInfo }) => {
+  const { token, userId } = verifiedSession(authInfo);
   const baseUrl = getBaseUrl(requestInfo);
   const server = new McpServer({
     name: "cineblock-mcp",
@@ -368,7 +385,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async () => {
       try {
-        const library = await convex.query(api.mcp.getLibrary, { token: token! });
+        const library = await convex.query(api.mcp.getLibrary, { token });
         return textResult(JSON.stringify({
           user: library.user,
           liked: library.liked,
@@ -392,7 +409,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ limit }) => {
       try {
-        const result = await convex.query(api.mcp.getUnstampedWatched, { token: token!, limit });
+        const result = await convex.query(api.mcp.getUnstampedWatched, { token, limit });
         const items = result.items.map((item) => ({
           movieId: item.movieId,
           movieTitle: item.movieTitle,
@@ -437,7 +454,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ title, description, isPublic, sources, movieIds }) => {
       try {
-        const library = await convex.query(api.mcp.getLibrary, { token: token! });
+        const library = await convex.query(api.mcp.getLibrary, { token });
         const selectedSources = sources?.length ? sources : ["liked", "watchlist", "watched"] as const;
         const byId = new Map<number, { movieId: number; movieTitle: string; posterPath: string }>();
         for (const source of selectedSources) {
@@ -451,7 +468,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
         if (!selected.length) return errorResult(new Error("The preview contains no titles. Check the requested source or movie IDs."));
         if (selected.length > 35) return errorResult(new Error("The preview contains more than CineBlock's 35-title limit. Narrow the source or movie IDs."));
         const previewData = { title: title.trim(), description: description?.trim() || undefined, isPublic, movies: selected };
-        const confirmationToken = encodeConfirmation(token!, "playlist", previewData);
+        const confirmationToken = encodeConfirmation(userId, "playlist", previewData);
         return textResult(
           `PLAYLIST PREVIEW — ${escapeMarkdown(previewData.title)}\nVisibility: ${isPublic ? "public" : "private"}\nTitles: ${selected.length}\nSources: ${selectedSources.join(", ")}\n\n${selected.map((item, index) => `${index + 1}. ${escapeMarkdown(item.movieTitle)} · TMDB ${item.movieId}\n   ${toPosterUrl(item.posterPath) ?? "No poster available"}`).join("\n")}\n\nNothing has been saved. Call create_playlist with confirmationToken only after the user approves this exact preview.\nconfirmationToken: ${confirmationToken}`,
           [],
@@ -481,8 +498,8 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ confirmationToken }) => {
       try {
-        const data = decodeConfirmation<{ actionId: string; title: string; description?: string; isPublic: boolean; movies: Array<{ movieId: number; movieTitle: string; posterPath: string }> }>(token!, confirmationToken, "playlist");
-        const result = await convex.mutation(api.mcp.createPlaylist, { token: token!, ...data });
+        const data = decodeConfirmation(userId, confirmationToken, "playlist");
+        const result = await convex.mutation(api.mcp.createPlaylist, { ...data, token, internalSecret: getInternalSecret() });
         const link = `${baseUrl}/cineblock/${result.blockId}`;
         return textResult(
           `Playlist saved: ${data.title}\n${result.movieCount} titles\nVisibility: ${result.isPublic ? "public" : "private"}\nShare link: ${link}${result.isPublic ? "" : " (private — only you can open it while signed in)"}`,
@@ -518,7 +535,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
       try {
         const [title, status] = await Promise.all([
           getTitle(tmdbId, mediaType),
-          convex.query(api.mcp.getStampStatus, { token: token!, movieId: tmdbId, mediaType }),
+          convex.query(api.mcp.getStampStatus, { token, movieId: tmdbId, mediaType }),
         ]);
         if (status === "published") {
           return errorResult(new Error("You already stamped this title. Open the existing stamp in CineBlock if you want to revisit it."));
@@ -559,8 +576,7 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     async ({ tmdbId, mediaType, reviewText, isPublic }) => {
       try {
         const title = await getTitle(tmdbId, mediaType);
-        const data = { movieId: title.id, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic, mediaType, posterUrl: title.posterUrl, year: title.year };
-        const confirmationToken = encodeConfirmation(token!, "stamp", data);
+        const confirmationToken = encodeConfirmation(userId, "stamp", { movieId: title.id, mediaType, movieTitle: title.title, posterPath: title.posterPath ?? "", reviewText: reviewText.trim(), isPublic });
         return textResult(
           `# STAMP PREVIEW — ${title.title}\n\n## Confirm the exact title\n- **Year:** ${title.year ?? "unknown"}\n- **Type:** ${mediaType === "tv" ? "TV series" : "movie"}\n- **TMDB ID:** ${title.id}\n- **Visibility:** ${isPublic ? "public" : "private"}\n- **Characters:** ${reviewText.trim().length}/${STAMP_TEXT_MAX}\n- **Poster:** ${title.posterUrl ?? "No poster available"}\n\n## Personal feeling\n\n${reviewText.trim()}\n\n---\nNothing has been saved. Call the save_stamp tool with the confirmationToken only after the user approves this exact title, poster, visibility, and Markdown text.\n\n**confirmationToken:** ${confirmationToken}`,
           [],
@@ -599,8 +615,8 @@ const mcpHandler = createMcpHandler(({ requestInfo }) => {
     },
     async ({ confirmationToken }) => {
       try {
-        const data = decodeConfirmation<{ actionId: string; movieId: number; mediaType?: "movie" | "tv"; movieTitle: string; posterPath: string; reviewText: string; isPublic: boolean }>(token!, confirmationToken, "stamp");
-        const result = await convex.mutation(api.mcp.createStamp, { token: token!, ...data });
+        const data = decodeConfirmation(userId, confirmationToken, "stamp");
+        const result = await convex.mutation(api.mcp.createStamp, { ...data, token, internalSecret: getInternalSecret() });
         const link = `${baseUrl}/profile`;
         return textResult(
           `Stamp saved for ${data.movieTitle}.\nVisibility: ${result.isPublic ? "public" : "private"}\nProfile link: ${link}`,
@@ -646,22 +662,23 @@ async function handle(request: NextRequest): Promise<Response> {
   if (!token) {
     return NextResponse.json({ error: "MCP bearer token required." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
-  let auth: { ok: boolean; error?: string; resource?: string };
+  let auth: FunctionReturnType<typeof api.users.pingMcpToken>;
   try {
     auth = await convex.query(api.users.pingMcpToken, { token });
   } catch (error) {
     console.error("MCP auth backend error:", error);
     return NextResponse.json({ error: "MCP authentication backend is unavailable. Deploy the latest Convex functions first." }, { status: 503, headers: mcpCorsHeaders(request) });
   }
-  if (!auth.ok) {
+  if (!auth.ok || !("userId" in auth)) {
     return NextResponse.json({ error: "Invalid or revoked MCP token." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
-  if (auth.resource && auth.resource !== `${getBaseUrl(request)}/api/mcp`) {
+  if ("resource" in auth && auth.resource && auth.resource !==`${getBaseUrl(request)}/api/mcp`) {
     return NextResponse.json({ error: "This OAuth token was issued for a different MCP resource." }, { status: 401, headers: { ...mcpCorsHeaders(request), "WWW-Authenticate": oauthChallenge(request) } });
   }
 
   try {
-    const response = await mcpHandler.fetch(request);
+    const authInfo: AuthInfo = { token, clientId: "cineblock", scopes: auth.scopes ?? [], extra: { userId: auth.userId } };
+    const response = await mcpHandler.fetch(request, { authInfo });
     for (const [key, value] of Object.entries(mcpCorsHeaders(request))) response.headers.set(key, value);
     return response;
   } catch (error) {

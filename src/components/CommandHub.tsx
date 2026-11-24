@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, SlidersHorizontal, X, ChevronDown, Command, Dices, Trophy, Box, Sparkles, Newspaper, Users, LayoutGrid, CheckCircle, Radio } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown, ChevronRight, Dices, Trophy, Box, Newspaper, Users, LayoutGrid, Radio, Compass, Flame, Clapperboard, Stamp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { GENRES, LANGUAGES, SORT_OPTIONS, generateYearRange } from "@/lib/constants";
@@ -10,6 +10,32 @@ import { KEYWORD_CHIPS } from "./FindMyMovie/StepKeywords";
 import AuthButton from "./AuthButton";
 import FindMyMovieWizard from "./FindMyMovie/FindMyMovieWizard";
 import { useThemeMode } from "@/hooks/useThemeMode";
+
+const BROWSE_SECTIONS: { title?: string; items: { href: string; icon: LucideIcon; tone: string; label: string; sub: string }[] }[] = [
+  {
+    title: "Discover",
+    items: [
+      { href: "/swipe", icon: Flame, tone: "#FB923C", label: "CineSwipe", sub: "Swipe through new picks" },
+      { href: "/recommendations", icon: Compass, tone: "#FB7185", label: "For you", sub: "Based on what you liked" },
+      { href: "/box-office", icon: Trophy, tone: "#FBBF24", label: "Box office", sub: "This week’s top earners" },
+      { href: "/collections", icon: Box, tone: "#38BDF8", label: "Franchise Vault", sub: "Series and universes" },
+    ],
+  },
+  {
+    title: "Community",
+    items: [
+      { href: "/cineblocks", icon: LayoutGrid, tone: "#60A5FA", label: "CineBlocks", sub: "Lists you can share" },
+      { href: "/blocks", icon: Users, tone: "#34D399", label: "Watch Blocks", sub: "Plan a watch with friends" },
+      { href: "/news", icon: Newspaper, tone: "#22D3EE", label: "Film news", sub: "Today’s headlines" },
+    ],
+  },
+  {
+    items: [
+      { href: "/stamps", icon: Stamp, tone: "#2DD4BF", label: "Stamps", sub: "Write how a film felt" },
+      { href: "/radar", icon: Radio, tone: "#F87171", label: "Release Radar", sub: "Upcoming releases" },
+    ],
+  },
+];
 
 // ─── Feature Flags ────────────────────────────────────────────────────────────
 
@@ -42,6 +68,10 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
   const [browseOpen, setBrowseOpen] = useState(false);
   const [keywordPopupOpen, setKeywordPopupOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [shortcutKey, setShortcutKey] = useState<string | null>(null);
+  useEffect(() => {
+    queueMicrotask(() => setShortcutKey(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘" : "Ctrl"));
+  }, []);
   const [scrolled, setScrolled] = useState(false);
   const [leftReactorFiring, setLeftReactorFiring] = useState(false);
   const [rightReactorFiring, setRightReactorFiring] = useState(false);
@@ -246,74 +276,59 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         </Link>
 
         {/* Search bar — grows to fill middle */}
-        <div className={`flex items-center px-3 sm:px-4 py-2 flex-1 transition-all duration-200 ${
-          currentTheme === "glass"
-            ? "rounded-xl border focus-within:shadow-[0_0_0_3px_rgba(96,165,250,0.18),0_0_20px_rgba(96,165,250,0.10)]"
-            : "brutal-input focus-within:border-brutal-yellow focus-within:shadow-brutal-accent"
-        }`}
-          style={currentTheme === "glass" ? {
-            background: "rgba(255,255,255,0.07)",
-            border: "1px solid rgba(255,255,255,0.11)",
-            backdropFilter: "blur(12px)",
-          } : undefined}
-        >
-          <Search
-            className={`w-4 h-4 mr-2 flex-shrink-0 transition-colors duration-200 ${
-              currentTheme === "glass" ? "text-slate-500 focus-within:text-blue-400" : "text-brutal-dim"
-            }`}
-            strokeWidth={2.5}
-          />
+        <div className="group flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] pl-3 pr-1.5 backdrop-blur-md transition-colors duration-150 hover:border-white/20 focus-within:border-blue-400/55 focus-within:bg-white/[0.08] sm:pl-4">
+          <Search className="h-4 w-4 shrink-0 text-slate-500 transition-colors duration-150 group-focus-within:text-blue-300" strokeWidth={2.25} />
           <input
             ref={searchRef}
-            type="text"
+            type="search"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
-            placeholder="Search movies..."
-            className={`flex-1 bg-transparent text-sm outline-none ${
-              currentTheme === "glass"
-                ? "text-white placeholder:text-slate-500 font-display"
-                : "text-brutal-white font-body placeholder:text-brutal-dim"
-            }`}
+            placeholder="Search movies and shows…"
+            aria-label="Search movies and shows"
+            className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-slate-500 sm:text-sm [&::-webkit-search-cancel-button]:hidden"
             id="search-input"
           />
-          {/* Kbd shortcut */}
-          <div className={`hidden sm:flex items-center gap-1 ml-3 px-2 py-0.5 text-[10px] ${
-            currentTheme === "glass"
-              ? "text-slate-500 bg-white/5 border border-white/10 rounded-md"
-              : "brutal-chip text-brutal-dim"
-          }`}>
-            <Command className="w-3 h-3" />
-            <span>K</span>
-          </div>
-          {/* Filter toggle */}
+          {query ? (
+            <button
+              type="button"
+              onClick={() => { handleQueryChange(""); searchRef.current?.focus(); }}
+              aria-label="Clear search"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+          ) : (
+            shortcutKey && (
+              <kbd className="hidden shrink-0 items-center rounded-md border border-white/10 bg-white/[0.05] px-1.5 py-0.5 font-sans text-[11px] text-slate-500 sm:flex">
+                {shortcutKey} K
+              </kbd>
+            )
+          )}
           <button
+            type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`ml-2 transition-all duration-200 active:scale-90 ${
-              currentTheme === "glass"
-                ? `px-2 py-1.5 rounded-lg ${
-                    showFilters || hasActiveFilters
-                      ? "bg-blue-500/25 border border-blue-400/50 text-blue-300 shadow-[0_0_12px_rgba(96,165,250,0.20)]"
-                      : "bg-white/6 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
-                  }`
-                : `brutal-btn px-2 py-1.5 ${showFilters || hasActiveFilters ? "!border-brutal-lime !shadow-brutal-lime !text-brutal-lime" : ""}`
-            }`}
             id="filter-toggle"
-            aria-label="Toggle filters"
+            aria-label="Filters"
+            aria-pressed={showFilters}
+            title="Filters"
+            className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.94] ${
+              showFilters || hasActiveFilters
+                ? "border-blue-400/45 bg-blue-400/20 text-blue-200"
+                : "border-transparent text-slate-400 hover:bg-white/10 hover:text-white"
+            }`}
           >
-            <SlidersHorizontal className="w-4 h-4" strokeWidth={2.5} />
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={2.25} />
+            {hasActiveFilters && !showFilters && <span aria-hidden="true" className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-orange-400" />}
           </button>
-
           {onSurpriseMe && (
             <button
+              type="button"
               onClick={onSurpriseMe}
-              className={`ml-2 hidden sm:flex px-2 py-1.5 active:scale-90 transition-all group ${
-                currentTheme === "glass"
-                  ? "rounded-lg bg-orange-500/18 border border-orange-400/30 text-orange-300 hover:bg-orange-500/28 hover:border-orange-400/50"
-                  : "brutal-btn !bg-brutal-yellow !text-black !border-brutal-yellow hover:scale-105"
-              }`}
-              title="Surprise Me!"
+              aria-label="Surprise me with a random movie"
+              title="Surprise me"
+              className="group/dice hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg text-orange-300 transition-[background-color,transform] duration-150 hover:bg-orange-400/15 active:scale-[0.94] sm:flex"
             >
-              <Dices className="w-4 h-4 group-hover:rotate-12 transition-transform" strokeWidth={2.5} />
+              <Dices className="h-4 w-4 transition-transform duration-200 group-hover/dice:rotate-12" strokeWidth={2.25} />
             </button>
           )}
         </div>
@@ -321,283 +336,97 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
         {/* Right side controls — desktop only (mobile uses bottom nav) */}
         <div className="hidden lg:flex items-center gap-2 shrink-0">
 
-          {/* BROWSE dropdown — Box Office, Franchise Vault, News */}
+          {/* Browse panel */}
           <div ref={browseRef} className="relative hidden lg:block">
             <button
               ref={browseButtonRef}
+              type="button"
               onClick={() => setBrowseOpen((o) => !o)}
               aria-expanded={browseOpen}
               aria-controls="browse-panel"
-              className={`brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest flex items-center gap-2 ${
-                browseOpen
-                  ? "!border-brutal-yellow !text-brutal-yellow"
-                  : "bg-surface border-brutal-border hover:bg-brutal-yellow hover:text-black hover:border-brutal-yellow"
+              className={`flex min-h-10 items-center gap-2 rounded-xl border px-3.5 text-sm font-medium transition-colors duration-150 ${
+                browseOpen ? "border-blue-400/45 bg-blue-400/15 text-white" : "border-white/10 bg-white/[0.05] text-slate-200 hover:border-white/20 hover:text-white"
               }`}
             >
-              <Box className="w-4 h-4" strokeWidth={2.5} />
-              BROWSE
-              <ChevronDown className={`w-3 h-3 transition-transform duration-150 ${browseOpen ? "rotate-90" : "-rotate-90"}`} strokeWidth={3} />
+              <Box className="h-4 w-4" strokeWidth={2} />
+              Browse
+              <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${browseOpen ? "rotate-180" : ""}`} strokeWidth={2.5} />
             </button>
 
-            {/* Side panel overlay */}
-            {browseOpen && mounted && createPortal(
+            {/* Frosts the page behind the open panel; a click on it closes the panel. */}
+            {mounted && createPortal(
               <div
-                role="button"
-                aria-label="Close side panel"
-                tabIndex={0}
-                className="fixed inset-0 z-40"
+                aria-hidden="true"
+                className={`fixed inset-0 transition-opacity duration-300 ${browseOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}
+                style={{ zIndex: 110, background: "rgba(2,8,23,0.45)", backdropFilter: "blur(8px) saturate(120%)", WebkitBackdropFilter: "blur(8px) saturate(120%)" }}
                 onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
-                    setBrowseOpen(false);
-                    browseButtonRef.current?.focus();
-                  }
-                }}
               />, document.body
             )}
-            {/* ── Explore panel ── */}
-            {mounted && createPortal(currentTheme === "glass" ? (
-              /* GLASS VERSION — premium frosted glass sidebar */
+            {mounted && createPortal(
               <div
                 ref={browsePanelRef}
                 id="browse-panel"
                 role="dialog"
                 aria-modal="true"
-                aria-label="Browse navigation"
-                className={`fixed right-0 top-0 h-full w-72 z-50 flex flex-col transition-transform duration-300 ease-out ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
+                aria-label="Explore"
+                className={`fixed right-0 top-0 flex h-full w-72 flex-col transition-[transform,visibility] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${browseOpen ? "visible translate-x-0" : "invisible translate-x-full"}`}
                 style={{
-                  background: "rgba(4, 10, 30, 0.92)",
+                  zIndex: 120,
+                  background: "rgba(4, 10, 30, 0.94)",
                   backdropFilter: "blur(40px) saturate(180%)",
                   WebkitBackdropFilter: "blur(40px) saturate(180%)",
-                  borderLeft: "1px solid rgba(96,165,250,0.25)",
-                  boxShadow: "-32px 0 80px rgba(0,0,0,0.8), inset 1px 0 0 rgba(255,255,255,0.08)",
+                  borderLeft: "1px solid rgba(255,255,255,0.10)",
+                  boxShadow: "-32px 0 80px rgba(0,0,0,0.7)",
                 }}
               >
-                {/* Top accent line */}
-                <div style={{ height: "2px", background: "linear-gradient(90deg, transparent, #60A5FA, #F97316, transparent)" }} />
-
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "rgba(96,165,250,0.15)", border: "1px solid rgba(96,165,250,0.35)", boxShadow: "0 0 16px rgba(96,165,250,0.3)" }}>
-                      <Box className="w-4 h-4" style={{ color: "#60A5FA" }} strokeWidth={2} />
-                    </div>
-                    <div>
-                      <div className="text-xs font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(96,165,250,0.7)" }}>Navigation</div>
-                      <div className="text-sm font-bold text-white leading-none mt-0.5">Explore</div>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between px-6 pb-3 pt-5">
+                  <h2 className="font-display !text-lg font-semibold text-white">Explore</h2>
                   <button
+                    type="button"
                     onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl text-white transition-all duration-150"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-                    }}
+                    aria-label="Close"
+                    className="-mr-2 flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-colors duration-150 hover:bg-white/10 hover:text-white"
                   >
-                    <X className="w-4 h-4" strokeWidth={2} />
+                    <X className="h-4 w-4" strokeWidth={2} />
                   </button>
                 </div>
 
-                {/* Nav list */}
-                <div className="flex flex-col flex-1 overflow-y-auto px-3 py-3 gap-0.5">
-
-                  {/* Section label */}
-                  <div className="px-3 pb-1 pt-1">
-                    <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Discover</span>
-                  </div>
-
-                  {[
-                    { href: "/swipe",           icon: Sparkles,   label: "CineSwipe",       sub: "Swipe to discover",  iconColor: "#F472B6", glow: "rgba(244,114,182,0.25)" },
-                    { href: "/recommendations", icon: Sparkles,   label: "For You",         sub: "Personalized picks", iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
-                    { href: "/box-office",      icon: Trophy,     label: "Box Office",      sub: "This week's hits",   iconColor: "#A3E635", glow: "rgba(163,230,53,0.25)" },
-                    { href: "/collections",     icon: Box,        label: "Franchise Vault", sub: "Series & universes", iconColor: "#A78BFA", glow: "rgba(167,139,250,0.25)" },
-                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setBrowseOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
-                      style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = `${iconColor}18`;
-                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
-                        e.currentTarget.style.paddingLeft = "10px";
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.borderLeft = "none";
-                        e.currentTarget.style.paddingLeft = "12px";
-                      }}
-                    >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
-                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
-                        <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</span>
-                      </div>
-                    </Link>
+                <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 pb-6">
+                  {BROWSE_SECTIONS.map(({ title, items }) => (
+                    <div key={title ?? "more"} className="flex flex-col gap-0.5">
+                      {title && <p className="px-3 pb-1 text-xs font-medium text-slate-500">{title}</p>}
+                      {items.map(({ href, icon: Icon, tone, label, sub }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setBrowseOpen(false)}
+                          className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-white/[0.06] focus-visible:bg-white/[0.06]"
+                        >
+                          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl" style={{ color: tone, background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
+                            <span aria-hidden="true" className="absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" style={{ background: `${tone}1F` }} />
+                            <Icon className="relative h-[18px] w-[18px]" strokeWidth={2} />
+                          </span>
+                          <span className="flex min-w-0 flex-1 flex-col">
+                            <span className="text-sm font-semibold leading-tight text-white">{label}</span>
+                            <span className="mt-0.5 text-xs leading-tight text-slate-400">{sub}</span>
+                          </span>
+                          <ChevronRight className="h-4 w-4 shrink-0 -translate-x-1 text-slate-500 opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100" strokeWidth={2} />
+                        </Link>
+                      ))}
+                    </div>
                   ))}
-
-                  {/* Divider */}
-                  <div className="mx-3 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
-
-                  {/* Section label */}
-                  <div className="px-3 pb-1">
-                    <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.3)" }}>Community</span>
-                  </div>
-
-                  {[
-                    { href: "/cineblocks", icon: LayoutGrid, label: "CineBlocks",   sub: "Curated lists",     iconColor: "#22D3EE", glow: "rgba(34,211,238,0.25)" },
-                    { href: "/blocks",     icon: Users,      label: "Watch Blocks", sub: "Group watchlists",  iconColor: "#F87171", glow: "rgba(248,113,113,0.25)" },
-                    { href: "/news",       icon: Newspaper,  label: "Film News",    sub: "Latest updates",    iconColor: "#FB923C", glow: "rgba(251,146,60,0.25)" },
-                  ].map(({ href, icon: Icon, label, sub, iconColor, glow }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setBrowseOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
-                      style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = `${iconColor}18`;
-                        e.currentTarget.style.borderLeft = `2px solid ${iconColor}`;
-                        e.currentTarget.style.paddingLeft = "10px";
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.borderLeft = "none";
-                        e.currentTarget.style.paddingLeft = "12px";
-                      }}
-                    >
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${iconColor}20`, border: `1px solid ${iconColor}55`, boxShadow: `0 0 12px ${glow}` }}>
-                        <Icon className="w-[18px] h-[18px]" style={{ color: iconColor }} strokeWidth={2} />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[13px] font-semibold leading-tight text-white">{label}</span>
-                        <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>{sub}</span>
-                      </div>
-                    </Link>
-                  ))}
-
-                  {/* Divider */}
-                  <div className="mx-3 my-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
-
-                  {/* Stamp a Film */}
-                  <Link
-                    href="/stamps"
-                    onClick={() => setBrowseOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left w-full"
-                    style={{ color: "rgba(255,255,255,0.85)" }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(255,225,86,0.12)";
-                      e.currentTarget.style.borderLeft = "2px solid #FFE156";
-                      e.currentTarget.style.paddingLeft = "10px";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderLeft = "none";
-                      e.currentTarget.style.paddingLeft = "12px";
-                    }}
-                  >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,225,86,0.15)", border: "1px solid rgba(255,225,86,0.4)", boxShadow: "0 0 12px rgba(255,225,86,0.2)" }}>
-                      <CheckCircle className="w-[18px] h-[18px] text-yellow-300" strokeWidth={2} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[13px] font-semibold leading-tight text-white">Stamp a Film</span>
-                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>Mark as watched</span>
-                    </div>
-                  </Link>
-
-                  {/* Release Radar */}
-                  <Link
-                    href="/radar"
-                    onClick={() => setBrowseOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150"
-                    style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none" }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = "rgba(34,211,238,0.12)";
-                      e.currentTarget.style.borderLeft = "2px solid #22D3EE";
-                      e.currentTarget.style.paddingLeft = "10px";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderLeft = "none";
-                      e.currentTarget.style.paddingLeft = "12px";
-                    }}
-                  >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 relative" style={{ background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.4)", boxShadow: "0 0 12px rgba(34,211,238,0.25)" }}>
-                      <Radio className="w-[18px] h-[18px] text-cyan-400" strokeWidth={2} />
-                      <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(34,211,238,1)" }} />
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[13px] font-semibold leading-tight text-white">Release Radar</span>
-                      <span className="text-[11px] leading-tight mt-0.5" style={{ color: "rgba(34,211,238,0.7)" }}>Live updates</span>
-                    </div>
-                  </Link>
-                </div>
-
-                {/* Footer glow strip */}
-                <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(249,115,22,0.5), transparent)" }} />
+                </nav>
               </div>
-            ) : (
-              /* BRUTALIST VERSION — unchanged */
-              <div
-                ref={browsePanelRef}
-                id="browse-panel"
-                role="dialog"
-                aria-modal="true"
-                aria-label="Browse navigation"
-                className={`fixed right-0 top-0 h-full w-56 bg-bg border-l-3 border-brutal-border z-50 flex flex-col transition-transform duration-200 ${browseOpen ? "translate-x-0" : "translate-x-full"}`}
-              >
-                <div className="flex items-center justify-between px-4 py-4 border-b-3 border-brutal-border">
-                  <span className="text-[10px] font-mono font-black tracking-[0.2em] text-brutal-dim uppercase">Explore</span>
-                  <button onClick={() => { setBrowseOpen(false); browseButtonRef.current?.focus(); }} className="text-brutal-dim hover:text-brutal-white transition-colors">
-                    <X className="w-4 h-4" strokeWidth={2.5} />
-                  </button>
-                </div>
-                <div className="flex flex-col flex-1 overflow-y-auto">
-                  {[
-                    { href: "/swipe",           icon: Sparkles,   label: "CINESWIPE",       color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
-                    { href: "/recommendations", icon: Sparkles,   label: "FOR YOU",         color: "hover:text-brutal-pink hover:bg-brutal-pink/10" },
-                    { href: "/box-office",      icon: Trophy,     label: "BOX OFFICE",      color: "hover:text-brutal-lime hover:bg-brutal-lime/10" },
-                    { href: "/collections",     icon: Box,        label: "FRANCHISE VAULT", color: "hover:text-brutal-violet hover:bg-brutal-violet/10" },
-                    { href: "/cineblocks",      icon: LayoutGrid, label: "CINEBLOCKS",      color: "hover:text-brutal-cyan hover:bg-brutal-cyan/10" },
-                    { href: "/blocks",          icon: Users,      label: "WATCH BLOCKS",    color: "hover:text-brutal-red hover:bg-brutal-red/10" },
-                    { href: "/news",            icon: Newspaper,  label: "NEWS",            color: "hover:text-brutal-orange hover:bg-brutal-orange/10" },
-                  ].map(({ href, icon: Icon, label, color }) => (
-                    <Link key={href} href={href} onClick={() => setBrowseOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 last:border-0 ${color} transition-colors`}>
-                      <Icon className="w-4 h-4 shrink-0" strokeWidth={2.5} />{label}
-                    </Link>
-                  ))}
-                  <Link href="/stamps" onClick={() => setBrowseOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-yellow hover:bg-brutal-yellow/10 transition-colors text-left">
-                    <CheckCircle className="w-4 h-4 shrink-0" strokeWidth={2.5} />STAMP A FILM
-                  </Link>
-                  <Link href="/radar" onClick={() => setBrowseOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 text-xs font-mono font-bold text-brutal-white border-b border-brutal-border/50 hover:text-brutal-cyan hover:bg-brutal-cyan/10 transition-colors text-left relative group">
-                    <Radio className="w-4 h-4 shrink-0 group-hover:animate-pulse" strokeWidth={2.5} />RELEASE RADAR
-                    <div className="absolute top-1/2 -translate-y-1/2 right-4 w-2 h-2 bg-brutal-cyan rounded-full shadow-[0_0_8px_rgba(87,255,245,0.5)]" />
-                  </Link>
-                </div>
-              </div>
-            ), document.body)}
+            , document.body)}
           </div>
 
-          {/* FIND MOVIE — primary CTA */}
           <button
+            type="button"
             onClick={() => setWizardOpen(true)}
-            className="brutal-btn px-3 py-1.5 text-xs font-bold font-mono tracking-widest items-center gap-2 bg-surface border-brutal-border hover:bg-brutal-pink hover:text-black hover:border-brutal-pink hidden lg:flex"
-            title="Find My Movie"
+            className="hidden min-h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 text-sm font-medium text-slate-200 transition-colors duration-150 hover:border-white/20 hover:text-white lg:flex"
           >
-            <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-            FIND MOVIE
+            <Clapperboard className="h-4 w-4" strokeWidth={2} />
+            Find a movie
           </button>
 
           <div className="hidden lg:block">
@@ -616,7 +445,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               <button
                 onClick={fireLeftReactor}
                 title="Clear all filters"
-                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                aria-label="Clear all filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
                 style={{ width: 40, height: 40 }}
               >
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -792,7 +622,8 @@ export default function CommandHub({ onFilterChange, onSurpriseMe }: CommandHubP
               <button
                 onClick={fireRightReactor}
                 title="Randomize filters"
-                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90 focus:outline-none"
+                aria-label="Randomize filters"
+                className="flex items-center justify-center rounded-full transition-transform duration-150 active:scale-90"
                 style={{ width: 40, height: 40 }}
               >
                 <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -1197,7 +1028,7 @@ function FilterSelect({
           ref={buttonRef}
           type="button"
           onClick={handleToggle}
-          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-xs rounded-xl transition-all duration-200 focus:outline-none"
+          className="w-full flex items-center justify-between gap-1.5 px-3 py-2.5 text-xs rounded-xl transition-all duration-200"
           style={{
             background: value ? "rgba(96,165,250,0.12)" : "rgba(255,255,255,0.06)",
             border: value ? "1px solid rgba(96,165,250,0.38)" : "1px solid rgba(255,255,255,0.10)",

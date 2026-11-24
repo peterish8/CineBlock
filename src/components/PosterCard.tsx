@@ -96,7 +96,7 @@ const PosterCard = memo(function PosterCard({ movie, onMovieClick, index }: Post
         onTouchStart={prefetchBackdrop}
         onMouseMove={handleMouseMove}
         onMouseLeave={resetGlassTilt}
-        className="group brutal-poster relative h-full w-full focus:outline-none animate-poster-in"
+        className="group brutal-poster relative h-full w-full animate-poster-in"
         style={{
           animationDelay: `${Math.min(index * 18, 140)}ms`,
           transition: "transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease, border-color 0.35s ease",

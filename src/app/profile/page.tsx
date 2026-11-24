@@ -3,16 +3,16 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useConvexAuth, useConvex } from "convex/react";
-import { User, Mail, Calendar, LogOut, Pencil, Check, X, Heart, Bookmark, Eye, ArrowLeft, Palette, Trash2, AtSign, Globe, Copy, Link2, Download, Upload, ShieldCheck } from "lucide-react";
+import { User, Mail, Calendar, LogOut, Pencil, Check, X, ArrowLeft, Trash2, AtSign, Globe, Copy, Link2, Download, Upload, ShieldCheck } from "lucide-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useThemeMode } from "@/hooks/useThemeMode";
-import { getThemeDisplayName } from "@/lib/themeConfig";
 import IntegrationAccessModal from "@/components/IntegrationAccessModal";
 import TerminalAccessCard from "@/components/TerminalAccessCard";
+import { useToast } from "@/components/ToastProvider";
 
 type ImportDataPreview = {
   watched?: unknown[];
@@ -33,6 +33,7 @@ export default function ProfilePage() {
   const convex = useConvex();
   const { signOut } = useAuthActions();
   const router = useRouter();
+  const { pushToast } = useToast();
 
   const theme = useThemeMode();
   const isGlass = theme === "glass";
@@ -150,6 +151,9 @@ export default function ProfilePage() {
       const token = await generateMcpToken();
       setMcpTokenValue(token);
       setMcpTokenVisible(true);
+    } catch (err) {
+      console.error(err);
+      pushToast("error", "Failed to generate MCP token. Please try again.");
     } finally {
       setGeneratingMcpToken(false);
     }
@@ -160,6 +164,9 @@ export default function ProfilePage() {
     void navigator.clipboard.writeText(mcpTokenValue).then(() => {
       setCopiedMcpToken(true);
       setTimeout(() => setCopiedMcpToken(false), 2000);
+    }).catch((err) => {
+      console.error(err);
+      pushToast("error", "Couldn't copy the token. Please copy it manually.");
     });
   };
 
@@ -228,7 +235,10 @@ export default function ProfilePage() {
     setIsImporting(true);
     setImportError("");
     try {
-      const stats = await importUserData({ payload: importDataPreview });
+      // The backup file's exact shape is validated server-side by importUserData's
+      // typed Convex validator; this file's own ImportDataPreview type only needs to
+      // be loose enough to preview a user-supplied JSON file before that happens.
+      const stats = await importUserData({ payload: importDataPreview as Parameters<typeof importUserData>[0]["payload"] });
       alert(`Import completed successfully!\n\nAdded:\n${stats.watchedAdded} Watched Movies\n${stats.likedAdded} Liked Movies\n${stats.watchlistAdded} Watchlist Movies\n${stats.blocksAdded} CineBlocks\n${stats.stampsAdded} Stamps`);
       setShowImportModal(false);
       setImportDataPreview(null);
@@ -304,7 +314,6 @@ export default function ProfilePage() {
         <>
           <div className="pointer-events-none fixed left-[-20%] top-[-15%] aspect-square w-[75vw] rounded-full opacity-40" style={{ background: "radial-gradient(circle, rgba(96,165,250,0.28) 0%, transparent 70%)", filter: "blur(90px)", zIndex: 0 }} />
           <div className="pointer-events-none fixed bottom-[-20%] right-[-15%] aspect-square w-[75vw] rounded-full opacity-35" style={{ background: "radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)", filter: "blur(110px)", zIndex: 0 }} />
-          <div className="pointer-events-none fixed top-[40%] left-[40%] aspect-square w-[40vw] rounded-full opacity-15" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%)", filter: "blur(80px)", zIndex: 0 }} />
         </>
       )}
 
@@ -352,12 +361,6 @@ export default function ProfilePage() {
           className={isGlass ? "overflow-hidden rounded-2xl" : "brutal-card p-0 overflow-hidden"}
           style={isGlass ? glassCard : undefined}
         >
-          {/* Accent strip — brutalist yellow / glass blue gradient */}
-          {isGlass ? (
-            <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, rgba(96,165,250,0.9) 0%, rgba(139,92,246,0.7) 40%, rgba(249,115,22,0.8) 70%, rgba(96,165,250,0.4) 100%)", boxShadow: "0 0 12px rgba(96,165,250,0.5)" }} />
-          ) : (
-            <div className="h-3 w-full bg-brutal-yellow" />
-          )}
 
           <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Avatar */}
@@ -418,7 +421,7 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <>
-                    <h1 className={`font-display font-black text-2xl sm:text-3xl uppercase tracking-tight truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>
+                    <h1 className="truncate font-display text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                       {displayName}
                     </h1>
                     <button
@@ -428,6 +431,7 @@ export default function ProfilePage() {
                         : "brutal-btn p-1.5 hover:!border-brutal-yellow hover:!text-brutal-yellow"}
                       style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)" } : undefined}
                       title="Edit name"
+                      aria-label="Edit name"
                     >
                       <Pencil className="w-3.5 h-3.5" strokeWidth={2.5} />
                     </button>
@@ -437,48 +441,28 @@ export default function ProfilePage() {
               <p className={`font-mono text-sm mt-1 truncate ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>{user?.email}</p>
               <div className="flex items-center gap-1.5 mt-2">
                 <Calendar className={`w-3.5 h-3.5 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`} strokeWidth={2} />
-                <span className={`text-xs font-mono uppercase ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Member since {memberSince}</span>
+                <span className="text-sm text-slate-400">Member since {memberSince}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── Stats row ─────────────────────────────────────── */}
+        {/* ── Stats: each count opens its list ─────────────── */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {[
-            { label: "LIKED",     value: likedCount,     icon: Heart,    brutalColor: "red",  brutalBg: "bg-brutal-red",  brutalAccent: "border-brutal-red",  glassColor: "#F87171", glassBorder: "rgba(239,68,68,0.35)",   glassText: "text-rose-400"    },
-            { label: "WATCHLIST", value: watchlistCount, icon: Bookmark, brutalColor: "pink", brutalBg: "bg-brutal-pink", brutalAccent: "border-brutal-pink", glassColor: "#60A5FA", glassBorder: "rgba(96,165,250,0.35)",  glassText: "text-blue-400"    },
-            { label: "WATCHED",   value: watchedCount,   icon: Eye,      brutalColor: "lime", brutalBg: "bg-brutal-lime", brutalAccent: "border-brutal-lime", glassColor: "#34D399", glassBorder: "rgba(52,211,153,0.35)",  glassText: "text-emerald-400" },
-          ].map(({ label, value, icon: Icon, brutalColor, brutalBg, brutalAccent, glassColor, glassBorder, glassText }) => (
-            isGlass ? (
-              <div key={label} className="overflow-hidden rounded-2xl" style={{
-                background: "rgba(8,15,40,0.78)",
-                backdropFilter: "blur(24px) saturate(200%)",
-                WebkitBackdropFilter: "blur(24px) saturate(200%)",
-                border: `1px solid ${glassBorder}`,
-                boxShadow: `0 4px 28px rgba(0,0,0,0.45), 0 0 30px ${glassBorder.replace('0.35)', '0.12)')}, inset 0 1px 0 rgba(255,255,255,0.10)`,
-              }}>
-                <div className="px-4 py-2.5 flex items-center gap-2" style={{ borderBottom: `1px solid ${glassBorder}`, background: `${glassBorder.replace('0.35)', '0.08)')}` }}>
-                  <Icon className="w-4 h-4" style={{ color: glassColor }} strokeWidth={2} />
-                  <span className="font-display font-semibold text-[10px] tracking-widest uppercase" style={{ color: glassColor }}>{label}</span>
-                </div>
-                <div className="px-4 py-5 text-center">
-                  <span className={`font-display font-black text-2xl sm:text-4xl ${glassText}`} style={{ textShadow: `0 0 20px currentColor` }}>{value}</span>
-                  <p className="text-slate-500 text-[10px] font-mono mt-1">{value === 1 ? "movie" : "movies"}</p>
-                </div>
-              </div>
-            ) : (
-              <div key={label} className={`brutal-card p-0 overflow-hidden border-2 ${brutalAccent}`}>
-                <div className={`${brutalBg} px-4 py-2 flex items-center gap-2`}>
-                  <Icon className="w-4 h-4 text-black fill-current" strokeWidth={2} />
-                  <span className="font-mono font-black text-[10px] text-black tracking-widest">{label}</span>
-                </div>
-                <div className="px-4 py-4 text-center">
-                  <span className={`font-display font-black text-2xl sm:text-4xl text-brutal-${brutalColor}`}>{value}</span>
-                  <p className="text-brutal-dim text-[10px] font-mono mt-1">{value === 1 ? "movie" : "movies"}</p>
-                </div>
-              </div>
-            )
+            { label: "Liked", value: likedCount, href: "/liked" },
+            { label: "Watchlist", value: watchlistCount, href: "/watchlist" },
+            { label: "Watched", value: watchedCount, href: "/watched" },
+          ].map(({ label, value, href }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group rounded-2xl px-4 py-4 transition-colors duration-150 hover:border-white/25 sm:px-5"
+              style={{ background: "rgba(8,15,40,0.78)", border: "1px solid rgba(255,255,255,0.12)" }}
+            >
+              <span className="block text-sm text-slate-400 transition-colors duration-150 group-hover:text-slate-200">{label}</span>
+              <span className="mt-1 block font-display text-3xl font-semibold tabular-nums text-white">{value}</span>
+            </Link>
           ))}
         </div>
 
@@ -488,11 +472,10 @@ export default function ProfilePage() {
           style={isGlass ? glassCard : undefined}
         >
           <div className="flex items-center gap-2">
-            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(96,165,250,0.9), rgba(139,92,246,0.6))" }} />}
             <h2 className={isGlass
-              ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]"
+              ? "text-xs text-slate-400"
               : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}>
-              Account Details
+              Account details
             </h2>
           </div>
 
@@ -503,9 +486,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
-                <User className={`w-4 h-4 shrink-0 ${isGlass ? "text-blue-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
+                <User className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-yellow"}`} strokeWidth={2.5} />
                 <div>
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Display Name</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Display Name</p>
                   <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{displayName}</p>
                 </div>
               </div>
@@ -529,9 +512,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <AtSign className={`w-4 h-4 shrink-0 ${isGlass ? "text-emerald-400" : "text-brutal-lime"}`} strokeWidth={2.5} />
+                <AtSign className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-lime"}`} strokeWidth={2.5} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Username</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Username</p>
                   {editingUsername ? (
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`font-mono text-sm ${isGlass ? "text-slate-400" : "text-brutal-dim"}`}>@</span>
@@ -585,10 +568,10 @@ export default function ProfilePage() {
                 style={isGlass ? glassRow : undefined}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <Link2 className={`w-4 h-4 shrink-0 ${isGlass ? "text-violet-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
+                  <Link2 className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
                   <div className="min-w-0">
-                    <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Your Public Profile</p>
-                    <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>moviex.app/u/{user.username}</p>
+                    <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Your Public Profile</p>
+                    <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>{typeof window !== "undefined" ? window.location.host : "www.cineblock.in"}/u/{user.username}</p>
                   </div>
                 </div>
                 <button
@@ -596,6 +579,9 @@ export default function ProfilePage() {
                     void navigator.clipboard.writeText(`${window.location.origin}/u/${user.username}`).then(() => {
                       setCopiedProfileLink(true);
                       setTimeout(() => setCopiedProfileLink(false), 2000);
+                    }).catch((err) => {
+                      console.error(err);
+                      pushToast("error", "Couldn't copy the link. Please copy it manually.");
                     });
                   }}
                   className={isGlass
@@ -614,9 +600,9 @@ export default function ProfilePage() {
               className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
-              <Mail className={`w-4 h-4 shrink-0 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
+              <Mail className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
               <div className="min-w-0">
-                <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Email</p>
+                <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Email</p>
                 <p className={`text-sm font-bold truncate ${isGlass ? "text-white" : "text-brutal-white"}`}>{user?.email || "Not provided"}</p>
               </div>
             </div>
@@ -626,35 +612,11 @@ export default function ProfilePage() {
               className={isGlass ? "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center gap-3 p-3 bg-surface-2 border-2 border-brutal-border"}
               style={isGlass ? glassRow : undefined}
             >
-              <Calendar className={`w-4 h-4 shrink-0 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`} strokeWidth={2.5} />
+              <Calendar className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-pink"}`} strokeWidth={2.5} />
               <div>
-                <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Member Since</p>
+                <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Member Since</p>
                 <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{memberSince}</p>
               </div>
-            </div>
-
-            {/* Theme row */}
-            <div
-              className={isGlass ? "flex items-center justify-between p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.05]" : "flex items-center justify-between p-3 bg-surface-2 border-2 border-brutal-border"}
-              style={isGlass ? glassRow : undefined}
-            >
-              <div className="flex items-center gap-3">
-                <Palette className={`w-4 h-4 shrink-0 ${isGlass ? "text-violet-400" : "text-brutal-violet"}`} strokeWidth={2.5} />
-                <div>
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Theme</p>
-                  <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>{getThemeDisplayName("glass")}</p>
-                </div>
-              </div>
-              <span
-                className={`text-[9px] flex items-center gap-1 px-2.5 py-1 rounded-full ${isGlass
-                  ? "font-display font-semibold"
-                  : "brutal-chip text-brutal-violet border-brutal-violet"}`}
-                style={isGlass ? glassChip("default") : undefined}
-                aria-label="Glass theme is permanently enabled"
-              >
-                <Palette className="w-2.5 h-2.5" />
-                GLASS DEFAULT
-              </span>
             </div>
 
             {/* Preferred Languages */}
@@ -663,9 +625,9 @@ export default function ProfilePage() {
               style={isGlass ? glassRow : undefined}
             >
               <div className="flex items-center gap-3">
-                <Globe className={`w-4 h-4 shrink-0 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
+                <Globe className={`w-4 h-4 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-[9px] font-mono font-bold uppercase tracking-widest ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Preferred Languages (Max 5)</p>
+                  <p className={`${isGlass ? "text-xs text-slate-400" : "text-[9px] font-mono font-bold uppercase tracking-widest text-brutal-dim"}`}>Preferred Languages (Max 5)</p>
                   <p className={`text-[10px] font-mono mt-0.5 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Home page feeds will be curated for your selected languages.</p>
                 </div>
               </div>
@@ -737,58 +699,28 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* ── Quick links ───────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { href: "/liked",      label: isGlass ? "My Liked"      : "MY LIKED",      glassColor: "rgba(239,68,68,0.18)",   glassBorder: "rgba(239,68,68,0.35)",   glassText: "#F87171",  brutalColor: "[@media(hover:hover)]:hover:!bg-brutal-red [@media(hover:hover)]:hover:!border-brutal-red [@media(hover:hover)]:hover:!text-black"   },
-            { href: "/watchlist",  label: isGlass ? "My Watchlist"  : "MY WATCHLIST",  glassColor: "rgba(96,165,250,0.15)",  glassBorder: "rgba(96,165,250,0.35)",  glassText: "#93C5FD",  brutalColor: "[@media(hover:hover)]:hover:!bg-brutal-pink [@media(hover:hover)]:hover:!border-brutal-pink [@media(hover:hover)]:hover:!text-black" },
-            { href: "/watched",    label: isGlass ? "My Watched"    : "MY WATCHED",    glassColor: "rgba(52,211,153,0.15)",  glassBorder: "rgba(52,211,153,0.35)",  glassText: "#6EE7B7",  brutalColor: "[@media(hover:hover)]:hover:!bg-brutal-lime [@media(hover:hover)]:hover:!border-brutal-lime [@media(hover:hover)]:hover:!text-black" },
-          ].map(({ href, label, glassColor, glassBorder, glassText, brutalColor }) => (
-            <Link
-              key={href}
-              href={href}
-              className={isGlass
-                ? "py-3.5 text-xs font-display font-semibold tracking-wider text-center block rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110"
-                : `brutal-btn py-3 text-xs font-mono font-black tracking-widest text-center block ${brutalColor}`}
-              style={isGlass ? {
-                background: glassColor,
-                backdropFilter: "blur(16px) saturate(180%)",
-                WebkitBackdropFilter: "blur(16px) saturate(180%)",
-                border: `1px solid ${glassBorder}`,
-                color: glassText,
-                boxShadow: `0 4px 20px rgba(0,0,0,0.35), 0 0 20px ${glassBorder.replace('0.35)', '0.12)')}, inset 0 1px 0 rgba(255,255,255,0.12)`,
-              } : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-
         {/* Two separate credentials: mcp_ for ChatGPT/Claude, cb_ for CineBlock Terminal. */}
         <button
           type="button"
           onClick={() => setShowIntegrationAccess(true)}
           className={isGlass
-            ? "group flex w-full items-center justify-between gap-4 rounded-2xl p-5 text-left transition-all duration-200 hover:brightness-110"
+            ? "group flex w-full items-center justify-between gap-4 rounded-2xl p-5 text-left transition-colors duration-150 hover:border-white/25"
             : "brutal-card flex w-full items-center justify-between gap-4 p-5 text-left"}
           style={isGlass ? {
             ...glassCard,
-            background: "linear-gradient(120deg, rgba(34,211,238,0.10), rgba(96,165,250,0.10))",
-            border: "1px solid rgba(96,165,250,0.28)",
           } : undefined}
         >
           <span className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={isGlass ? { background: "rgba(34,211,238,0.14)", border: "1px solid rgba(34,211,238,0.28)" } : undefined}>
-              <ShieldCheck className={isGlass ? "h-5 w-5 text-cyan-300" : "h-5 w-5"} />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "rgba(96,165,250,0.12)", border: "1px solid rgba(96,165,250,0.28)" }}>
+              <ShieldCheck className="h-5 w-5 text-blue-300" />
             </span>
             <span className="min-w-0">
-              <span className={isGlass ? "block text-[10px] font-display font-semibold uppercase tracking-[0.2em] text-cyan-200" : "block text-[10px] font-mono font-bold uppercase"}>Connected access</span>
-              <span className={isGlass ? "mt-1 block truncate text-sm font-display font-semibold text-white" : "mt-1 block truncate text-sm font-semibold"}>MCP access</span>
-              <span className={isGlass ? "mt-1 block text-[10px] text-slate-500" : "mt-1 block text-[10px]"}>Connect ChatGPT to your CineBlock library with a separate MCP credential.</span>
+              <span className="block truncate font-display text-base font-semibold text-white">ChatGPT and Claude access</span>
+              <span className="mt-0.5 block text-sm text-slate-400">Let an AI assistant read your library and save CineBlocks and stamps you approve.</span>
             </span>
           </span>
-          <span className={isGlass ? "flex shrink-0 items-center gap-2 text-[10px] font-display font-semibold uppercase tracking-[0.14em] text-cyan-200" : "flex shrink-0 items-center gap-2 text-xs font-bold"}>
-            <Link2 className="h-3.5 w-3.5" /> Manage
+          <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-blue-300 transition-colors duration-150 group-hover:text-blue-200">
+            Manage
           </span>
         </button>
 
@@ -819,60 +751,56 @@ export default function ProfilePage() {
           style={isGlass ? glassCard : undefined}
         >
           <div className="flex items-center gap-2">
-            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(34,211,238,0.9), rgba(52,211,153,0.6))" }} />}
-            <Download className={`w-4 h-4 ${isGlass ? "text-cyan-400" : "text-brutal-cyan"}`} strokeWidth={2.5} />
-            <h2 className={`flex-1 ${isGlass ? "text-[10px] font-display font-semibold text-slate-400 uppercase tracking-[0.2em]" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Data &amp; Privacy</h2>
+            <h2 className={`flex-1 ${isGlass ? "text-xs text-slate-400" : "text-[10px] font-mono font-black text-brutal-dim uppercase tracking-[0.2em]"}`}>Data &amp; Privacy</h2>
           </div>
-          <p className={`text-[11px] font-mono ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>
-            Securely backup your library offline, or migrate your profile to a secondary node via raw JSON payloads.
+          <p className="text-sm text-slate-400">
+            Download your lists, CineBlocks and stamps as a JSON file, or import one into this account.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
             <button
               onClick={() => setShowExportModal(true)}
               className={isGlass
-                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 text-left group"
+                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-colors duration-150 hover:border-white/25 text-left group"
                 : "brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-cyan hover:bg-brutal-cyan/5 transition-all text-left group"}
               style={isGlass ? {
-                background: "rgba(8,30,40,0.70)",
-                border: "1px solid rgba(34,211,238,0.22)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: "12px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.35), 0 0 20px rgba(34,211,238,0.06), inset 0 1px 0 rgba(34,211,238,0.08)",
               } : undefined}
             >
               <div
                 className={isGlass ? "w-8 h-8 rounded-full flex items-center justify-center" : "w-8 h-8 rounded-full bg-brutal-cyan/20 flex items-center justify-center group-hover:bg-brutal-cyan"}
-                style={isGlass ? { background: "rgba(34,211,238,0.15)", border: "1px solid rgba(34,211,238,0.30)" } : undefined}
+                style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" } : undefined}
               >
-                <Download className={isGlass ? "w-4 h-4 text-cyan-400" : "w-4 h-4 text-brutal-cyan group-hover:text-black"} />
+                <Download className={isGlass ? "w-4 h-4 text-slate-300" : "w-4 h-4 text-brutal-cyan group-hover:text-black"} />
               </div>
               <div>
-                <h3 className={`font-display font-black ${isGlass ? "text-cyan-300" : "text-white group-hover:text-brutal-cyan"}`}>EXPORT BACKUP</h3>
-                <p className={`font-mono text-[10px] mt-1 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Download local JSON file</p>
+                <h3 className="font-display !text-base font-semibold text-white">Export backup</h3>
+                <p className="mt-0.5 text-sm text-slate-400">Save a copy to this device</p>
               </div>
             </button>
 
             <label
               className={isGlass
-                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-all duration-200 hover:scale-[1.02] hover:brightness-110 text-left group cursor-pointer"
+                ? "p-4 flex flex-col gap-2 items-start rounded-xl transition-colors duration-150 hover:border-white/25 text-left group cursor-pointer"
                 : "brutal-btn p-4 flex flex-col gap-2 items-start border-2 border-brutal-border hover:border-brutal-lime hover:bg-brutal-lime/5 transition-all text-left group cursor-pointer"}
               style={isGlass ? {
-                background: "rgba(8,35,25,0.70)",
-                border: "1px solid rgba(52,211,153,0.22)",
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: "12px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.35), 0 0 20px rgba(52,211,153,0.06), inset 0 1px 0 rgba(52,211,153,0.08)",
               } : undefined}
             >
               <input type="file" accept=".json" className="hidden" onChange={handleFileChange} />
               <div
                 className={isGlass ? "w-8 h-8 rounded-full flex items-center justify-center" : "w-8 h-8 rounded-full bg-brutal-lime/20 flex items-center justify-center group-hover:bg-brutal-lime"}
-                style={isGlass ? { background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.30)" } : undefined}
+                style={isGlass ? { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)" } : undefined}
               >
-                <Upload className={isGlass ? "w-4 h-4 text-emerald-400" : "w-4 h-4 text-brutal-lime group-hover:text-black"} />
+                <Upload className={isGlass ? "w-4 h-4 text-slate-300" : "w-4 h-4 text-brutal-lime group-hover:text-black"} />
               </div>
               <div>
-                <h3 className={`font-display font-black ${isGlass ? "text-emerald-300" : "text-white group-hover:text-brutal-lime"}`}>IMPORT DATA</h3>
-                <p className={`font-mono text-[10px] mt-1 ${isGlass ? "text-slate-500" : "text-brutal-dim"}`}>Merge JSON into account</p>
+                <h3 className="font-display !text-base font-semibold text-white">Import backup</h3>
+                <p className="mt-0.5 text-sm text-slate-400">Adds titles you don’t already have</p>
               </div>
             </label>
           </div>
@@ -885,27 +813,26 @@ export default function ProfilePage() {
             ...glassCard,
             background: "rgba(20,6,10,0.78)",
             border: "1px solid rgba(239,68,68,0.35)",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.55), 0 0 50px rgba(239,68,68,0.10), inset 0 1px 0 rgba(255,255,255,0.06)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.55)",
           } : undefined}
         >
           <div className="flex items-center gap-2 mb-4">
-            {isGlass && <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(180deg, rgba(239,68,68,0.9), rgba(239,68,68,0.4))", boxShadow: "0 0 8px rgba(239,68,68,0.5)" }} />}
-            <h2 className={`text-[10px] font-mono font-black uppercase tracking-[0.2em] ${isGlass ? "text-red-400" : "text-brutal-red"}`}>Danger Zone</h2>
+            <h2 className="!text-sm font-medium text-red-300">Danger zone</h2>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`text-sm font-bold ${isGlass ? "text-white" : "text-brutal-white"}`}>Delete Account</p>
-              <p className={`text-[11px] font-mono mt-0.5 ${isGlass ? "text-slate-400" : "text-brutal-muted"}`}>Wipes all your lists, blocks and data permanently.</p>
+              <p className="text-sm font-semibold text-white">Delete account</p>
+              <p className="mt-0.5 text-sm text-slate-400">Permanently removes your lists, CineBlocks, stamps and connections.</p>
             </div>
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteError(""); setDeleteConfirmText(""); }}
               className={isGlass
-                ? "px-3 py-2 text-xs font-display font-semibold rounded-xl text-red-300 flex items-center gap-2 shrink-0 transition-all hover:scale-[1.02]"
+                ? "flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium text-red-300 transition-[transform,color] duration-150 hover:text-red-200 active:scale-[0.97]"
                 : "brutal-btn px-3 py-2 text-xs font-mono font-bold !bg-brutal-red !text-white !border-brutal-red hover:opacity-80 flex items-center gap-2 shrink-0"}
               style={isGlass ? glassBtn("red") : undefined}
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={2.5} />
-              DELETE
+              Delete…
             </button>
           </div>
         </div>

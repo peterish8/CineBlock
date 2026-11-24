@@ -221,7 +221,7 @@ export default function StampSearchModal({ isOpen, onClose }: StampSearchModalPr
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
             placeholder="Search any film..."
-            className="w-full pl-11 pr-4 py-4 font-mono text-sm focus:outline-none"
+            className="w-full pl-11 pr-4 py-4 font-mono text-sm"
             style={isGlass ? {
               background: "transparent",
               color: "rgba(255,255,255,0.9)",

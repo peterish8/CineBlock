@@ -145,7 +145,7 @@ export default function TerminalAccessCard({ cliToken, cliSearchesUsed, cliSearc
         </div>
         {cliToken && (
           <p className="shrink-0 text-right">
-            <span className="block font-display text-xl font-black text-orange-300">{remaining}</span>
+            <span className="block font-display text-xl font-black tabular-nums text-orange-300">{remaining}</span>
             <span className="block text-[9px] font-mono uppercase tracking-wider text-slate-500">of {DAILY_SEARCHES} left today</span>
           </p>
         )}

@@ -437,6 +437,7 @@ export const pingMcpToken = query({
     if (user) {
       return {
         ok: true,
+        userId: user._id,
         name: user.name ?? user.username ?? "CineBlock user",
         username: user.username ?? null,
         scopes: ["cineblock"],
@@ -454,6 +455,7 @@ export const pingMcpToken = query({
 
     return {
       ok: true,
+      userId: oauthUser._id,
       name: oauthUser.name ?? oauthUser.username ?? "CineBlock user",
       username: oauthUser.username ?? null,
       resource: oauthToken.resource,

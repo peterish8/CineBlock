@@ -2,52 +2,35 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { motion, useReducedMotion } from "framer-motion";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { WizardState } from "@/lib/tmdbQueryBuilder";
 import { TMDBMovie } from "@/lib/types";
-import StepKeywords from "./StepKeywords";
+import { useMovieLists } from "@/hooks/useMovieLists";
+import StepKeywords, { KEYWORD_CHIPS } from "./StepKeywords";
 import StepTime from "./StepTime";
-import StepLanguage from "./StepLanguage";
+import StepLanguage, { languageName } from "./StepLanguage";
 import ResultsGrid from "./ResultsGrid";
 import MovieModal from "../MovieModal";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles, X } from "lucide-react";
-import { motion } from "framer-motion";
-import { useMovieLists } from "@/hooks/useMovieLists";
+import ErrorState from "../ErrorState";
 
 interface FindMyMovieWizardProps {
   onClose: () => void;
 }
 
-const TOTAL_STEPS = 3;
+const STEPS = ["Story", "Language", "Era"] as const;
 const CURRENT_YEAR = new Date().getFullYear();
 
 export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [rerolling, setRerolling] = useState(false);
-  const [error, setError] = useState("");
+  const [failed, setFailed] = useState(false);
   const [results, setResults] = useState<TMDBMovie[] | null>(null);
   const [selectedMovie, setSelectedMovie] = useState<TMDBMovie | null>(null);
-  const [isGlass, setIsGlass] = useState(false);
   const seenIds = useRef<Set<number>>(new Set());
   const { liked, watchlist, watched } = useMovieLists();
-
-  useEffect(() => {
-    const update = () => setIsGlass(document.body.classList.contains("theme-glass"));
-    const raf = requestAnimationFrame(update);
-    const observer = new MutationObserver(update);
-    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    return () => {
-      cancelAnimationFrame(raf);
-      observer.disconnect();
-    };
-  }, []);
-
-  // Lock background scroll while wizard is mounted
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
-  }, []);
+  const reduceMotion = useReducedMotion();
 
   const [state, setState] = useState<WizardState>({
     keywordId: null,
@@ -55,292 +38,185 @@ export default function FindMyMovieWizard({ onClose }: FindMyMovieWizardProps) {
     yearFrom: Math.max(1950, CURRENT_YEAR - 15),
     yearTo: CURRENT_YEAR,
   });
+  const updateState = (updates: Partial<WizardState>) => setState((prev) => ({ ...prev, ...updates }));
 
-  const updateState = (updates: Partial<WizardState>) => {
-    setState((prev) => ({ ...prev, ...updates }));
-  };
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
-  const personalization = {
-    likedIds: liked.map((m) => m.id),
-    watchlistIds: watchlist.map((m) => m.id),
-    watchedIds: watched.map((m) => m.id),
-    preferredLanguages: Array.from(
-      new Set(
-        [...liked, ...watchlist, ...watched]
-          .map((m) => m.original_language)
-          .filter((lang) => Boolean(lang && lang.trim()))
-      )
-    ).slice(0, 5),
-  };
+  useEffect(() => {
+    if (selectedMovie) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, selectedMovie]);
 
   const fetchMovies = async (excludeIds: number[]) => {
     const res = await fetch("/api/find-movie", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...state, excludeIds, personalization }),
+      body: JSON.stringify({
+        ...state,
+        excludeIds,
+        personalization: {
+          likedIds: liked.map((m) => m.id),
+          watchlistIds: watchlist.map((m) => m.id),
+          watchedIds: watched.map((m) => m.id),
+          preferredLanguages: [...new Set([...liked, ...watchlist, ...watched].map((m) => m.original_language).filter((l) => l?.trim()))].slice(0, 5),
+        },
+      }),
     });
-
     if (!res.ok) throw new Error("Failed to find movies");
-    const data = await res.json();
-    const movies = (data.movies || []) as TMDBMovie[];
+    const movies = ((await res.json()).movies || []) as TMDBMovie[];
     movies.forEach((m) => seenIds.current.add(m.id));
     setResults(movies);
   };
 
-  const handleNext = () => {
-    if (step < TOTAL_STEPS) setStep((s) => s + 1);
-    else void handleSubmit();
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep((s) => s - 1);
-  };
-
-  const handleSubmit = async () => {
+  const search = async () => {
     setLoading(true);
-    setError("");
+    setFailed(false);
     try {
       await fetchMovies([]);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setFailed(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleReroll = async () => {
+  const reroll = async () => {
     setRerolling(true);
-    setError("");
     try {
       await fetchMovies([...seenIds.current]);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setFailed(true);
     } finally {
       setRerolling(false);
     }
   };
 
-  const resetWizard = () => {
+  const startOver = () => {
     setResults(null);
-    setStep(1);
-    setError("");
+    setFailed(false);
+    setStep(0);
     seenIds.current = new Set();
   };
 
-  const progress = (step / TOTAL_STEPS) * 100;
+  const isLast = step === STEPS.length - 1;
+  const keywordLabel = KEYWORD_CHIPS.find((chip) => chip.id === state.keywordId)?.label ?? "Any story";
+  const languageLabel = state.languages.includes("any") ? "Any language" : state.languages.map(languageName).join(", ");
+  const summary = `${keywordLabel} · ${languageLabel} · ${state.yearFrom}–${state.yearTo}`;
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-
-        {/* ── Layer 1: Full-screen blur + dim overlay ── */}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.2 }}
           className="absolute inset-0"
-          style={{
-            backdropFilter: "blur(20px) saturate(140%)",
-            WebkitBackdropFilter: "blur(20px) saturate(140%)",
-            background: "rgba(2, 5, 18, 0.88)",
-          }}
+          style={{ background: "rgba(2,8,23,0.6)", backdropFilter: "blur(10px) saturate(120%)", WebkitBackdropFilter: "blur(10px) saturate(120%)" }}
           onClick={onClose}
+          aria-hidden="true"
         />
 
-        {/* ── Layer 2: The modal card ── */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.93, y: 20 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="find-movie-title"
+          initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-xl flex flex-col max-h-[90vh] overflow-hidden"
-          style={{
-            zIndex: 2,
-            borderRadius: isGlass ? "22px" : "4px",
-            background: isGlass
-              ? "linear-gradient(160deg, rgba(8,14,36,0.88) 0%, rgba(6,11,30,0.92) 100%)"
-              : "var(--color-bg)",
-            border: isGlass
-              ? "1px solid rgba(255,255,255,0.10)"
-              : "4px solid var(--color-brutal-border)",
-            boxShadow: isGlass
-              ? [
-                  "0 0 0 1px rgba(255,255,255,0.05)",
-                  "inset 0 1px 0 rgba(255,255,255,0.07)",
-                  "0 8px 32px rgba(0,0,0,0.7)",
-                  "0 32px 80px rgba(0,0,0,0.55)",
-                ].join(", ")
-              : "8px 8px 0px 0px rgba(0,0,0,1)",
-            backdropFilter: isGlass ? "blur(12px)" : "none",
-            WebkitBackdropFilter: isGlass ? "blur(12px)" : "none",
-          }}
+          exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 6 }}
+          transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+          className="relative flex h-[min(620px,88vh)] w-full max-w-3xl flex-col overflow-hidden rounded-3xl"
+          style={{ background: "rgba(6,12,32,0.97)", border: "1px solid rgba(255,255,255,0.10)", boxShadow: "0 32px 80px rgba(0,0,0,0.6)" }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-5 shrink-0" style={isGlass ? {
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-            background: "rgba(255,255,255,0.025)",
-          } : {
-            borderBottom: "2px solid var(--color-brutal-border)",
-            background: "var(--color-surface)",
-          }}>
-            <div className="flex items-center gap-2.5">
-              <div className={isGlass ? "p-1.5 rounded-lg" : ""} style={isGlass ? { background: "rgba(236,72,153,0.15)" } : undefined}>
-                <Sparkles className={`w-5 h-5 ${isGlass ? "text-pink-400" : "text-brutal-pink"}`} strokeWidth={isGlass ? 1.5 : 2.5} />
-              </div>
-              <h1 className={isGlass
-                ? "font-display font-bold text-lg text-white tracking-tight"
-                : "font-display font-bold text-lg text-brutal-white uppercase tracking-tight"
-              }>
-                {isGlass ? "Find My Movie" : "FIND MY MOVIE"}
-              </h1>
+          <div className="flex shrink-0 items-start justify-between gap-4 px-5 pb-4 pt-5 sm:px-8 sm:pt-7">
+            <div>
+              <h1 id="find-movie-title" className="font-display !text-xl font-semibold tracking-tight text-white sm:!text-2xl">Find a movie</h1>
+              <p className="mt-0.5 text-sm text-slate-400">
+                {results ? summary : loading ? "Looking through thousands of films…" : `Step ${step + 1} of ${STEPS.length} · everything is optional`}
+              </p>
             </div>
-            <button onClick={onClose} className={isGlass
-              ? "p-2 rounded-full text-white/40 hover:text-white hover:bg-white/8 transition-all"
-              : "p-2 hover:text-brutal-pink transition-colors text-brutal-white"
-            }>
-              <X className="w-5 h-5" strokeWidth={isGlass ? 1.5 : 3} />
+            <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors duration-150 hover:bg-white/10 hover:text-white">
+              <X className="h-5 w-5" strokeWidth={2} />
             </button>
           </div>
 
-
           {results ? (
-            <div className="flex-1 overflow-hidden flex flex-col">
-              <ResultsGrid
-                movies={results}
-                onRetry={resetWizard}
-                onReroll={handleReroll}
-                rerolling={rerolling}
-                onClose={onClose}
-                onMovieClick={(m) => setSelectedMovie(m)}
-                isGlass={isGlass}
-              />
-            </div>
+            <ResultsGrid movies={results} onStartOver={startOver} onReroll={reroll} rerolling={rerolling} onMovieClick={setSelectedMovie} />
           ) : loading ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 py-24 gap-6">
-              {isGlass ? (
-                <>
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full bg-pink-500/15 blur-2xl animate-pulse" />
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-0 rounded-full border-2 border-dashed border-pink-400/30"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-7 h-7 text-pink-400 animate-pulse" strokeWidth={1.5} />
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <p className="text-white font-display font-medium text-lg tracking-tight">Finding your 5 picks...</p>
-                    <div className="h-0.5 w-40 rounded-full overflow-hidden bg-white/10">
-                      <motion.div
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                        className="h-full w-1/2 bg-gradient-to-r from-pink-400 to-blue-400 rounded-full"
-                      />
-                    </div>
-                    <p className="text-slate-500 text-xs">Tuning vibe, language and timeline...</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Loader2 className="w-12 h-12 text-brutal-pink animate-spin" />
-                  <h3 className="font-display font-bold text-xl uppercase tracking-widest text-brutal-white animate-pulse">
-                    FINDING 5 GREAT PICKS...
-                  </h3>
-                  <p className="font-mono text-xs text-brutal-muted text-center max-w-xs">
-                    Tuning your vibe, language, and timeline preferences.
-                  </p>
-                </>
-              )}
+            <div className="grid flex-1 grid-cols-2 content-center gap-4 px-5 pb-8 sm:grid-cols-3 sm:px-8 md:grid-cols-5" role="status" aria-label="Finding movies">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i}>
+                  <div className="aspect-[2/3] animate-pulse rounded-xl bg-white/[0.06]" />
+                  <div className="mt-2 h-4 w-3/4 animate-pulse rounded bg-white/[0.06]" />
+                </div>
+              ))}
             </div>
+          ) : failed ? (
+            <ErrorState
+              title="The reel snapped"
+              message="We couldn't reach the movie database. Your picks are saved, so just try again."
+              onRetry={() => void search()}
+              className="px-6"
+            />
           ) : (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-20 sm:pb-6">
-              {/* Progress bar */}
-              <div className={`h-1 mb-8 rounded-full overflow-hidden ${isGlass ? "bg-white/8" : "bg-surface-2"}`}>
-                <div
-                  className={`h-full transition-all duration-300 ease-out rounded-full ${isGlass ? "bg-gradient-to-r from-pink-500 to-blue-500" : "bg-brutal-pink"}`}
-                  style={{ width: `${progress}%` }}
-                />
+            <>
+              {/* Step tabs double as progress */}
+              <div className="flex shrink-0 gap-2 px-5 sm:px-8" role="tablist" aria-label="Steps">
+                {STEPS.map((label, i) => (
+                  <button
+                    key={label}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === step}
+                    onClick={() => setStep(i)}
+                    className="group flex-1 text-left"
+                  >
+                    <span className={`block h-1 rounded-full transition-colors duration-200 ${i <= step ? "bg-blue-400" : "bg-white/10 group-hover:bg-white/20"}`} />
+                    <span className={`mt-2 block text-xs font-medium transition-colors duration-150 ${i === step ? "text-white" : "text-slate-500 group-hover:text-slate-300"}`}>{label}</span>
+                  </button>
+                ))}
               </div>
 
-              {step === 1 && <StepKeywords value={state.keywordId} onChange={(v) => updateState({ keywordId: v })} isGlass={isGlass} />}
-              {step === 2 && <StepLanguage value={state.languages} onChange={(v) => updateState({ languages: v })} isGlass={isGlass} />}
-              {step === 3 && (
-                <StepTime
-                  value={{ from: state.yearFrom, to: state.yearTo }}
-                  onChange={(range) => updateState({ yearFrom: range.from, yearTo: range.to })}
-                  isGlass={isGlass}
-                />
-              )}
-
-              {error && (
-                <div className={`mt-6 p-4 text-sm font-semibold ${
-                  isGlass
-                    ? "rounded-xl border border-red-500/30 bg-red-500/10 text-red-300"
-                    : "border-l-4 border-brutal-red bg-brutal-red/10 text-brutal-red font-mono font-bold"
-                }`}>
-                  {error}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Footer nav */}
-          {!results && !loading && (
-            <div className="p-4 sm:p-5 shrink-0 flex items-center justify-between" style={isGlass ? {
-              borderTop: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.03)",
-            } : {
-              borderTop: "2px solid var(--color-brutal-border)",
-              background: "var(--color-surface)",
-            }}>
-              <button
-                onClick={handleBack}
-                disabled={step === 1}
-                className={`flex items-center gap-2 px-4 py-2 font-semibold text-sm uppercase tracking-wide transition-all disabled:opacity-30 ${
-                  isGlass
-                    ? "text-slate-400 hover:text-white rounded-2xl hover:bg-white/6 disabled:hover:bg-transparent font-medium tracking-[0.02em]"
-                    : "font-mono font-bold hover:text-brutal-pink text-brutal-white disabled:hover:text-brutal-white"
-                }`}
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-              <button
-                onClick={handleNext}
-                className={`flex items-center gap-2 px-5 py-2.5 font-semibold text-sm tracking-wide transition-all ${
-                  isGlass
-                    ? step === TOTAL_STEPS
-                      ? "rounded-2xl text-white hover:brightness-110 shadow-[0_18px_44px_rgba(15,23,42,0.42)]"
-                      : "rounded-2xl bg-white/6 border border-white/10 text-white hover:bg-white/10"
-                    : step === TOTAL_STEPS
-                      ? "brutal-btn !bg-brutal-pink !text-black !border-brutal-pink font-mono font-bold tracking-widest"
-                      : "brutal-btn font-mono font-bold tracking-widest"
-                }`}
-                style={isGlass && step === TOTAL_STEPS ? {
-                  background: "linear-gradient(135deg, rgba(99,102,241,0.72), rgba(59,130,246,0.64) 52%, rgba(16,185,129,0.52))",
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  backdropFilter: "blur(18px)",
-                  WebkitBackdropFilter: "blur(18px)",
-                } : undefined}
-              >
-                {step === TOTAL_STEPS ? (
-                  <><Sparkles className="w-4 h-4" /> {isGlass ? "Get 5 Movies" : "GET 5 MOVIES"}</>
-                ) : (
-                  <>{isGlass ? "Next" : "NEXT"} <ArrowRight className="w-4 h-4" /></>
+              <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+                {step === 0 && <StepKeywords value={state.keywordId} onChange={(v) => updateState({ keywordId: v })} />}
+                {step === 1 && <StepLanguage value={state.languages} onChange={(v) => updateState({ languages: v })} />}
+                {step === 2 && (
+                  <StepTime value={{ from: state.yearFrom, to: state.yearTo }} onChange={(r) => updateState({ yearFrom: r.from, yearTo: r.to })} />
                 )}
-              </button>
-            </div>
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/[0.08] px-5 py-4 sm:px-8">
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => s - 1)}
+                  className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-medium text-slate-400 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white ${step === 0 ? "invisible" : ""}`}
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => (isLast ? void search() : setStep((s) => s + 1))}
+                  className="flex min-h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white transition-[transform,background-color] duration-150 hover:bg-blue-400/30 active:scale-[0.97]"
+                  style={{ background: "rgba(96,165,250,0.22)", border: "1px solid rgba(96,165,250,0.5)" }}
+                >
+                  {isLast ? "Show 5 movies" : "Next"}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </>
           )}
         </motion.div>
       </div>
 
-      {selectedMovie && (
-        <MovieModal movie={selectedMovie} onClose={onClose} onBack={() => setSelectedMovie(null)} />
-      )}
+      {selectedMovie && <MovieModal movie={selectedMovie} onClose={onClose} onBack={() => setSelectedMovie(null)} />}
     </>,
-    document.body
+    document.body,
   );
 }

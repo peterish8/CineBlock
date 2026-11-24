@@ -336,8 +336,8 @@ export default function SwipeCard({
             }
           >
             <div className="flex items-center gap-1.5">
-              <ArrowUpFromLine className="h-5 w-5 text-violet-400" strokeWidth={3} />
-              <span className={`text-sm font-black uppercase tracking-widest text-violet-400 ${isGlass ? "" : "font-mono"}`}>
+              <ArrowUpFromLine className="h-5 w-5 text-blue-400" strokeWidth={3} />
+              <span className={`text-sm font-black uppercase tracking-widest text-blue-400 ${isGlass ? "" : "font-mono"}`}>
                 CINEBLOCK
               </span>
             </div>

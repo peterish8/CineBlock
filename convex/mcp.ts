@@ -2,14 +2,14 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { MAX_BLOCKS_PER_USER, MAX_BLOCK_DESCRIPTION_LENGTH, MAX_BLOCK_TITLE_LENGTH, MAX_MOVIES_PER_BLOCK, MAX_POSTER_PATH_LENGTH, MAX_TITLE_LENGTH, STAMP_REVIEW_MAX } from "./limits";
 
-const MAX_BLOCKS_PER_USER = 15;
-const MAX_MOVIES_PER_BLOCK = 35;
-const STAMP_REVIEW_MAX = 1000;
-const MAX_TITLE_LENGTH = 200;
-const MAX_POSTER_PATH_LENGTH = 2048;
 const PLAYLIST_MIN_INTERVAL_MS = 4000;
 const STAMP_MIN_INTERVAL_MS = 2000;
+// Every MCP call re-checks its token in the database, so revoking one takes effect at once;
+// long lifetimes just keep ChatGPT connected. Each refresh restarts the refresh window.
+const ACCESS_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000;
 const MCP_ACCESS_TOKEN_REGEX = /^mcp_[0-9a-f]{64}$/;
 
 async function hashMcpToken(token: string) {
@@ -46,6 +46,16 @@ async function enforceMcpRateLimit(ctx: MutationCtx, userId: Id<"users">, action
 function validateActionId(actionId: string) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(actionId)) {
     throw new ConvexError("Invalid MCP confirmation. Please preview again.");
+  }
+}
+
+// Only the trusted /api/mcp route handler knows this secret, so these mutations
+// cannot be invoked directly by an external Convex client holding just a user
+// access token — they must go through the route's preview -> confirm flow.
+function requireInternalSecret(internalSecret: string) {
+  const expected = process.env.INTERNAL_API_SECRET;
+  if (!expected || internalSecret !== expected) {
+    throw new ConvexError("This operation must go through the CineBlock MCP route.");
   }
 }
 
@@ -215,6 +225,7 @@ export const getStampStatus = query({
 export const createPlaylist = mutation({
   args: {
     token: v.string(),
+    internalSecret: v.string(),
     actionId: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
@@ -222,6 +233,7 @@ export const createPlaylist = mutation({
     movies: v.array(movieValidator),
   },
   handler: async (ctx, args) => {
+    requireInternalSecret(args.internalSecret);
     const user = await getUserByToken(ctx, args.token);
     if (!user) throw new ConvexError("Invalid MCP token");
     validateActionId(args.actionId);
@@ -239,8 +251,8 @@ export const createPlaylist = mutation({
     const title = args.title.trim();
     const description = args.description?.trim() || undefined;
     if (!title) throw new ConvexError("Playlist title is required.");
-    if (title.length > 60) throw new ConvexError("Playlist title must be 60 characters or fewer.");
-    if (description && description.length > 280) throw new ConvexError("Description must be 280 characters or fewer.");
+    if (title.length > MAX_BLOCK_TITLE_LENGTH) throw new ConvexError(`Playlist title must be ${MAX_BLOCK_TITLE_LENGTH} characters or fewer.`);
+    if (description && description.length > MAX_BLOCK_DESCRIPTION_LENGTH) throw new ConvexError(`Description must be ${MAX_BLOCK_DESCRIPTION_LENGTH} characters or fewer.`);
     if (args.movies.length === 0) throw new ConvexError("Playlist must contain at least one title.");
     if (args.movies.length > MAX_MOVIES_PER_BLOCK) throw new ConvexError(`A playlist can contain at most ${MAX_MOVIES_PER_BLOCK} titles.`);
 
@@ -282,6 +294,7 @@ export const createPlaylist = mutation({
 export const createStamp = mutation({
   args: {
     token: v.string(),
+    internalSecret: v.string(),
     actionId: v.string(),
     movieId: v.number(),
     mediaType: v.optional(v.union(v.literal("movie"), v.literal("tv"))),
@@ -291,6 +304,7 @@ export const createStamp = mutation({
     isPublic: v.boolean(),
   },
   handler: async (ctx, args) => {
+    requireInternalSecret(args.internalSecret);
     const user = await getUserByToken(ctx, args.token);
     if (!user) throw new ConvexError("Invalid MCP token");
     validateActionId(args.actionId);
@@ -431,11 +445,11 @@ async function issueMcpTokens(ctx: MutationCtx, userId: Id<"users">, clientId: s
     resource,
     userId,
     scope,
-    accessExpiresAt: now + 60 * 60 * 1000,
-    refreshExpiresAt: now + 30 * 24 * 60 * 60 * 1000,
+    accessExpiresAt: now + ACCESS_TOKEN_TTL_MS,
+    refreshExpiresAt: now + REFRESH_TOKEN_TTL_MS,
     createdAt: now,
   });
-  return { accessToken, refreshToken, expiresIn: 3600, scope };
+  return { accessToken, refreshToken, expiresIn: ACCESS_TOKEN_TTL_MS / 1000, scope };
 }
 
 export const exchangeMcpAuthorizationCode = mutation({

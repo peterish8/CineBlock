@@ -184,7 +184,7 @@ export default function TVGrid({ filters, onShowClick, watchedIds, watched, onMo
                 <button
                   key={`${show.id}-${i}`}
                   onClick={() => onShowClick(show)}
-                  className="group brutal-poster relative aspect-[2/3] w-full focus:outline-none animate-fade-in"
+                  className="group brutal-poster relative aspect-[2/3] w-full animate-fade-in"
                   style={{ animationDelay: `${(i % 20) * 40}ms` }}
                 >
                   {hasImage ? (

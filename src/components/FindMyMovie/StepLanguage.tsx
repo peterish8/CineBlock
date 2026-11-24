@@ -1,251 +1,161 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { Search, X, Plus, Check } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 
 interface StepLanguageProps {
   value: string[];
   onChange: (langs: string[]) => void;
-  isGlass?: boolean;
 }
 
-type Language = {
-  code: string;
-  native: string;
-  english: string;
-  flag: string;
-};
+type Language = { code: string; name: string; native?: string };
+
+const MAX_LANGUAGES = 5;
 
 const ALL_LANGUAGES: Language[] = [
-  { code: "any", native: "Any Language", english: "", flag: "GLOBAL" },
-  { code: "en", native: "English", english: "English", flag: "EN" },
-  { code: "hi", native: "Hindi", english: "Hindi", flag: "HI" },
-  { code: "ta", native: "Tamil", english: "Tamil", flag: "TA" },
-  { code: "te", native: "Telugu", english: "Telugu", flag: "TE" },
-  { code: "ml", native: "Malayalam", english: "Malayalam", flag: "ML" },
-  { code: "kn", native: "Kannada", english: "Kannada", flag: "KN" },
-  { code: "es", native: "Espanol", english: "Spanish", flag: "ES" },
-  { code: "fr", native: "Francais", english: "French", flag: "FR" },
-  { code: "de", native: "Deutsch", english: "German", flag: "DE" },
-  { code: "it", native: "Italiano", english: "Italian", flag: "IT" },
-  { code: "ja", native: "Nihongo", english: "Japanese", flag: "JA" },
-  { code: "ko", native: "Hanguk-eo", english: "Korean", flag: "KO" },
-  { code: "zh", native: "Zhongwen", english: "Chinese", flag: "ZH" },
-  { code: "pt", native: "Portugues", english: "Portuguese", flag: "PT" },
-  { code: "ru", native: "Russkiy", english: "Russian", flag: "RU" },
-  { code: "ar", native: "Arabiyyah", english: "Arabic", flag: "AR" },
-  { code: "tr", native: "Turkce", english: "Turkish", flag: "TR" },
-  { code: "id", native: "Bahasa Indonesia", english: "Indonesian", flag: "ID" },
-  { code: "th", native: "Phasa Thai", english: "Thai", flag: "TH" },
+  { code: "any", name: "Any language" },
+  { code: "en", name: "English" },
+  { code: "hi", name: "Hindi" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "ml", name: "Malayalam" },
+  { code: "kn", name: "Kannada" },
+  { code: "es", name: "Spanish", native: "Español" },
+  { code: "fr", name: "French", native: "Français" },
+  { code: "de", name: "German", native: "Deutsch" },
+  { code: "it", name: "Italian", native: "Italiano" },
+  { code: "ja", name: "Japanese", native: "日本語" },
+  { code: "ko", name: "Korean", native: "한국어" },
+  { code: "zh", name: "Chinese", native: "中文" },
+  { code: "pt", name: "Portuguese", native: "Português" },
+  { code: "ru", name: "Russian", native: "Русский" },
+  { code: "ar", name: "Arabic", native: "العربية" },
+  { code: "tr", name: "Turkish", native: "Türkçe" },
+  { code: "id", name: "Indonesian", native: "Bahasa Indonesia" },
+  { code: "th", name: "Thai", native: "ไทย" },
 ];
 
-const TOP_LANGUAGE_CODES = ["any", "en", "hi", "ta", "te", "es", "fr", "ja", "ko"];
+const QUICK_PICKS = ["any", "en", "hi", "ta", "te", "ml", "ko", "ja", "es", "fr"];
 
-function getLabel(lang: Language) {
-  if (lang.code === "any") return lang.native;
-  if (lang.native === lang.english) return lang.native;
-  return `${lang.native} / ${lang.english}`;
+export function languageName(code: string) {
+  return ALL_LANGUAGES.find((l) => l.code === code)?.name ?? code;
 }
 
-export default function StepLanguage({ value, onChange, isGlass = false }: StepLanguageProps) {
+export default function StepLanguage({ value, onChange }: StepLanguageProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-
-  const selectedSet = new Set(value);
-  const topLanguages = TOP_LANGUAGE_CODES.map((code) => ALL_LANGUAGES.find((l) => l.code === code)).filter(Boolean) as Language[];
-
-  const filtered = search.trim()
-    ? ALL_LANGUAGES.filter(
-        (l) =>
-          l.native.toLowerCase().includes(search.toLowerCase()) ||
-          l.english.toLowerCase().includes(search.toLowerCase())
-      )
-    : ALL_LANGUAGES;
+  const selected = new Set(value);
+  const isAny = selected.has("any");
+  const chosen = isAny ? 0 : value.length;
 
   useEffect(() => {
-    if (open) setTimeout(() => searchRef.current?.focus(), 50);
+    if (open) searchRef.current?.focus();
   }, [open]);
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const canAddMore = value.includes("any") || value.length < 5;
-
-  const toggleLanguage = (code: string) => {
-    const exists = selectedSet.has(code);
-
-    if (code === "any") {
-      onChange(["any"]);
-      return;
+  const toggle = (code: string) => {
+    if (code === "any") return onChange(["any"]);
+    if (selected.has(code)) {
+      const next = value.filter((l) => l !== code);
+      return onChange(next.length ? next : ["any"]);
     }
-
-    if (exists) {
-      const next = value.filter((lang) => lang !== code);
-      onChange(next.length > 0 ? next : ["any"]);
-      return;
-    }
-
-    const withoutAny = value.filter((lang) => lang !== "any");
-    if (withoutAny.length >= 5) return;
+    const withoutAny = value.filter((l) => l !== "any");
+    if (withoutAny.length >= MAX_LANGUAGES) return;
     onChange([...withoutAny, code]);
   };
 
-  const selectedLabels = ALL_LANGUAGES
-    .filter((lang) => selectedSet.has(lang.code))
-    .map((lang) => getLabel(lang))
-    .join(", ");
+  const chip = (lang: Language) => {
+    const isOn = selected.has(lang.code);
+    const blocked = !isOn && lang.code !== "any" && chosen >= MAX_LANGUAGES;
+    return (
+      <button
+        key={lang.code}
+        type="button"
+        aria-pressed={isOn}
+        disabled={blocked}
+        onClick={() => toggle(lang.code)}
+        className={`flex min-h-10 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40 ${
+          isOn
+            ? "border-blue-400/60 bg-blue-400/20 text-white"
+            : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+        }`}
+      >
+        {isOn && <Check className="h-3.5 w-3.5 text-blue-300" strokeWidth={3} />}
+        {lang.name}
+      </button>
+    );
+  };
+
+  const query = search.trim().toLowerCase();
+  const filtered = ALL_LANGUAGES.filter((l) => l.code !== "any" && (!query || l.name.toLowerCase().includes(query) || l.native?.toLowerCase().includes(query)));
+  // Languages chosen from the full list stay visible as chips next to the quick picks.
+  const extraChips = value.filter((code) => code !== "any" && !QUICK_PICKS.includes(code));
 
   return (
     <div>
-      <h2 className={isGlass ? "font-display font-semibold text-[1.9rem] text-white tracking-[-0.03em] mb-1" : "font-display font-bold text-xl text-brutal-white uppercase tracking-tight mb-1"}>
-        {isGlass ? "Choose language" : "LANGUAGES"}
-      </h2>
-      <p className={isGlass ? "text-[0.95rem] text-slate-400 leading-relaxed mb-5" : "text-brutal-muted text-xs font-mono mb-5"}>
-        {isGlass ? "Prioritize the original language. We'll stay strict unless you leave it open." : "Pick up to 5 languages"}
-      </p>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-display !text-lg font-semibold text-white">Which languages?</h2>
+        <span className="text-sm tabular-nums text-slate-500">{isAny ? "Any" : `${chosen} of ${MAX_LANGUAGES}`}</span>
+      </div>
+      <p className="mt-1 text-sm text-slate-400">We match the film&apos;s original language.</p>
 
-      <div ref={containerRef} className="w-full">
-        <div className="mb-3 flex flex-wrap gap-2">
-          {topLanguages.map((lang) => {
-            const selected = selectedSet.has(lang.code);
-            const disabled = !selected && lang.code !== "any" && !canAddMore;
-            return (
-              <button
-                key={lang.code}
-                onClick={() => toggleLanguage(lang.code)}
-                disabled={disabled}
-                className={isGlass
-                  ? `px-3.5 py-2.5 text-[0.88rem] font-medium rounded-[16px] border transition-all ${
-                      selected ? "text-white" : "text-slate-300 hover:text-white"
-                    } disabled:opacity-40 disabled:cursor-not-allowed`
-                  : `px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider border-2 transition-all ${
-                      selected
-                        ? "bg-brutal-violet text-black border-brutal-violet"
-                        : "bg-surface text-brutal-dim border-brutal-border hover:border-brutal-violet hover:text-brutal-violet"
-                    } disabled:opacity-40 disabled:cursor-not-allowed`}
-                style={isGlass ? {
-                  background: selected ? "linear-gradient(135deg, rgba(79,70,229,0.34), rgba(59,130,246,0.22))" : "rgba(255,255,255,0.045)",
-                  borderColor: selected ? "rgba(129,140,248,0.35)" : "rgba(255,255,255,0.08)",
-                  backdropFilter: "blur(14px)",
-                } : undefined}
-              >
-                {lang.flag} {lang.native}
-              </button>
-            );
-          })}
-
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className={isGlass
-              ? `px-3.5 py-2.5 text-[0.88rem] font-medium rounded-[16px] border transition-all flex items-center gap-1 ${
-                  open ? "text-white" : "text-slate-300 hover:text-white"
-                }`
-              : `px-3 py-2 text-xs font-mono font-bold uppercase tracking-wider border-2 transition-all flex items-center gap-1 ${
-                  open
-                    ? "bg-brutal-pink text-black border-brutal-pink"
-                    : "bg-surface text-brutal-dim border-brutal-border hover:border-brutal-pink hover:text-brutal-pink"
-                }`}
-            style={isGlass ? {
-              background: open ? "linear-gradient(135deg, rgba(168,85,247,0.26), rgba(79,70,229,0.18))" : "rgba(255,255,255,0.045)",
-              borderColor: open ? "rgba(196,181,253,0.32)" : "rgba(255,255,255,0.08)",
-              backdropFilter: "blur(14px)",
-            } : undefined}
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={3} />
-            {isGlass ? "More languages" : "MORE"}
-          </button>
-        </div>
-
-        <div
-          className={isGlass ? "mb-4 rounded-[18px] px-3.5 py-3 border" : "mb-4 border-2 border-brutal-border bg-surface px-3 py-2"}
-          style={isGlass ? { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" } : undefined}
+      <div className="mt-5 flex flex-wrap gap-2">
+        {[...QUICK_PICKS, ...extraChips].map((code) => chip(ALL_LANGUAGES.find((l) => l.code === code)!))}
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className="flex min-h-10 items-center gap-1.5 rounded-full border border-dashed border-white/15 px-4 text-sm font-medium text-slate-400 transition-colors duration-150 hover:border-white/30 hover:text-white"
         >
-          <p className={isGlass ? "text-[0.88rem] text-slate-300" : "text-[10px] font-mono uppercase text-brutal-dim"}>
-            Selected ({value.includes("any") ? "Any" : `${value.length}/5`}): {selectedLabels}
-          </p>
-        </div>
-
-        {open && (
-          <div
-            className={isGlass ? "w-full mt-1 rounded-[22px] animate-pop-in overflow-hidden border" : "w-full mt-1 bg-bg border-3 border-brutal-border shadow-brutal animate-pop-in"}
-            style={isGlass ? {
-              background: "rgba(8,14,36,0.94)",
-              borderColor: "rgba(255,255,255,0.10)",
-              boxShadow: "0 20px 48px rgba(0,0,0,0.35)",
-              backdropFilter: "blur(24px)",
-            } : undefined}
-          >
-            <div
-              className={isGlass ? "flex items-center gap-2 px-3 py-3 border-b sticky top-0 z-10" : "flex items-center gap-2 px-3 py-2.5 border-b-2 border-brutal-border sticky top-0 bg-bg z-10"}
-              style={isGlass ? { borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" } : undefined}
-            >
-              <Search className={`w-3.5 h-3.5 shrink-0 ${isGlass ? "text-slate-400" : "text-brutal-dim"}`} strokeWidth={2.5} />
-              <input
-                ref={searchRef}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search language..."
-                className={isGlass ? "flex-1 bg-transparent text-white text-[0.92rem] outline-none placeholder:text-slate-500" : "flex-1 bg-transparent text-brutal-white text-xs font-mono outline-none placeholder:text-brutal-dim"}
-              />
-              {search && (
-                <button onClick={() => setSearch("")}>
-                  <X className={`w-3.5 h-3.5 ${isGlass ? "text-slate-500 hover:text-white" : "text-brutal-dim hover:text-brutal-white"}`} strokeWidth={2.5} />
-                </button>
-              )}
-            </div>
-
-            <div className="max-h-72 overflow-y-auto">
-              {filtered.length === 0 ? (
-                <p className={isGlass ? "px-4 py-3 text-slate-400 text-sm" : "px-4 py-3 text-brutal-dim text-xs font-mono"}>No match</p>
-              ) : (
-                filtered.map((lang) => {
-                  const selected = selectedSet.has(lang.code);
-                  const disabled = !selected && lang.code !== "any" && !canAddMore;
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => toggleLanguage(lang.code)}
-                      disabled={disabled}
-                      className={isGlass
-                        ? `w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-b last:border-b-0 ${
-                            selected ? "bg-white/7 text-white" : "text-slate-200 hover:bg-white/5"
-                          } disabled:opacity-40 disabled:cursor-not-allowed`
-                        : `w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-brutal-border/40 last:border-b-0 ${
-                            selected ? "bg-surface text-brutal-violet" : "text-brutal-white hover:bg-surface"
-                          } disabled:opacity-40 disabled:cursor-not-allowed`}
-                      style={isGlass ? { borderColor: "rgba(255,255,255,0.06)" } : undefined}
-                    >
-                      <span className="text-sm shrink-0 font-semibold">{lang.flag}</span>
-                      <span className={isGlass ? "text-[0.92rem] font-medium leading-tight" : "font-mono text-xs font-bold uppercase leading-tight"}>{getLabel(lang)}</span>
-                      {selected && (
-                        <Check className={`ml-auto w-3 h-3 shrink-0 ${isGlass ? "text-blue-300" : "text-brutal-violet"}`} strokeWidth={3} />
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+          More
+          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
-      {!value.includes("any") && (
-        <button
-          onClick={() => onChange(["any"])}
-          className={isGlass ? "mt-2 text-[0.82rem] font-medium tracking-[0.02em] text-slate-400 hover:text-white" : "mt-2 text-[10px] font-mono uppercase tracking-wider text-brutal-dim underline hover:text-brutal-white"}
-        >
-          Reset to Any language
-        </button>
+      {open && (
+        <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03]">
+          <label className="flex items-center gap-2 border-b border-white/[0.08] px-4">
+            <Search className="h-4 w-4 shrink-0 text-slate-500" />
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search languages"
+              aria-label="Search languages"
+              className="min-h-11 flex-1 bg-transparent text-base text-white outline-none placeholder:text-slate-500"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="rounded-md p-1 text-slate-500 hover:text-white">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </label>
+          <div className="max-h-56 overflow-y-auto p-1">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-sm text-slate-400">No language matches &ldquo;{search}&rdquo;.</p>
+            ) : (
+              filtered.map((lang) => {
+                const isOn = selected.has(lang.code);
+                const blocked = !isOn && chosen >= MAX_LANGUAGES;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    disabled={blocked}
+                    onClick={() => toggle(lang.code)}
+                    className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm text-slate-200 transition-colors duration-150 hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <span className="flex-1">
+                      {lang.name}
+                      {lang.native && <span className="ml-2 text-slate-500">{lang.native}</span>}
+                    </span>
+                    {isOn && <Check className="h-4 w-4 text-blue-300" strokeWidth={2.5} />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
